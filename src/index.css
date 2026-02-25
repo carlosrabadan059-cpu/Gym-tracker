@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Theme Defaults (iOS System Colors) */
+    --color-background: #F2F2F7;
+    --color-surface: #FFFFFF;
+    --color-surface-highlight: #E5E5EA;
+    --color-text-primary: #000000;
+    --color-text-secondary: #8E8E93;
+    --color-primary: #88cc00;
+    /* Neon Green brand color retained */
+  }
+
+  .dark {
+    /* Dark Theme Defaults (Original) */
+    --color-background: #000000;
+    --color-surface: #1C1C1E;
+    --color-surface-highlight: #2C2C2E;
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #8E8E93;
+    --color-primary: #CCFF00;
+  }
+
+  body {
+    @apply bg-background text-text-primary antialiased;
+    /* Mobile optimization: prevent pull-to-refresh and rubber-banding */
+    overscroll-behavior-y: none;
+    touch-action: pan-x pan-y;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .min-h-touch {
+    min-height: 44px;
+  }
+
+  /* Hide number input spinners */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+}
