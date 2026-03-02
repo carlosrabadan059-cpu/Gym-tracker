@@ -9,7 +9,7 @@ import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
-    const { profile } = useAuth();
+    const { profile, user } = useAuth();
     const [expandedRoutine, setExpandedRoutine] = useState(null);
     const [routines, setRoutines] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -18,10 +18,25 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
 
     useEffect(() => {
         const fetchRoutines = async () => {
+            if (!user) return;
             try {
+                // Check for assigned routines
+                const { data: assigned, error: assignedErr } = await supabase
+                    .from('assigned_routines')
+                    .select('routine_id')
+                    .eq('client_id', user.id);
+
+                let targetRoutineIds = [];
+                if (!assignedErr && assigned && assigned.length > 0) {
+                    targetRoutineIds = assigned.map(a => a.routine_id);
+                } else {
+                    targetRoutineIds = ['day1', 'day2']; // defaults
+                }
+
                 const { data: routinesData, error: routinesError } = await supabase
                     .from('routines')
                     .select('*')
+                    .in('id', targetRoutineIds)
                     .order('id');
 
                 if (routinesError) throw routinesError;
@@ -47,8 +62,10 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             }
         };
 
-        fetchRoutines();
-    }, []);
+        if (user) {
+            fetchRoutines();
+        }
+    }, [user]);
 
     const toggleRoutine = (id) => {
         setExpandedRoutine(expandedRoutine === id ? null : id);

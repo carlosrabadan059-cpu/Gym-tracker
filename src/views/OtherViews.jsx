@@ -7,8 +7,6 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
 const ExerciseDetailModal = ({ exercise, onClose }) => {
-    if (!exercise) return null;
-
     const { profile } = useAuth();
     const userWeight = profile?.weight || null;
 

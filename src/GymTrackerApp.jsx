@@ -11,6 +11,11 @@ import { Dumbbell } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
 import { loadCompletedRoutines, saveCompletedRoutines } from './lib/utils';
 import { supabase } from './lib/supabase';
+import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
+import { ClientsListView } from './views/trainer/ClientsListView';
+import { ClientProfileView } from './views/trainer/ClientProfileView';
+import { RoutineAssignerView } from './views/trainer/RoutineAssignerView';
+import { TrainerLibraryView } from './views/trainer/TrainerLibraryView';
 
 // Login Component (Internal for now, to keep everything in one file if possible or extract)
 const LoginView = () => {
@@ -98,23 +103,19 @@ const LoginView = () => {
 };
 
 const AuthenticatedApp = () => {
-    const [view, setView] = useState('setup'); // setup, dashboard, training, progress, chat, profile
-    const { user, loading } = useAuth();
+    const [view, setView] = useState('setup'); // setup, dashboard, training, progress, chat, profile, trainer
+    const { user, profile, loading } = useAuth();
     const [currentWorkout, setCurrentWorkout] = useState(null);
-    const [profile, setProfile] = useState(null);
     const [completedRoutines, setCompletedRoutines] = useState(loadCompletedRoutines());
+    const [currentClient, setCurrentClient] = useState(null); // Added for trainer views
 
     useEffect(() => {
-        // Load user profile
-        if (user) {
-            supabase
-                .from('profiles')
-                .select('*')
-                .eq('user_id', user.id)
-                .single()
-                .then(({ data }) => setProfile(data));
+        if (profile?.role === 'trainer' && view === 'setup') {
+            setView('trainer');
+        } else if (profile && view === 'setup') {
+            setView('dashboard');
         }
-    }, [user]);
+    }, [profile]);
 
     const handleStartSetup = () => {
         setView('dashboard');
@@ -153,6 +154,37 @@ const AuthenticatedApp = () => {
             )}
 
             <main className="flex-1 overflow-y-auto px-4 pb-32 pt-2 scrollbar-hide">
+                {view === 'trainer' && (
+                    <TrainerDashboardView onNavigate={handleNavigate} />
+                )}
+                {view === 'trainer_clients' && (
+                    <ClientsListView
+                        onBack={() => setView('trainer')}
+                        onSelectClient={(client) => {
+                            setCurrentClient(client);
+                            setView('trainer_client_profile');
+                        }}
+                    />
+                )}
+                {view === 'trainer_client_profile' && (
+                    <ClientProfileView
+                        client={currentClient}
+                        onBack={() => setView('trainer_clients')}
+                        onAssignRoutine={() => setView('trainer_assign_routine')}
+                    />
+                )}
+                {view === 'trainer_assign_routine' && (
+                    <RoutineAssignerView
+                        client={currentClient}
+                        onBack={() => setView('trainer_client_profile')}
+                        onSuccess={() => setView('trainer_client_profile')}
+                    />
+                )}
+                {view === 'trainer_library' && (
+                    <TrainerLibraryView
+                        onBack={() => setView('trainer')}
+                    />
+                )}
                 {view === 'dashboard' && (
                     <DashboardView
                         onStartDaily={(routine) => handleStartWorkout(routine || { id: 'day1' })}
@@ -182,7 +214,7 @@ const AuthenticatedApp = () => {
             </main>
 
             {/* Bottom Navigation */}
-            {view !== 'setup' && (
+            {view !== 'setup' && view !== 'trainer' && (
                 <BottomNavigation currentView={view} onViewChange={handleNavigate} />
             )}
         </div>

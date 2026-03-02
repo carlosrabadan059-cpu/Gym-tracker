@@ -1,0 +1,338 @@
+[
+    {
+        "id": 5,
+        "name": "Aperturas en banco plano",
+        "category": "Pecho",
+        "prompt": "man on flat bench doing dumbbell flyes"
+    },
+    {
+        "id": 7,
+        "name": "Press de banca inclinado (Barra)",
+        "category": "Pecho",
+        "prompt": "man on incline bench doing barbell press"
+    },
+    {
+        "id": 8,
+        "name": "Cruce de poleas (Superior)",
+        "category": "Pecho",
+        "prompt": "man doing high cable crossovers"
+    },
+    {
+        "id": 9,
+        "name": "Cruce de poleas (Inferior)",
+        "category": "Pecho",
+        "prompt": "man doing low cable crossovers"
+    },
+    {
+        "id": 10,
+        "name": "Contractora (Machine Fly)",
+        "category": "Pecho",
+        "prompt": "man using pec deck machine"
+    },
+    {
+        "id": 11,
+        "name": "Flexiones (Push ups)",
+        "category": "Pecho",
+        "prompt": "man doing pushups on floor"
+    },
+    {
+        "id": 12,
+        "name": "Pull over con mancuerna",
+        "category": "Pecho",
+        "prompt": "man lying on bench doing dumbbell pullover"
+    },
+    {
+        "id": 19,
+        "name": "Jalón tras nuca",
+        "category": "Dorsal",
+        "prompt": "man doing behind-the-neck lat pulldown"
+    },
+    {
+        "id": 22,
+        "name": "Remo con barra",
+        "category": "Dorsal",
+        "prompt": "man doing bent over barbell row"
+    },
+    {
+        "id": 23,
+        "name": "Remo vertical con mancuernas",
+        "category": "Dorsal",
+        "prompt": "man doing standing dumbbell upright row"
+    },
+    {
+        "id": 28,
+        "name": "Curl concentrado",
+        "category": "Bíceps",
+        "prompt": "man seated doing concentration curl"
+    },
+    {
+        "id": 29,
+        "name": "Curl en banco Scott (Predicador)",
+        "category": "Bíceps",
+        "prompt": "man using preacher curl bench"
+    },
+    {
+        "id": 30,
+        "name": "Curl con polea baja",
+        "category": "Bíceps",
+        "prompt": "man doing standing cable biceps curl"
+    },
+    {
+        "id": 31,
+        "name": "Curl alterno con mancuernas (Sentado)",
+        "category": "Bíceps",
+        "prompt": "man seated doing alternating dumbbell curls"
+    },
+    {
+        "id": 32,
+        "name": "Curl de bíceps en polea alta (Doble bíceps)",
+        "category": "Bíceps",
+        "prompt": "man doing high cable curls"
+    },
+    {
+        "id": 33,
+        "name": "Curl con polea (Reverse grip)",
+        "category": "Bíceps",
+        "prompt": "man doing reverse grip cable curls"
+    },
+    {
+        "id": 34,
+        "name": "Curl tumbado en polea gironda",
+        "category": "Bíceps",
+        "prompt": "man lying down doing cable curls"
+    },
+    {
+        "id": 35,
+        "name": "Curl Zottman",
+        "category": "Bíceps",
+        "prompt": "man doing zottman curls with dumbbells"
+    },
+    {
+        "id": 36,
+        "name": "Curl de antebrazo (Supinación)",
+        "category": "Bíceps",
+        "prompt": "man doing forearm curls palms up"
+    },
+    {
+        "id": 37,
+        "name": "Curl de antebrazo (Pronación)",
+        "category": "Bíceps",
+        "prompt": "man doing forearm curls palms down"
+    },
+    {
+        "id": 38,
+        "name": "Giros de muñeca",
+        "category": "Bíceps",
+        "prompt": "man doing wrist rotations with dumbbells"
+    },
+    {
+        "id": 40,
+        "name": "Extensiones de tríceps tras nuca (Polea)",
+        "category": "Tríceps",
+        "prompt": "man doing overhead cable triceps extensions"
+    },
+    {
+        "id": 41,
+        "name": "Jalón de tríceps (Barra recta)",
+        "category": "Tríceps",
+        "prompt": "man doing triceps pushdown with straight bar"
+    },
+    {
+        "id": 43,
+        "name": "Press francés con mancuernas",
+        "category": "Tríceps",
+        "prompt": "man lying on bench doing dumbbell skullcrushers"
+    },
+    {
+        "id": 44,
+        "name": "Extensiones de tríceps con mancuerna (Una mano)",
+        "category": "Tríceps",
+        "prompt": "man standing doing one-arm dumbbell overhead extension"
+    },
+    {
+        "id": 45,
+        "name": "Press de banca agarre cerrado",
+        "category": "Tríceps",
+        "prompt": "man doing close-grip bench press"
+    },
+    {
+        "id": 46,
+        "name": "Patada de tríceps (Mancuerna)",
+        "category": "Tríceps",
+        "prompt": "man doing dumbbell triceps kickbacks"
+    },
+    {
+        "id": 47,
+        "name": "Press francés (Sentado)",
+        "category": "Tríceps",
+        "prompt": "man seated doing skullcrushers"
+    },
+    {
+        "id": 48,
+        "name": "Fondos en máquina",
+        "category": "Tríceps",
+        "prompt": "man doing dips in a machine"
+    },
+    {
+        "id": 49,
+        "name": "Fondos entre bancos",
+        "category": "Tríceps",
+        "prompt": "man doing bench dips"
+    },
+    {
+        "id": 52,
+        "name": "Press militar con barra (De pie)",
+        "category": "Hombro",
+        "prompt": "man doing standing barbell overhead press"
+    },
+    {
+        "id": 53,
+        "name": "Press Arnold",
+        "category": "Hombro",
+        "prompt": "man doing arnold press with dumbbells"
+    },
+    {
+        "id": 57,
+        "name": "Elevaciones frontales (Disco o Barra)",
+        "category": "Hombro",
+        "prompt": "man doing front raise with weight plate"
+    },
+    {
+        "id": 59,
+        "name": "Elevaciones frontales (Polea)",
+        "category": "Hombro",
+        "prompt": "man doing cable front raise"
+    },
+    {
+        "id": 60,
+        "name": "Encogimientos de hombros (Shrugs) con barra",
+        "category": "Hombro",
+        "prompt": "man doing barbell shrugs"
+    },
+    {
+        "id": 61,
+        "name": "Elevación de hombros en máquina o polea baja",
+        "category": "Hombro",
+        "prompt": "man doing machine shoulder shrugs"
+    },
+    {
+        "id": 62,
+        "name": "Encogimientos con mancuernas",
+        "category": "Hombro",
+        "prompt": "man doing dumbbell shrugs"
+    },
+    {
+        "id": 65,
+        "name": "Sentadilla Hack",
+        "category": "Pierna",
+        "prompt": "man using hack squat machine"
+    },
+    {
+        "id": 67,
+        "name": "Sentadilla en multipower",
+        "category": "Pierna",
+        "prompt": "man doing smith machine squats"
+    },
+    {
+        "id": 70,
+        "name": "Peso muerto rumano (Mancuernas)",
+        "category": "Pierna",
+        "prompt": "man doing dumbbell romanian deadlift"
+    },
+    {
+        "id": 71,
+        "name": "Zancadas (Lunges)",
+        "category": "Pierna",
+        "prompt": "man doing lunges with dumbbells"
+    },
+    {
+        "id": 72,
+        "name": "Prensa vertical o Jaca",
+        "category": "Pierna",
+        "prompt": "man using vertical leg press machine"
+    },
+    {
+        "id": 74,
+        "name": "Prensa de gemelos",
+        "category": "Pierna",
+        "prompt": "man doing calf raises on leg press"
+    },
+    {
+        "id": 75,
+        "name": "Gemelos de pie (Máquina)",
+        "category": "Pierna",
+        "prompt": "man doing standing calf raises"
+    },
+    {
+        "id": 77,
+        "name": "Abducción de cadera (Máquina)",
+        "category": "Glúteo",
+        "prompt": "man using hip abductor machine"
+    },
+    {
+        "id": 78,
+        "name": "Abductor",
+        "category": "Glúteo",
+        "prompt": "man doing hip abduction"
+    },
+    {
+        "id": 80,
+        "name": "Patada lateral de glúteo",
+        "category": "Glúteo",
+        "prompt": "man doing lateral glute kick"
+    },
+    {
+        "id": 81,
+        "name": "Puentes de glúteo (Hip Thrust)",
+        "category": "Glúteo",
+        "prompt": "man doing hip thrusts with barbell"
+    },
+    {
+        "id": 82,
+        "name": "Step ups",
+        "category": "Glúteo",
+        "prompt": "man doing step-ups on a bench"
+    },
+    {
+        "id": 89,
+        "name": "Crunch con pies en alto",
+        "category": "Abdomen",
+        "prompt": "man doing crunches with feet raised"
+    },
+    {
+        "id": 90,
+        "name": "Rueda abdominal",
+        "category": "Abdomen",
+        "prompt": "man using ab roller wheel"
+    },
+    {
+        "id": 91,
+        "name": "Lumbares (Hiperextensiones)",
+        "category": "Abdomen",
+        "prompt": "man doing back extensions"
+    },
+    {
+        "id": 92,
+        "name": "Giros rusos (Russian Twists)",
+        "category": "Abdomen",
+        "prompt": "man doing russian twists with weight"
+    },
+    {
+        "id": 94,
+        "name": "Plancha abdominal (Plank)",
+        "category": "Abdomen",
+        "prompt": "man doing abdominal plank"
+    },
+    {
+        "id": 95,
+        "name": "Elevación de rodillas al pecho",
+        "category": "Abdomen",
+        "prompt": "man doing knee raises"
+    },
+    {
+        "id": 96,
+        "name": "Crunch con polea alta",
+        "category": "Abdomen",
+        "prompt": "man doing kneeling cable crunches"
+    }
+]

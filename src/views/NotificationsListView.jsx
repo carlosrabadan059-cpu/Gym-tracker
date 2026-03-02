@@ -62,7 +62,9 @@ export function NotificationsListView({ onClose }) {
                                     <h4 className={cn("font-bold text-sm truncate pr-6", n.read ? "text-text-secondary" : "text-text-primary")}>
                                         {n.title}
                                     </h4>
-                                    <span className="text-[10px] opacity-60 whitespace-nowrap ml-2">{n.time}</span>
+                                    <span className="text-[10px] opacity-60 whitespace-nowrap ml-2">
+                                        {new Date(n.created_at).toLocaleDateString()}
+                                    </span>
                                 </div>
                                 <p className="text-xs leading-relaxed opacity-80 line-clamp-2">
                                     {n.message}

@@ -1,0 +1,158 @@
+[
+  {
+    "id": 2,
+    "name": "Press de banca inclinado (Mancuernas)",
+    "category": "Pecho",
+    "prompt": "man doing press de banca inclinado (mancuernas)"
+  },
+  {
+    "id": 4,
+    "name": "Press superior con mancuernas",
+    "category": "Pecho",
+    "prompt": "man doing press superior con mancuernas"
+  },
+  {
+    "id": 13,
+    "name": "Fondos en paralelas (Dips)",
+    "category": "Pecho",
+    "prompt": "man doing fondos en paralelas (dips)"
+  },
+  {
+    "id": 14,
+    "name": "Press declinado",
+    "category": "Pecho",
+    "prompt": "man doing press declinado"
+  },
+  {
+    "id": 16,
+    "name": "Jalón al pecho (Neutral)",
+    "category": "Dorsal",
+    "prompt": "man doing jalón al pecho (neutral)"
+  },
+  {
+    "id": 20,
+    "name": "Remo horizontal con mancuerna (Serrucho)",
+    "category": "Dorsal",
+    "prompt": "man doing remo horizontal con mancuerna (serrucho)"
+  },
+  {
+    "id": 24,
+    "name": "Lumbares en banco",
+    "category": "Dorsal",
+    "prompt": "man doing lumbares en banco"
+  },
+  {
+    "id": 26,
+    "name": "Curl con barra recta",
+    "category": "Bíceps",
+    "prompt": "man doing curl con barra recta"
+  },
+  {
+    "id": 39,
+    "name": "Jalón de tríceps en polea (Cuerda)",
+    "category": "Tríceps",
+    "prompt": "man doing jalón de tríceps en polea (cuerda)"
+  },
+  {
+    "id": 47,
+    "name": "Press francés (Sentado)",
+    "category": "Tríceps",
+    "prompt": "man doing press francés (sentado)"
+  },
+  {
+    "id": 50,
+    "name": "Press militar en máquina",
+    "category": "Hombro",
+    "prompt": "man doing press militar en máquina"
+  },
+  {
+    "id": 54,
+    "name": "Elevaciones laterales (Mancuernas)",
+    "category": "Hombro",
+    "prompt": "man doing elevaciones laterales (mancuernas)"
+  },
+  {
+    "id": 55,
+    "name": "Elevaciones frontales (Mancuernas)",
+    "category": "Hombro",
+    "prompt": "man doing elevaciones frontales (mancuernas)"
+  },
+  {
+    "id": 59,
+    "name": "Elevaciones frontales (Polea)",
+    "category": "Hombro",
+    "prompt": "man doing elevaciones frontales (polea)"
+  },
+  {
+    "id": 61,
+    "name": "Elevación de hombros en máquina o polea baja",
+    "category": "Hombro",
+    "prompt": "man doing elevación de hombros en máquina o polea baja"
+  },
+  {
+    "id": 63,
+    "name": "Sentadilla con barra",
+    "category": "Pierna",
+    "prompt": "man doing sentadilla con barra"
+  },
+  {
+    "id": 64,
+    "name": "Prensa de piernas (45°)",
+    "category": "Pierna",
+    "prompt": "man doing prensa de piernas (45°)"
+  },
+  {
+    "id": 73,
+    "name": "Extensiones de gemelos (Sentado)",
+    "category": "Pierna",
+    "prompt": "man doing extensiones de gemelos (sentado)"
+  },
+  {
+    "id": 76,
+    "name": "Patada de glúteo (Máquina o Polea)",
+    "category": "Glúteo",
+    "prompt": "man doing patada de glúteo (máquina o polea)"
+  },
+  {
+    "id": 79,
+    "name": "Aductor",
+    "category": "Glúteo",
+    "prompt": "man doing aductor"
+  },
+  {
+    "id": 83,
+    "name": "Crunch abdominal (Suelo)",
+    "category": "Abdomen",
+    "prompt": "man doing crunch abdominal (suelo)"
+  },
+  {
+    "id": 84,
+    "name": "Crunch en banco declinado",
+    "category": "Abdomen",
+    "prompt": "man doing crunch en banco declinado"
+  },
+  {
+    "id": 85,
+    "name": "Elevación de piernas suspendido",
+    "category": "Abdomen",
+    "prompt": "man doing elevación de piernas suspendido"
+  },
+  {
+    "id": 86,
+    "name": "Crunch en máquina",
+    "category": "Abdomen",
+    "prompt": "man doing crunch en máquina"
+  },
+  {
+    "id": 88,
+    "name": "Tijeras abdominales",
+    "category": "Abdomen",
+    "prompt": "man doing tijeras abdominales"
+  },
+  {
+    "id": 93,
+    "name": "Crunch lateral (Oblicuos)",
+    "category": "Abdomen",
+    "prompt": "man doing crunch lateral (oblicuos)"
+  }
+]

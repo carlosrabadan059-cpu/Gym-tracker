@@ -28,6 +28,13 @@ export const routines = [
                 image: '/exercises/decline-bench-press.png'
             },
             {
+                id: 10,
+                name: 'Aperturas en Máquina',
+                series: '3',
+                reps: '10',
+                image: '/exercises/futures-pecho-contractora.png'
+            },
+            {
                 id: 201,
                 name: 'Curl con Barra',
                 series: '3',
@@ -40,6 +47,13 @@ export const routines = [
                 series: '3',
                 reps: '10',
                 image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/0.jpg'
+            },
+            {
+                id: 28,
+                name: 'Curl Concentrado',
+                series: '3',
+                reps: '10',
+                image: '/exercises/futures-biceps-curl-concentrado.png'
             },
             {
                 id: 84,

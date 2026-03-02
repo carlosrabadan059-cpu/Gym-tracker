@@ -1,0 +1,184 @@
+[
+  {
+    "id": 2,
+    "name": "Press de banca inclinado (Mancuernas)",
+    "category": "Pecho",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing incline dumbbell bench press. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'INCLINE PRESS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pecho_press_inclinado_mancuernas_final"
+  },
+  {
+    "id": 4,
+    "name": "Press superior con mancuernas",
+    "category": "Pecho",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing seated dumbbell overhead press. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'DB PRESS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pecho_press_superior_mancuernas_alt_final"
+  },
+  {
+    "id": 13,
+    "name": "Fondos en paralelas (Dips)",
+    "category": "Pecho",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing parallel bar dips. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'DIPS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pecho_fondos_paralelas_final"
+  },
+  {
+    "id": 14,
+    "name": "Press declinado",
+    "category": "Pecho",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing decline barbell bench press. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'DECLINE PRESS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pecho_press_declinado_final"
+  },
+  {
+    "id": 16,
+    "name": "Jalón al pecho (Neutral)",
+    "category": "Dorsal",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing neutral grip lat pulldown. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'NEUTRAL PULL' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_dorsal_jalon_neutral_final"
+  },
+  {
+    "id": 20,
+    "name": "Remo horizontal con mancuerna (Serrucho)",
+    "category": "Dorsal",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing single arm dumbbell row on a bench. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'DB ROW' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_dorsal_remo_mancuerna_horizontal_final"
+  },
+  {
+    "id": 24,
+    "name": "Lumbares en banco",
+    "category": "Dorsal",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing back extensions on a hyperextension bench. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'BACK EXT' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_dorsal_lumbares_banco_final"
+  },
+  {
+    "id": 26,
+    "name": "Curl con barra recta",
+    "category": "Bíceps",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing standing barbell biceps curl. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'BB CURL' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_biceps_curl_barra_recta_alt_final"
+  },
+  {
+    "id": 39,
+    "name": "Jalón de tríceps en polea (Cuerda)",
+    "category": "Tríceps",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing triceps rope pushdown on a cable machine. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'ROPE PUSH' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_triceps_jalon_cuerda_alt_final"
+  },
+  {
+    "id": 47,
+    "name": "Press francés (Sentado)",
+    "category": "Tríceps",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing seated overhead dumbbell triceps extension (french press). Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'FRENCH PRESS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_triceps_press_frances_sentado_final"
+  },
+  {
+    "id": 50,
+    "name": "Press militar en máquina",
+    "category": "Hombro",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing seated machine shoulder press. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'MACHINE PRESS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_hombro_press_maquina_final"
+  },
+  {
+    "id": 54,
+    "name": "Elevaciones laterales (Mancuernas)",
+    "category": "Hombro",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing standing dumbbell lateral raises. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'LATERAL RAISE' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_hombro_elevacion_lateral_mancuernas_final"
+  },
+  {
+    "id": 55,
+    "name": "Elevaciones frontales (Mancuernas)",
+    "category": "Hombro",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing standing dumbbell front raises. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'FRONT RAISE' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_hombro_elevacion_frontal_mancuernas_final"
+  },
+  {
+    "id": 59,
+    "name": "Elevaciones frontales (Polea)",
+    "category": "Hombro",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing cable front raises. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'CABLE RAISE' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_hombro_elevacion_frontal_polea_final"
+  },
+  {
+    "id": 61,
+    "name": "Elevación de hombros en máquina o polea baja",
+    "category": "Hombro",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing machine shoulder shrugs. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'MACHINE SHRUG' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_hombro_encogimiento_maquina_final"
+  },
+  {
+    "id": 63,
+    "name": "Sentadilla con barra",
+    "category": "Pierna",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing barbell back squats. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'BB SQUAT' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pierna_sentadilla_barra_final"
+  },
+  {
+    "id": 64,
+    "name": "Prensa de piernas (45°)",
+    "category": "Pierna",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing 45-degree leg press machine. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'LEG PRESS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pierna_prensa_45_alt_final"
+  },
+  {
+    "id": 73,
+    "name": "Extensiones de gemelos (Sentado)",
+    "category": "Pierna",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing seated calf raise machine. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'SEATED CALF' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_pierna_gemelo_sentado_final"
+  },
+  {
+    "id": 76,
+    "name": "Patada de glúteo (Máquina o Polea)",
+    "category": "Glúteo",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing standing cable glute kickbacks. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'GLUTE KICK' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_gluteo_patada_polea_final"
+  },
+  {
+    "id": 79,
+    "name": "Aductor",
+    "category": "Glúteo",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing seated hip adductor machine (squeezing in). Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'ADDUCTOR' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_gluteo_aductor_final"
+  },
+  {
+    "id": 83,
+    "name": "Crunch abdominal (Suelo)",
+    "category": "Abdomen",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing floor crunches. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'FLOOR CRUNCH' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_abdomen_crunch_suelo_alt_final"
+  },
+  {
+    "id": 84,
+    "name": "Crunch en banco declinado",
+    "category": "Abdomen",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing crunches on a decline bench. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'DECLINE CRUNCH' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_abdomen_crunch_declinado_final"
+  },
+  {
+    "id": 85,
+    "name": "Elevación de piernas suspendido",
+    "category": "Abdomen",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing hanging leg raises. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'HANGING RAISE' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_abdomen_elevacion_suspendido_final"
+  },
+  {
+    "id": 86,
+    "name": "Crunch en máquina",
+    "category": "Abdomen",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing seated abdominal crunch machine. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'MACHINE CRUNCH' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_abdomen_crunch_maquina_final"
+  },
+  {
+    "id": 88,
+    "name": "Tijeras abdominales",
+    "category": "Abdomen",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing lying floor flutter kicks/scissors. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'FLUTTER KICKS' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_abdomen_tijeras_final"
+  },
+  {
+    "id": 93,
+    "name": "Crunch lateral (Oblicuos)",
+    "category": "Abdomen",
+    "prompt": "High-end tech-noir fitness app icon. Subject: Detailed silhouette of a person doing lying side crunches for obliques. Style: 'Futures Gym' tech aesthetic. Deep dark background, glowing green and purple neon circuitry lines. Glowing green neon highlighting on the targeted muscles. Text 'SIDE CRUNCH' in neon green and 'FUTURES GYM' in neon purple. Square layout, no rounded corners. Matches reference.",
+    "fileName": "futures_abdomen_crunch_lateral_final"
+  }
+]

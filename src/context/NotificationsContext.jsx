@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 const NotificationsContext = createContext();
 
@@ -7,39 +9,46 @@ export function useNotifications() {
 }
 
 export function NotificationsProvider({ children }) {
+    const { user } = useAuth();
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    // Load mock data on mount
+    const fetchNotifications = async () => {
+        if (!user) {
+            setNotifications([]);
+            return;
+        }
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            setNotifications(data);
+        }
+    };
+
     useEffect(() => {
-        const mockData = [
-            {
-                id: 1,
-                title: '¡Hora de entrenar!',
-                message: 'No has registrado actividad en 2 días. ¿Qué tal un poco de cardio hoy?',
-                time: 'Hace 2 horas',
-                read: false,
-                type: 'reminder'
-            },
-            {
-                id: 2,
-                title: 'Nuevo récord personal',
-                message: '¡Felicidades! Has superado tu marca en Press de Banca.',
-                time: 'Ayer',
-                read: false,
-                type: 'achievement'
-            },
-            {
-                id: 3,
-                title: 'Bienvenido a Gym Tracker',
-                message: 'Gracias por unirte. Configura tu perfil para empezar.',
-                time: 'Hace 1 semana',
-                read: true,
-                type: 'info'
-            }
-        ];
-        setNotifications(mockData);
-    }, []);
+        fetchNotifications();
+
+        if (!user) return;
+
+        // Subscribe to real-time changes
+        const channel = supabase.channel('realtime:notifications')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+                (payload) => {
+                    fetchNotifications();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
 
     // Update badge count whenever notifications change
     useEffect(() => {
@@ -48,18 +57,20 @@ export function NotificationsProvider({ children }) {
         setUnreadCount(count);
     }, [notifications]);
 
-    const markAsRead = (id) => {
-        setNotifications(prev => prev.map(n =>
-            n.id === id ? { ...n, read: true } : n
-        ));
+    const markAsRead = async (id) => {
+        await supabase.from('notifications').update({ read: true }).eq('id', id);
+        fetchNotifications();
     };
 
-    const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    const markAllAsRead = async () => {
+        if (!user) return;
+        await supabase.from('notifications').update({ read: true }).eq('user_id', user.id);
+        fetchNotifications();
     };
 
-    const deleteNotification = (id) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+    const deleteNotification = async (id) => {
+        await supabase.from('notifications').delete().eq('id', id);
+        fetchNotifications();
     };
 
     const value = {

@@ -1,0 +1,337 @@
+[
+  {
+    "id": 3,
+    "name": "Aperturas laterales (Mancuernas)",
+    "category": "Pecho"
+  },
+  {
+    "id": 4,
+    "name": "Press superior con mancuernas",
+    "category": "Pecho"
+  },
+  {
+    "id": 5,
+    "name": "Aperturas en banco plano",
+    "category": "Pecho"
+  },
+  {
+    "id": 6,
+    "name": "Press de banca plano (Barra)",
+    "category": "Pecho"
+  },
+  {
+    "id": 7,
+    "name": "Press de banca inclinado (Barra)",
+    "category": "Pecho"
+  },
+  {
+    "id": 8,
+    "name": "Cruce de poleas (Superior)",
+    "category": "Pecho"
+  },
+  {
+    "id": 9,
+    "name": "Cruce de poleas (Inferior)",
+    "category": "Pecho"
+  },
+  {
+    "id": 10,
+    "name": "Contractora (Machine Fly)",
+    "category": "Pecho"
+  },
+  {
+    "id": 11,
+    "name": "Flexiones (Push ups)",
+    "category": "Pecho"
+  },
+  {
+    "id": 12,
+    "name": "Pull over con mancuerna",
+    "category": "Pecho"
+  },
+  {
+    "id": 17,
+    "name": "Jalón al pecho (Ancho)",
+    "category": "Dorsal"
+  },
+  {
+    "id": 19,
+    "name": "Jalón tras nuca",
+    "category": "Dorsal"
+  },
+  {
+    "id": 20,
+    "name": "Remo horizontal con mancuerna (Serrucho)",
+    "category": "Dorsal"
+  },
+  {
+    "id": 21,
+    "name": "Remo en máquina",
+    "category": "Dorsal"
+  },
+  {
+    "id": 22,
+    "name": "Remo con barra",
+    "category": "Dorsal"
+  },
+  {
+    "id": 23,
+    "name": "Remo vertical con mancuernas",
+    "category": "Dorsal"
+  },
+  {
+    "id": 26,
+    "name": "Curl con barra recta",
+    "category": "Bíceps"
+  },
+  {
+    "id": 28,
+    "name": "Curl concentrado",
+    "category": "Bíceps"
+  },
+  {
+    "id": 29,
+    "name": "Curl en banco Scott (Predicador)",
+    "category": "Bíceps"
+  },
+  {
+    "id": 30,
+    "name": "Curl con polea baja",
+    "category": "Bíceps"
+  },
+  {
+    "id": 31,
+    "name": "Curl alterno con mancuernas (Sentado)",
+    "category": "Bíceps"
+  },
+  {
+    "id": 32,
+    "name": "Curl de bíceps en polea alta (Doble bíceps)",
+    "category": "Bíceps"
+  },
+  {
+    "id": 33,
+    "name": "Curl con polea (Reverse grip)",
+    "category": "Bíceps"
+  },
+  {
+    "id": 34,
+    "name": "Curl tumbado en polea gironda",
+    "category": "Bíceps"
+  },
+  {
+    "id": 35,
+    "name": "Curl Zottman",
+    "category": "Bíceps"
+  },
+  {
+    "id": 36,
+    "name": "Curl de antebrazo (Supinación)",
+    "category": "Bíceps"
+  },
+  {
+    "id": 37,
+    "name": "Curl de antebrazo (Pronación)",
+    "category": "Bíceps"
+  },
+  {
+    "id": 38,
+    "name": "Giros de muñeca",
+    "category": "Bíceps"
+  },
+  {
+    "id": 40,
+    "name": "Extensiones de tríceps tras nuca (Polea)",
+    "category": "Tríceps"
+  },
+  {
+    "id": 41,
+    "name": "Jalón de tríceps (Barra recta)",
+    "category": "Tríceps"
+  },
+  {
+    "id": 43,
+    "name": "Press francés con mancuernas",
+    "category": "Tríceps"
+  },
+  {
+    "id": 44,
+    "name": "Extensiones de tríceps con mancuerna (Una mano)",
+    "category": "Tríceps"
+  },
+  {
+    "id": 45,
+    "name": "Press de banca agarre cerrado",
+    "category": "Tríceps"
+  },
+  {
+    "id": 46,
+    "name": "Patada de tríceps (Mancuerna)",
+    "category": "Tríceps"
+  },
+  {
+    "id": 47,
+    "name": "Press francés (Sentado)",
+    "category": "Tríceps"
+  },
+  {
+    "id": 48,
+    "name": "Fondos en máquina",
+    "category": "Tríceps"
+  },
+  {
+    "id": 49,
+    "name": "Fondos entre bancos",
+    "category": "Tríceps"
+  },
+  {
+    "id": 51,
+    "name": "Press militar con barra (Sentado)",
+    "category": "Hombro"
+  },
+  {
+    "id": 52,
+    "name": "Press militar con barra (De pie)",
+    "category": "Hombro"
+  },
+  {
+    "id": 53,
+    "name": "Press Arnold",
+    "category": "Hombro"
+  },
+  {
+    "id": 56,
+    "name": "Vuelos (Pájaros) para deltoide posterior",
+    "category": "Hombro"
+  },
+  {
+    "id": 57,
+    "name": "Elevaciones frontales (Disco o Barra)",
+    "category": "Hombro"
+  },
+  {
+    "id": 59,
+    "name": "Elevaciones frontales (Polea)",
+    "category": "Hombro"
+  },
+  {
+    "id": 60,
+    "name": "Encogimientos de hombros (Shrugs) con barra",
+    "category": "Hombro"
+  },
+  {
+    "id": 61,
+    "name": "Elevación de hombros en máquina o polea baja",
+    "category": "Hombro"
+  },
+  {
+    "id": 62,
+    "name": "Encogimientos con mancuernas",
+    "category": "Hombro"
+  },
+  {
+    "id": 64,
+    "name": "Prensa de piernas (45°)",
+    "category": "Pierna"
+  },
+  {
+    "id": 65,
+    "name": "Sentadilla Hack",
+    "category": "Pierna"
+  },
+  {
+    "id": 67,
+    "name": "Sentadilla en multipower",
+    "category": "Pierna"
+  },
+  {
+    "id": 69,
+    "name": "Femoral (Curl femoral tumbado)",
+    "category": "Pierna"
+  },
+  {
+    "id": 70,
+    "name": "Peso muerto rumano (Mancuernas)",
+    "category": "Pierna"
+  },
+  {
+    "id": 71,
+    "name": "Zancadas (Lunges)",
+    "category": "Pierna"
+  },
+  {
+    "id": 72,
+    "name": "Prensa vertical o Jaca",
+    "category": "Pierna"
+  },
+  {
+    "id": 74,
+    "name": "Prensa de gemelos",
+    "category": "Pierna"
+  },
+  {
+    "id": 75,
+    "name": "Gemelos de pie (Máquina)",
+    "category": "Pierna"
+  },
+  {
+    "id": 77,
+    "name": "Abducción de cadera (Máquina)",
+    "category": "Glúteo"
+  },
+  {
+    "id": 78,
+    "name": "Abductor",
+    "category": "Glúteo"
+  },
+  {
+    "id": 80,
+    "name": "Patada lateral de glúteo",
+    "category": "Glúteo"
+  },
+  {
+    "id": 81,
+    "name": "Puentes de glúteo (Hip Thrust)",
+    "category": "Glúteo"
+  },
+  {
+    "id": 82,
+    "name": "Step ups",
+    "category": "Glúteo"
+  },
+  {
+    "id": 89,
+    "name": "Crunch con pies en alto",
+    "category": "Abdomen"
+  },
+  {
+    "id": 90,
+    "name": "Rueda abdominal",
+    "category": "Abdomen"
+  },
+  {
+    "id": 91,
+    "name": "Lumbares (Hiperextensiones)",
+    "category": "Abdomen"
+  },
+  {
+    "id": 92,
+    "name": "Giros rusos (Russian Twists)",
+    "category": "Abdomen"
+  },
+  {
+    "id": 94,
+    "name": "Plancha abdominal (Plank)",
+    "category": "Abdomen"
+  },
+  {
+    "id": 95,
+    "name": "Elevación de rodillas al pecho",
+    "category": "Abdomen"
+  },
+  {
+    "id": 96,
+    "name": "Crunch con polea alta",
+    "category": "Abdomen"
+  }
+]
