@@ -9,7 +9,7 @@ import { ProfileView } from './views/ProfileView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Dumbbell } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
-import { loadCompletedRoutines, saveCompletedRoutines } from './lib/utils';
+import { loadCompletedRoutines, saveCompletedRoutines, saveWorkoutLog } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
 import { ClientsListView } from './views/trainer/ClientsListView';
@@ -195,13 +195,17 @@ const AuthenticatedApp = () => {
                 {view === 'training' && (
                     <TrainingView
                         workout={currentWorkout}
-                        onFinish={() => {
+                        onFinish={(logs) => {
                             if (currentWorkout) {
                                 setCompletedRoutines(prev => {
                                     const newRoutines = [...new Set([...prev, currentWorkout.id])];
                                     saveCompletedRoutines(newRoutines);
                                     return newRoutines;
                                 });
+                                // Guardar el historial con pesos y repeticiones introducidos
+                                if (logs && Object.keys(logs).length > 0) {
+                                    saveWorkoutLog(currentWorkout.id, logs);
+                                }
                             }
                             setView('dashboard');
                         }}

@@ -49,3 +49,49 @@ export function loadCompletedRoutines() {
         return [];
     }
 }
+
+export function saveWorkoutLog(routineId, logs) {
+    const data = localStorage.getItem('gymTrackerWorkoutLogs');
+    let history = [];
+    if (data) {
+        try {
+            const parsed = JSON.parse(data);
+            const now = new Date().getTime();
+            // Limpiar los historiales caducados
+            if (now <= parsed.expiration && Array.isArray(parsed.history)) {
+                history = parsed.history;
+            }
+        } catch (e) {
+            console.error("Error parsing workout logs:", e);
+        }
+    }
+
+    history.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        routineId,
+        date: new Date().toISOString(),
+        logs
+    });
+
+    const expiration = getNextSaturdayExpiration();
+    const payload = { history, expiration };
+    localStorage.setItem('gymTrackerWorkoutLogs', JSON.stringify(payload));
+}
+
+export function loadWorkoutLogs() {
+    const data = localStorage.getItem('gymTrackerWorkoutLogs');
+    if (!data) return [];
+    try {
+        const parsed = JSON.parse(data);
+        const now = new Date().getTime();
+        // Si ha pasado el domingo de reset
+        if (now > parsed.expiration) {
+            localStorage.removeItem('gymTrackerWorkoutLogs');
+            return [];
+        }
+        return parsed.history || [];
+    } catch (e) {
+        console.error("Error loading workout logs:", e);
+        return [];
+    }
+}

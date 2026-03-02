@@ -30,7 +30,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 if (!assignedErr && assigned && assigned.length > 0) {
                     targetRoutineIds = assigned.map(a => a.routine_id);
                 } else {
-                    targetRoutineIds = ['day1', 'day2']; // defaults
+                    targetRoutineIds = ['day1', 'day2', 'day3', 'day4']; // defaults
                 }
 
                 const { data: routinesData, error: routinesError } = await supabase

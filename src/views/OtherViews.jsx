@@ -6,7 +6,7 @@ import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
-const ExerciseDetailModal = ({ exercise, onClose }) => {
+const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => {
     const { profile } = useAuth();
     const userWeight = profile?.weight || null;
 
@@ -21,8 +21,11 @@ const ExerciseDetailModal = ({ exercise, onClose }) => {
     const [timerActive, setTimerActive] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60);
     const [selectedDuration, setSelectedDuration] = useState(60);
-    const [completedSets, setCompletedSets] = useState({});
+    const [completedSets, setCompletedSets] = useState(initialLog?.completedSets || {});
     const [setsData, setSetsData] = useState(() => {
+        if (initialLog && initialLog.setsData) {
+            return initialLog.setsData;
+        }
         const initial = {};
         const count = parseInt(exercise.series) || 3;
         for (let i = 0; i < count; i++) {
@@ -132,7 +135,7 @@ const ExerciseDetailModal = ({ exercise, onClose }) => {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
                     <button
-                        onClick={() => onClose(false)}
+                        onClick={() => onClose(false, { setsData, completedSets })}
                         className="absolute right-4 top-4 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors z-10"
                     >
                         <X size={24} />
@@ -266,12 +269,12 @@ const ExerciseDetailModal = ({ exercise, onClose }) => {
                 <div className="p-4 pb-6 border-t border-surface-highlight bg-surface mt-auto z-10">
                     <button
                         onClick={() => {
-                            // Close and return true to indicate completion
-                            onClose(true);
+                            // Close and return true to indicate completion, pass logs
+                            onClose(true, { setsData, completedSets });
                         }}
                         className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-lg shadow-primary/20 active:scale-[0.98] transition-all"
                     >
-                        Completar Ejercicio
+                        {isCompleted ? 'Actualizar Ejercicio' : 'Completar Ejercicio'}
                     </button>
                 </div>
             </div>
@@ -287,15 +290,22 @@ const TrainingView = ({ workout, onFinish }) => {
     const activeWorkout = workout && workout.exercises ? workout : routines.find(r => r.id === 'day1');
     const [activeExercise, setActiveExercise] = useState(null);
     const [completedExercises, setCompletedExercises] = useState({});
+    const [exerciseLogs, setExerciseLogs] = useState({});
 
     const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[ex.id]);
 
-    const handleExerciseComplete = () => {
+    const handleExerciseModalClose = (completed, logs) => {
         if (activeExercise) {
-            setCompletedExercises(prev => ({
+            setExerciseLogs(prev => ({
                 ...prev,
-                [activeExercise.id]: true
+                [activeExercise.id]: logs
             }));
+            if (completed) {
+                setCompletedExercises(prev => ({
+                    ...prev,
+                    [activeExercise.id]: true
+                }));
+            }
             setActiveExercise(null);
         }
     };
@@ -357,7 +367,7 @@ const TrainingView = ({ workout, onFinish }) => {
             </div>
 
             <button
-                onClick={onFinish}
+                onClick={() => onFinish(exerciseLogs)}
                 disabled={!allExercisesCompleted}
                 className={cn(
                     "w-full py-4 font-bold rounded-xl transition-all duration-300",
@@ -373,13 +383,9 @@ const TrainingView = ({ workout, onFinish }) => {
             {activeExercise && (
                 <ExerciseDetailModal
                     exercise={activeExercise}
-                    onClose={(completed) => {
-                        if (completed === true) {
-                            handleExerciseComplete();
-                        } else {
-                            setActiveExercise(null);
-                        }
-                    }}
+                    initialLog={exerciseLogs[activeExercise.id]}
+                    isCompleted={completedExercises[activeExercise.id]}
+                    onClose={handleExerciseModalClose}
                 />
             )}
         </div>

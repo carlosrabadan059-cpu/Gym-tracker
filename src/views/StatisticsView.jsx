@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { Flame, Calendar, CalendarDays, CalendarCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { loadCompletedRoutines } from '../lib/utils';
+import { loadCompletedRoutines, loadWorkoutLogs } from '../lib/utils';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,15 +33,18 @@ export function StatisticsView() {
         const fetchStats = async () => {
             try {
                 const completedIds = loadCompletedRoutines();
-                setWorkoutsCount(completedIds.length);
+                const workoutLogs = loadWorkoutLogs();
 
-                if (completedIds.length === 0) {
+                // Count total unique or tracked sessions
+                setWorkoutsCount(Math.max(completedIds.length, workoutLogs.length));
+
+                if (completedIds.length === 0 && workoutLogs.length === 0) {
                     return;
                 }
 
                 // Fetch routines and exercises
                 const { data: routinesData, error: routinesError } = await supabase.from('routines').select('*').in('id', completedIds);
-                if (routinesError) throw routinesError;
+                if (routinesError && completedIds.length > 0) throw routinesError;
 
                 const { data: exercisesData, error: exercisesError } = await supabase.from('exercises').select('*');
                 if (exercisesError) throw exercisesError;
@@ -56,16 +59,12 @@ export function StatisticsView() {
                     'Hombro': 0
                 };
 
-                if (routinesData && exercisesData) {
+                // 1. Calculate base cals and muscles hit using completing ID arrays as before
+                if (routinesData && exercisesData && completedIds.length > 0) {
                     completedIds.forEach(routineId => {
                         const routineExercises = exercisesData.filter(ex => ex.routine_id === routineId);
                         routineExercises.forEach(ex => {
                             cals += calculateCaloriesByVolume(ex, profile?.weight || null);
-
-                            // Estimate volume just to populate the chart a bit (series * reps * 10kg default)
-                            const series = parseInt(ex.series) || 3;
-                            const reps = parseInt(ex.reps) || 10;
-                            vol += (series * reps * 10);
 
                             const routine = routinesData.find(r => r.id === routineId);
                             if (routine?.name) {
@@ -76,6 +75,40 @@ export function StatisticsView() {
                                 else if (name.includes('bíceps') || name.includes('tríceps')) muscles['Brazos'] += 1;
                                 else if (name.includes('hombro')) muscles['Hombro'] += 1;
                             }
+                        });
+                    });
+                }
+
+                // 2. Compute Volume Using Real workoutLogs if available
+                if (workoutLogs && workoutLogs.length > 0) {
+                    workoutLogs.forEach(session => {
+                        if (session.logs) {
+                            Object.values(session.logs).forEach(exerciseLog => {
+                                const sets = exerciseLog.setsData;
+                                const completed = exerciseLog.completedSets;
+                                if (sets) {
+                                    Object.keys(sets).forEach(setIndex => {
+                                        // Only count sets the user checked off (completed), fallback to counting all if format is missing
+                                        if (completed && !completed[setIndex]) return;
+
+                                        const set = sets[setIndex];
+                                        const weightStr = typeof set.weight === 'string' ? set.weight.replace(',', '.') : String(set.weight);
+                                        const w = parseFloat(weightStr) || 0;
+                                        const r = parseInt(set.reps) || 0;
+                                        vol += (w * r);
+                                    });
+                                }
+                            });
+                        }
+                    });
+                } else if (routinesData && exercisesData) {
+                    // Fallback volume estimation if no real logs exist yet (legacy compatibility)
+                    completedIds.forEach(routineId => {
+                        const routineExercises = exercisesData.filter(ex => ex.routine_id === routineId);
+                        routineExercises.forEach(ex => {
+                            const series = parseInt(ex.series) || 3;
+                            const reps = parseInt(ex.reps) || 10;
+                            vol += (series * reps * 10);
                         });
                     });
                 }
