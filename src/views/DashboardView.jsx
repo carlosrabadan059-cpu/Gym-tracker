@@ -174,13 +174,12 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                         )}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (!isCompleted) onStartDaily(routine);
+                                            onStartDaily(routine);
                                         }}
-                                        disabled={isCompleted}
                                     >
                                         {isCompleted ? (
                                             <>
-                                                Completada
+                                                Revisar Entrenamiento
                                                 <Check className="ml-2 h-4 w-4 stroke-black" strokeWidth={3} />
                                             </>
                                         ) : (

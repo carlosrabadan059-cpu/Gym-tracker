@@ -3,7 +3,7 @@ import { Card } from '../components/ui/Card';
 import { routines } from '../data/routines';
 import { X, Info, Check } from 'lucide-react';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
-import { cn } from '../lib/utils';
+import { cn, loadWorkoutLogs } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
 const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => {
@@ -291,6 +291,23 @@ const TrainingView = ({ workout, onFinish }) => {
     const [activeExercise, setActiveExercise] = useState(null);
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
+
+    useEffect(() => {
+        if (activeWorkout) {
+            const allLogs = loadWorkoutLogs();
+            const todayStr = new Date().toDateString();
+            const todaysLog = allLogs.find(l =>
+                l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
+            );
+
+            if (todaysLog && todaysLog.logs) {
+                setExerciseLogs(todaysLog.logs);
+                const completed = {};
+                Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
+                setCompletedExercises(completed);
+            }
+        }
+    }, [activeWorkout]);
 
     const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[ex.id]);
 

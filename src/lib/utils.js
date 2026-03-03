@@ -66,12 +66,22 @@ export function saveWorkoutLog(routineId, logs) {
         }
     }
 
-    history.push({
-        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        routineId,
-        date: new Date().toISOString(),
-        logs
-    });
+    const todayStr = new Date().toDateString();
+    const existingIndex = history.findIndex(h =>
+        h.routineId === routineId && new Date(h.date).toDateString() === todayStr
+    );
+
+    if (existingIndex >= 0) {
+        history[existingIndex].logs = logs;
+        history[existingIndex].date = new Date().toISOString();
+    } else {
+        history.push({
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            routineId,
+            date: new Date().toISOString(),
+            logs
+        });
+    }
 
     const expiration = getNextSaturdayExpiration();
     const payload = { history, expiration };
