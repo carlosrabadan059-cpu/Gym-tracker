@@ -9,7 +9,7 @@ import { ProfileView } from './views/ProfileView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Dumbbell } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
-import { loadCompletedRoutines, saveCompletedRoutines, saveWorkoutLog } from './lib/utils';
+import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
 import { ClientsListView } from './views/trainer/ClientsListView';
@@ -106,7 +106,7 @@ const AuthenticatedApp = () => {
     const [view, setView] = useState('setup'); // setup, dashboard, training, progress, chat, profile, trainer
     const { user, profile, loading } = useAuth();
     const [currentWorkout, setCurrentWorkout] = useState(null);
-    const [completedRoutines, setCompletedRoutines] = useState(loadCompletedRoutines());
+    const [completedRoutines, setCompletedRoutines] = useState([]);
     const [currentClient, setCurrentClient] = useState(null); // Added for trainer views
 
     useEffect(() => {
@@ -116,6 +116,16 @@ const AuthenticatedApp = () => {
             setView('dashboard');
         }
     }, [profile]);
+
+    useEffect(() => {
+        const fetchCompleted = async () => {
+            if (user?.id) {
+                const routines = await loadCompletedRoutines(user.id);
+                setCompletedRoutines(routines);
+            }
+        };
+        fetchCompleted();
+    }, [user]);
 
     // One-time migration from Local Storage to Supabase
     useEffect(() => {
@@ -235,15 +245,11 @@ const AuthenticatedApp = () => {
                         workout={currentWorkout}
                         onFinish={async (logs) => {
                             if (currentWorkout) {
-                                setCompletedRoutines(prev => {
-                                    const newRoutines = [...new Set([...prev, currentWorkout.id])];
-                                    saveCompletedRoutines(newRoutines);
-                                    return newRoutines;
-                                });
-                                // Guardar el historial con pesos y repeticiones introducidos
-                                if (logs && Object.keys(logs).length > 0) {
-                                    await saveWorkoutLog(user?.id, currentWorkout.id, logs);
-                                }
+                                // Update local state for immediate UI feedback
+                                setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
+
+                                // Unconditionally save to Supabase so it marks the routine as completed in the cloud
+                                await saveWorkoutLog(user?.id, currentWorkout.id, logs || {});
                             }
                             setView('dashboard');
                         }}

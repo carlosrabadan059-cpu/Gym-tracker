@@ -42,7 +42,7 @@ export function StatisticsView() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const completedIds = loadCompletedRoutines();
+                const completedIds = await loadCompletedRoutines(profile?.id);
                 const workoutLogs = await loadWorkoutLogs(profile?.id);
 
                 // Count total unique or tracked sessions

@@ -21,32 +21,27 @@ export function getNextSaturdayExpiration() {
     return expirationDate.getTime();
 }
 
-export function saveCompletedRoutines(routines) {
-    const expiration = getNextSaturdayExpiration();
-    const payload = {
-        routines: routines,
-        expiration: expiration
-    };
-    localStorage.setItem('gymTrackerCompletedRoutines', JSON.stringify(payload));
-}
+export async function loadCompletedRoutines(userId) {
+    if (!userId) return [];
 
-export function loadCompletedRoutines() {
-    const data = localStorage.getItem('gymTrackerCompletedRoutines');
-    if (!data) return [];
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 is Sunday
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
 
     try {
-        const parsed = JSON.parse(data);
-        const now = new Date().getTime();
+        const { data, error } = await supabase
+            .from('workout_logs')
+            .select('routine_id')
+            .eq('user_id', userId)
+            .gte('date', startOfWeek.toISOString());
 
-        // Si ya ha pasado la fecha de expiración (sábado noche), reseteamos
-        if (now > parsed.expiration) {
-            localStorage.removeItem('gymTrackerCompletedRoutines');
-            return [];
-        }
+        if (error) throw error;
 
-        return parsed.routines || [];
+        return [...new Set(data.map(row => row.routine_id))];
     } catch (e) {
-        console.error("Error parsing completed routines:", e);
+        console.error("Error loading completed routines from Supabase:", e);
         return [];
     }
 }
