@@ -117,6 +117,44 @@ const AuthenticatedApp = () => {
         }
     }, [profile]);
 
+    // One-time migration from Local Storage to Supabase
+    useEffect(() => {
+        const migrateData = async () => {
+            if (!user) return;
+            const localRaw = localStorage.getItem('gymTrackerWorkoutLogs');
+            if (localRaw) {
+                try {
+                    const parsed = JSON.parse(localRaw);
+                    if (parsed.history && Array.isArray(parsed.history) && parsed.history.length > 0) {
+                        // Avoid duplicates if they somehow re-run it
+                        const { count, error: countErr } = await supabase
+                            .from('workout_logs')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('user_id', user.id);
+
+                        if (!countErr && count === 0) {
+                            const payload = parsed.history.map(h => ({
+                                user_id: user.id,
+                                routine_id: h.routineId,
+                                date: h.date || new Date().toISOString(),
+                                logs: h.logs
+                            }));
+                            console.log("Migrando datos locales a Supabase...", payload);
+                            await supabase.from('workout_logs').insert(payload);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error migrating local data to Supabase", e);
+                } finally {
+                    localStorage.removeItem('gymTrackerWorkoutLogs');
+                }
+                // Also trigger a UI refresh by reloading the window once after migration to re-fetch
+                window.location.reload();
+            }
+        };
+        migrateData();
+    }, [user]);
+
     const handleStartSetup = () => {
         setView('dashboard');
     };
