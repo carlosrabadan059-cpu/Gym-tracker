@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { supabase } from "./supabase";
 
 export function cn(...inputs) {
     return twMerge(clsx(inputs));
@@ -50,58 +51,73 @@ export function loadCompletedRoutines() {
     }
 }
 
-export function saveWorkoutLog(routineId, logs) {
-    const data = localStorage.getItem('gymTrackerWorkoutLogs');
-    let history = [];
-    if (data) {
-        try {
-            const parsed = JSON.parse(data);
-            const now = new Date().getTime();
-            // Limpiar los historiales caducados
-            if (now <= parsed.expiration && Array.isArray(parsed.history)) {
-                history = parsed.history;
-            }
-        } catch (e) {
-            console.error("Error parsing workout logs:", e);
+// SUPABASE MIGRATION: Guardar registros en la nube (elimina el guardado local del entrenamiento en sí)
+export async function saveWorkoutLog(userId, routineId, logs) {
+    if (!userId) {
+        console.error("Cannot save log: Missing user ID");
+        return;
+    }
+
+    try {
+        // En lugar de buscar en un array larguísimo, preguntamos si hay uno de hoy
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const { data: existingLogs, error: searchError } = await supabase
+            .from('workout_logs')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('routine_id', routineId)
+            .gte('date', todayStart.toISOString());
+
+        if (searchError) throw searchError;
+
+        if (existingLogs && existingLogs.length > 0) {
+            // Sobrescribir el de hoy
+            const { error: updateError } = await supabase
+                .from('workout_logs')
+                .update({ logs: logs, date: new Date().toISOString() })
+                .eq('id', existingLogs[0].id);
+
+            if (updateError) throw updateError;
+        } else {
+            // Crear uno nuevo
+            const { error: insertError } = await supabase
+                .from('workout_logs')
+                .insert([{
+                    user_id: userId,
+                    routine_id: routineId,
+                    logs: logs
+                }]);
+
+            if (insertError) throw insertError;
         }
+    } catch (e) {
+        console.error("Error saving workout log to Supabase:", e);
     }
-
-    const todayStr = new Date().toDateString();
-    const existingIndex = history.findIndex(h =>
-        h.routineId === routineId && new Date(h.date).toDateString() === todayStr
-    );
-
-    if (existingIndex >= 0) {
-        history[existingIndex].logs = logs;
-        history[existingIndex].date = new Date().toISOString();
-    } else {
-        history.push({
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-            routineId,
-            date: new Date().toISOString(),
-            logs
-        });
-    }
-
-    const expiration = getNextSaturdayExpiration();
-    const payload = { history, expiration };
-    localStorage.setItem('gymTrackerWorkoutLogs', JSON.stringify(payload));
 }
 
-export function loadWorkoutLogs() {
-    const data = localStorage.getItem('gymTrackerWorkoutLogs');
-    if (!data) return [];
+export async function loadWorkoutLogs(userId) {
+    if (!userId) return [];
+
     try {
-        const parsed = JSON.parse(data);
-        const now = new Date().getTime();
-        // Si ha pasado el domingo de reset
-        if (now > parsed.expiration) {
-            localStorage.removeItem('gymTrackerWorkoutLogs');
-            return [];
-        }
-        return parsed.history || [];
+        const { data, error } = await supabase
+            .from('workout_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .order('date', { ascending: true }); // Ordenados por fecha
+
+        if (error) throw error;
+
+        // Adapt format back to expected local history format slightly
+        return data.map(row => ({
+            id: row.id,
+            routineId: row.routine_id,
+            date: row.date,
+            logs: row.logs
+        }));
     } catch (e) {
-        console.error("Error loading workout logs:", e);
+        console.error("Error loading workout logs from Supabase:", e);
         return [];
     }
 }

@@ -293,21 +293,28 @@ const TrainingView = ({ workout, onFinish }) => {
     const [exerciseLogs, setExerciseLogs] = useState({});
 
     useEffect(() => {
-        if (activeWorkout) {
-            const allLogs = loadWorkoutLogs();
-            const todayStr = new Date().toDateString();
-            const todaysLog = allLogs.find(l =>
-                l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
-            );
+        const fetchExistingLogs = async () => {
+            if (activeWorkout && profile?.id) {
+                try {
+                    const allLogs = await loadWorkoutLogs(profile.id);
+                    const todayStr = new Date().toDateString();
+                    const todaysLog = allLogs.find(l =>
+                        l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
+                    );
 
-            if (todaysLog && todaysLog.logs) {
-                setExerciseLogs(todaysLog.logs);
-                const completed = {};
-                Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
-                setCompletedExercises(completed);
+                    if (todaysLog && todaysLog.logs) {
+                        setExerciseLogs(todaysLog.logs);
+                        const completed = {};
+                        Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
+                        setCompletedExercises(completed);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch todays logs:", error);
+                }
             }
-        }
-    }, [activeWorkout]);
+        };
+        fetchExistingLogs();
+    }, [activeWorkout, profile]);
 
     const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[ex.id]);
 

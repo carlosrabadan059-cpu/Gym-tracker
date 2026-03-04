@@ -43,7 +43,7 @@ export function StatisticsView() {
         const fetchStats = async () => {
             try {
                 const completedIds = loadCompletedRoutines();
-                const workoutLogs = loadWorkoutLogs();
+                const workoutLogs = await loadWorkoutLogs(profile?.id);
 
                 // Count total unique or tracked sessions
                 setWorkoutsCount(Math.max(completedIds.length, workoutLogs.length));

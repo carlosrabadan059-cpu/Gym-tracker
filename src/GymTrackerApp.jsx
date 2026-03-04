@@ -195,7 +195,7 @@ const AuthenticatedApp = () => {
                 {view === 'training' && (
                     <TrainingView
                         workout={currentWorkout}
-                        onFinish={(logs) => {
+                        onFinish={async (logs) => {
                             if (currentWorkout) {
                                 setCompletedRoutines(prev => {
                                     const newRoutines = [...new Set([...prev, currentWorkout.id])];
@@ -204,7 +204,7 @@ const AuthenticatedApp = () => {
                                 });
                                 // Guardar el historial con pesos y repeticiones introducidos
                                 if (logs && Object.keys(logs).length > 0) {
-                                    saveWorkoutLog(currentWorkout.id, logs);
+                                    await saveWorkoutLog(user?.id, currentWorkout.id, logs);
                                 }
                             }
                             setView('dashboard');
