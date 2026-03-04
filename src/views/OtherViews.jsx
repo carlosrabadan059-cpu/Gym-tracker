@@ -283,7 +283,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
 };
 
 const TrainingView = ({ workout, onFinish }) => {
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const userWeight = profile?.weight || null;
 
     // If no specific workout passed, default to Day 1
@@ -294,9 +294,9 @@ const TrainingView = ({ workout, onFinish }) => {
 
     useEffect(() => {
         const fetchExistingLogs = async () => {
-            if (activeWorkout && profile?.id) {
+            if (activeWorkout && user?.id) {
                 try {
-                    const allLogs = await loadWorkoutLogs(profile.id);
+                    const allLogs = await loadWorkoutLogs(user.id);
                     const todayStr = new Date().toDateString();
                     const todaysLog = allLogs.find(l =>
                         l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
@@ -314,7 +314,7 @@ const TrainingView = ({ workout, onFinish }) => {
             }
         };
         fetchExistingLogs();
-    }, [activeWorkout, profile]);
+    }, [activeWorkout, user]);
 
     const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[ex.id]);
 

@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 const COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#9ca3af'];
 
 export function StatisticsView() {
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const [workoutsCount, setWorkoutsCount] = useState(0);
     const [totalCalories, setTotalCalories] = useState(0);
     const [totalVolume, setTotalVolume] = useState(0);
@@ -42,8 +42,8 @@ export function StatisticsView() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const completedIds = await loadCompletedRoutines(profile?.id);
-                const workoutLogs = await loadWorkoutLogs(profile?.id);
+                const completedIds = await loadCompletedRoutines(user?.id);
+                const workoutLogs = await loadWorkoutLogs(user?.id);
 
                 // Count total unique or tracked sessions
                 setWorkoutsCount(Math.max(completedIds.length, workoutLogs.length));
