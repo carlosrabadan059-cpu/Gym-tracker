@@ -25,7 +25,7 @@ const COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#9ca3af'
 export function StatisticsView() {
     const { user, profile } = useAuth();
     const [workoutsCount, setWorkoutsCount] = useState(0);
-    const [totalCalories, setTotalCalories] = useState(0);
+    const [caloriesStats, setCaloriesStats] = useState({ today: 0, week: 0, month: 0 });
     const [totalVolume, setTotalVolume] = useState(0);
     const [muscleData, setMuscleData] = useState([]);
 
@@ -59,7 +59,9 @@ export function StatisticsView() {
                 const { data: exercisesData, error: exercisesError } = await supabase.from('exercises').select('*');
                 if (exercisesError) throw exercisesError;
 
-                let cals = 0;
+                let calsToday = 0;
+                let calsWeek = 0;
+                let calsMonth = 0;
                 let vol = 0;
                 let muscles = {
                     'Pecho': 0,
@@ -69,12 +71,52 @@ export function StatisticsView() {
                     'Hombro': 0
                 };
 
-                // 1. Calculate base cals and muscles hit using completing ID arrays as before
-                if (routinesData && exercisesData && completedIds.length > 0) {
+                const now = new Date();
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                const startOfThisWeek = new Date(now);
+                const dayOfWeek = startOfThisWeek.getDay() === 0 ? 6 : startOfThisWeek.getDay() - 1; // Lunes = 0
+                startOfThisWeek.setDate(now.getDate() - dayOfWeek);
+                startOfThisWeek.setHours(0, 0, 0, 0);
+
+                const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+                // 1. Calculate base cals and muscles hit properly over time logs
+                if (workoutLogs && workoutLogs.length > 0 && exercisesData && routinesData) {
+                    workoutLogs.forEach(session => {
+                        const sessionDate = new Date(session.date);
+                        let sessionCals = 0;
+
+                        const routineExercises = exercisesData.filter(ex => ex.routine_id === session.routineId);
+                        routineExercises.forEach(ex => {
+                            sessionCals += calculateCaloriesByVolume(ex, profile?.weight || null);
+
+                            // Calculate muscles distribution within the active month
+                            if (sessionDate >= startOfThisMonth) {
+                                const routine = routinesData.find(r => r.id === session.routineId);
+                                if (routine?.name) {
+                                    const name = routine.name.toLowerCase();
+                                    if (name.includes('pecho')) muscles['Pecho'] += 1;
+                                    else if (name.includes('espalda') || name.includes('dorsal')) muscles['Espalda'] += 1;
+                                    else if (name.includes('pierna') || name.includes('femoral') || name.includes('cuádriceps')) muscles['Pierna'] += 1;
+                                    else if (name.includes('bíceps') || name.includes('tríceps')) muscles['Brazos'] += 1;
+                                    else if (name.includes('hombro')) muscles['Hombro'] += 1;
+                                }
+                            }
+                        });
+
+                        // Calories based on timeframe
+                        if (sessionDate >= startOfToday) calsToday += sessionCals;
+                        if (sessionDate >= startOfThisWeek) calsWeek += sessionCals;
+                        if (sessionDate >= startOfThisMonth) calsMonth += sessionCals;
+                    });
+                } else if (routinesData && exercisesData && completedIds.length > 0) {
+                    // Fallback using loaded unique completedIds for the current week if logs don't exist yet
                     completedIds.forEach(routineId => {
+                        let routineCals = 0;
                         const routineExercises = exercisesData.filter(ex => ex.routine_id === routineId);
                         routineExercises.forEach(ex => {
-                            cals += calculateCaloriesByVolume(ex, profile?.weight || null);
+                            routineCals += calculateCaloriesByVolume(ex, profile?.weight || null);
 
                             const routine = routinesData.find(r => r.id === routineId);
                             if (routine?.name) {
@@ -86,6 +128,8 @@ export function StatisticsView() {
                                 else if (name.includes('hombro')) muscles['Hombro'] += 1;
                             }
                         });
+                        calsWeek += routineCals;
+                        calsMonth += routineCals; // approximation
                     });
                 }
 
@@ -123,7 +167,11 @@ export function StatisticsView() {
                     });
                 }
 
-                setTotalCalories(Math.round(cals));
+                setCaloriesStats({
+                    today: Math.round(calsToday),
+                    week: Math.round(calsWeek),
+                    month: Math.round(calsMonth)
+                });
                 setTotalVolume(vol);
 
                 const formattedMuscles = Object.keys(muscles)
@@ -145,11 +193,8 @@ export function StatisticsView() {
                 const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
                 let newMonthlyMap = {};
 
-                const now = new Date();
-                const startOfThisWeek = new Date(now);
-                const dayOfWeek = startOfThisWeek.getDay() === 0 ? 6 : startOfThisWeek.getDay() - 1; // Lunes = 0
-                startOfThisWeek.setDate(now.getDate() - dayOfWeek);
-                startOfThisWeek.setHours(0, 0, 0, 0);
+                // Variables now, startOfThisWeek, and dayOfWeek are already declared above
+
 
                 if (workoutLogs && workoutLogs.length > 0) {
                     workoutLogs.forEach(session => {
@@ -259,19 +304,19 @@ export function StatisticsView() {
                     <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight flex flex-col items-center justify-center text-center">
                         <Calendar size={18} className="text-orange-400 mb-2" />
                         <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Hoy</p>
-                        <p className="text-xl font-bold text-orange-400">{workoutsCount > 0 ? Math.round(totalCalories / workoutsCount) : 0}</p>
+                        <p className="text-xl font-bold text-orange-400">{caloriesStats.today}</p>
                         <p className="text-text-secondary text-[10px]">kcal est.</p>
                     </div>
                     <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight flex flex-col items-center justify-center text-center">
                         <CalendarDays size={18} className="text-orange-500 mb-2" />
                         <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Semana</p>
-                        <p className="text-xl font-bold text-orange-500">{totalCalories}</p>
+                        <p className="text-xl font-bold text-orange-500">{caloriesStats.week}</p>
                         <p className="text-text-secondary text-[10px]">kcal</p>
                     </div>
                     <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight flex flex-col items-center justify-center text-center">
                         <CalendarCheck size={18} className="text-orange-600 mb-2" />
                         <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Mes</p>
-                        <p className="text-xl font-bold text-orange-600">{totalCalories}</p>
+                        <p className="text-xl font-bold text-orange-600">{caloriesStats.month}</p>
                         <p className="text-text-secondary text-[10px]">kcal</p>
                     </div>
                 </div>
