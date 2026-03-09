@@ -14,10 +14,10 @@ import {
     Pie,
     Cell
 } from 'recharts';
-import { Flame, Calendar, CalendarDays, CalendarCheck } from 'lucide-react';
+import { Flame, Calendar, CalendarDays, CalendarCheck, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { loadCompletedRoutines, loadWorkoutLogs } from '../lib/utils';
-import { calculateCaloriesByVolume } from '../lib/routineUtils';
+import { calculateCaloriesByVolume, calculateCardioCalories } from '../lib/routineUtils';
 import { useAuth } from '../context/AuthContext';
 
 const COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#9ca3af'];
@@ -26,6 +26,11 @@ export function StatisticsView() {
     const { user, profile } = useAuth();
     const [workoutsCount, setWorkoutsCount] = useState(0);
     const [caloriesStats, setCaloriesStats] = useState({ today: 0, week: 0, month: 0 });
+    const [cardioStats, setCardioStats] = useState({
+        today: { cals: 0, mins: 0 },
+        week: { cals: 0, mins: 0 },
+        month: { cals: 0, mins: 0 }
+    });
     const [totalVolume, setTotalVolume] = useState(0);
     const [muscleData, setMuscleData] = useState([]);
 
@@ -62,6 +67,11 @@ export function StatisticsView() {
                 let calsToday = 0;
                 let calsWeek = 0;
                 let calsMonth = 0;
+
+                let cardioToday = { cals: 0, mins: 0 };
+                let cardioWeek = { cals: 0, mins: 0 };
+                let cardioMonth = { cals: 0, mins: 0 };
+
                 let vol = 0;
                 let muscles = {
                     'Pecho': 0,
@@ -87,6 +97,16 @@ export function StatisticsView() {
                         const sessionDate = new Date(session.date);
                         let sessionCals = 0;
 
+                        let sessionCardioCals = 0;
+                        let sessionCardioMins = 0;
+
+                        // Process cardio if exists
+                        if (session.logs && session.logs.cardio) {
+                            const cardio = session.logs.cardio;
+                            sessionCardioCals = calculateCardioCalories(cardio.type, cardio.duration, profile?.weight || null);
+                            sessionCardioMins = cardio.duration || 0;
+                        }
+
                         const routineExercises = exercisesData.filter(ex => ex.routine_id === session.routineId);
                         routineExercises.forEach(ex => {
                             sessionCals += calculateCaloriesByVolume(ex, profile?.weight || null);
@@ -105,10 +125,25 @@ export function StatisticsView() {
                             }
                         });
 
+                        // Total session calories includes cardio
+                        sessionCals += sessionCardioCals;
+
                         // Calories based on timeframe
-                        if (sessionDate >= startOfToday) calsToday += sessionCals;
-                        if (sessionDate >= startOfThisWeek) calsWeek += sessionCals;
-                        if (sessionDate >= startOfThisMonth) calsMonth += sessionCals;
+                        if (sessionDate >= startOfToday) {
+                            calsToday += sessionCals;
+                            cardioToday.cals += sessionCardioCals;
+                            cardioToday.mins += sessionCardioMins;
+                        }
+                        if (sessionDate >= startOfThisWeek) {
+                            calsWeek += sessionCals;
+                            cardioWeek.cals += sessionCardioCals;
+                            cardioWeek.mins += sessionCardioMins;
+                        }
+                        if (sessionDate >= startOfThisMonth) {
+                            calsMonth += sessionCals;
+                            cardioMonth.cals += sessionCardioCals;
+                            cardioMonth.mins += sessionCardioMins;
+                        }
                     });
                 } else if (routinesData && exercisesData && completedIds.length > 0) {
                     // Fallback using loaded unique completedIds for the current week if logs don't exist yet
@@ -137,7 +172,9 @@ export function StatisticsView() {
                 if (workoutLogs && workoutLogs.length > 0) {
                     workoutLogs.forEach(session => {
                         if (session.logs) {
-                            Object.values(session.logs).forEach(exerciseLog => {
+                            Object.keys(session.logs).forEach(logKey => {
+                                if (logKey === 'cardio') return; // Skip cardio entry for volume calculation
+                                const exerciseLog = session.logs[logKey];
                                 const sets = exerciseLog.setsData;
                                 const completed = exerciseLog.completedSets;
                                 if (sets) {
@@ -172,6 +209,13 @@ export function StatisticsView() {
                     week: Math.round(calsWeek),
                     month: Math.round(calsMonth)
                 });
+
+                setCardioStats({
+                    today: cardioToday,
+                    week: cardioWeek,
+                    month: cardioMonth
+                });
+
                 setTotalVolume(vol);
 
                 const formattedMuscles = Object.keys(muscles)
@@ -203,7 +247,9 @@ export function StatisticsView() {
 
                         // Calculate session isolated volume
                         if (session.logs) {
-                            Object.values(session.logs).forEach(exerciseLog => {
+                            Object.keys(session.logs).forEach(logKey => {
+                                if (logKey === 'cardio') return; // skip cardio here
+                                const exerciseLog = session.logs[logKey];
                                 const sets = exerciseLog.setsData;
                                 const completed = exerciseLog.completedSets;
                                 if (sets) {
@@ -321,6 +367,28 @@ export function StatisticsView() {
                     </div>
                 </div>
             </div>
+
+            {/* Cardio Stats Summary */}
+            {(cardioStats.week.mins > 0 || cardioStats.month.mins > 0) && (
+                <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight mt-4 animate-fadeIn">
+                    <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
+                        <Activity className="text-blue-500" size={20} />
+                        Resumen de Cardio
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-surface-highlight/50 border border-surface-highlight/50">
+                            <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Esta Semana</p>
+                            <p className="text-lg font-bold text-blue-400">{cardioStats.week.mins} min</p>
+                            <p className="text-text-secondary text-xs">{cardioStats.week.cals} kcal est.</p>
+                        </div>
+                        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-surface-highlight/50 border border-surface-highlight/50">
+                            <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Este Mes</p>
+                            <p className="text-lg font-bold text-blue-500">{cardioStats.month.mins} min</p>
+                            <p className="text-text-secondary text-xs">{cardioStats.month.cals} kcal est.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Weekly Workouts Chart */}
             <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight">

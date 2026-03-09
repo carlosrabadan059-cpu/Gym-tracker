@@ -14,6 +14,9 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const [routines, setRoutines] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [showCardioSelector, setShowCardioSelector] = useState(false);
+    const [pendingRoutine, setPendingRoutine] = useState(null);
+
     const userWeight = profile?.weight || null;
 
     useEffect(() => {
@@ -174,7 +177,12 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                         )}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            onStartDaily(routine);
+                                            if (isCompleted) {
+                                                onStartDaily(routine);
+                                            } else {
+                                                setPendingRoutine(routine);
+                                                setShowCardioSelector(true);
+                                            }
                                         }}
                                     >
                                         {isCompleted ? (
@@ -195,6 +203,102 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                     })}
                 </div>
             </div>
+
+            {/* Cardio Selector Modal */}
+            {showCardioSelector && pendingRoutine && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-surface border border-surface-highlight w-full max-w-sm rounded-[2rem] p-6 shadow-2xl">
+                        <h3 className="text-xl font-bold text-text-primary text-center mb-2">
+                            Añadir Cardio Previo
+                        </h3>
+                        <p className="text-sm text-text-secondary text-center mb-6">
+                            ¿Vas a calentar antes de empezar?
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            {[
+                                { name: 'Andar en cinta', img: '/exercises/cardio-andar.png' },
+                                { name: 'Correr en cinta', img: '/exercises/cardio-correr.png' },
+                                { name: 'Elíptica', img: '/exercises/cardio-eliptica.png' },
+                                { name: 'Bicicleta', img: '/exercises/cardio-bicicleta.png' }
+                            ].map((cardio) => {
+                                const isSelected = pendingRoutine.cardio?.type === cardio.name;
+                                return (
+                                    <div
+                                        key={cardio.name}
+                                        className={cn(
+                                            "relative h-24 rounded-xl overflow-hidden cursor-pointer transition-all border-2",
+                                            isSelected ? "border-primary shadow-lg shadow-primary/20 scale-[1.02]" : "border-transparent hover:border-surface-highlight hover:scale-[1.01]"
+                                        )}
+                                        onClick={() => {
+                                            setPendingRoutine({ ...pendingRoutine, cardio: { type: cardio.name } });
+                                        }}
+                                    >
+                                        <img
+                                            src={cardio.img}
+                                            alt={cardio.name}
+                                            className={cn("absolute inset-0 w-full h-full object-cover transition-all", isSelected ? "opacity-100" : "opacity-60")}
+                                        />
+                                        <div className={cn("absolute inset-0 bg-gradient-to-t transition-all", isSelected ? "from-black/90 via-black/40 to-transparent" : "from-black/80 to-black/20")} />
+                                        <div className="absolute inset-x-0 bottom-2 text-center z-10">
+                                            <span className={cn("text-sm font-bold", isSelected ? "text-primary drop-shadow-md" : "text-white")}>
+                                                {cardio.name}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {pendingRoutine.cardio?.type && (
+                            <div className="mb-6 animate-fadeIn">
+                                <p className="text-xs text-text-secondary uppercase tracking-wider mb-2 font-medium">Duración</p>
+                                <div className="flex justify-between gap-2">
+                                    {[10, 15, 20].map((mins) => (
+                                        <Button
+                                            key={mins}
+                                            variant="outline"
+                                            className="flex-1 border-surface-highlight hover:border-primary transition-colors bg-background"
+                                            onClick={() => setPendingRoutine({ ...pendingRoutine, cardio: { ...pendingRoutine.cardio, duration: mins } })}
+                                            style={{
+                                                borderColor: pendingRoutine.cardio?.duration === mins ? 'var(--primary)' : '',
+                                                backgroundColor: pendingRoutine.cardio?.duration === mins ? 'rgba(var(--primary-rgb), 0.1)' : ''
+                                            }}
+                                        >
+                                            <span className={cn("font-bold text-lg", pendingRoutine.cardio?.duration === mins ? "text-primary" : "text-text-primary")}>
+                                                {mins}'
+                                            </span>
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="flex flex-col gap-3 mt-8">
+                            <Button
+                                className="w-full bg-primary text-black font-bold h-12 text-lg rounded-xl shadow-lg shadow-primary/20"
+                                onClick={() => {
+                                    onStartDaily(pendingRoutine);
+                                    setShowCardioSelector(false);
+                                    setPendingRoutine(null);
+                                }}
+                            >
+                                {pendingRoutine.cardio?.duration ? 'Guardar e Iniciar' : 'Empezar sin Cardio'}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                className="w-full text-text-secondary hover:text-white h-10"
+                                onClick={() => {
+                                    setShowCardioSelector(false);
+                                    setPendingRoutine(null);
+                                }}
+                            >
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

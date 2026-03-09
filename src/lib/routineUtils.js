@@ -85,3 +85,22 @@ export const calculateCaloriesByVolume = (exercise, userWeightKg) => {
 
     return Math.round(calculateCaloriesByTime(met, weight, estimatedActiveMinutes));
 };
+
+export const CARDIO_TYPES = {
+    'Andar': 5,            // Legacy
+    'Andar en cinta': 5,
+    'Correr en cinta': 10,
+    'Elíptica': 8,
+    'Bicicleta': 7
+};
+
+export const calculateCardioCalories = (type, minutes, userWeightKg) => {
+    const weight = userWeightKg || 75;
+    const calsPerMin = CARDIO_TYPES[type];
+    if (!calsPerMin || !minutes) return 0;
+
+    // calsPerMin are usually given for a standard ~75kg person, let's scale it slightly by weight
+    // Basic scaling: (weight / 75) * baseCals
+    const scaleFactor = weight / 75;
+    return Math.round(cardioData.calsPerMin * scaleFactor * minutes);
+};

@@ -20,6 +20,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
 
     const [timerActive, setTimerActive] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60);
+    const [targetTime, setTargetTime] = useState(null);
     const [selectedDuration, setSelectedDuration] = useState(60);
     const [completedSets, setCompletedSets] = useState(initialLog?.completedSets || {});
     const [setsData, setSetsData] = useState(() => {
@@ -64,55 +65,90 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
         }));
     };
 
-    // Audio context for beep sound
+    // Audio context for beep sound (Louder, 3-beep sequence)
     const playBeep = () => {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
 
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+            const ctx = new AudioContext();
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+            const scheduleBeep = (startTime, freq) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
 
-        osc.type = 'sine';
-        osc.frequency.value = 880; // A5
-        gain.gain.value = 0.1;
+                osc.connect(gain);
+                gain.connect(ctx.destination);
 
-        osc.start();
-        setTimeout(() => {
-            osc.stop();
-            ctx.close();
-        }, 500);
+                osc.type = 'square'; // More audible piercing sound
+                osc.frequency.setValueAtTime(freq, startTime);
+
+                // Attack and release envelope to avoid clicking while keeping it loud
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(1, startTime + 0.02);
+                gain.gain.setValueAtTime(1, startTime + 0.15);
+                gain.gain.linearRampToValueAtTime(0, startTime + 0.2);
+
+                osc.start(startTime);
+                osc.stop(startTime + 0.2);
+            };
+
+            const now = ctx.currentTime;
+            // 3 distinct alarm beeps
+            scheduleBeep(now, 880);
+            scheduleBeep(now + 0.3, 880);
+            scheduleBeep(now + 0.6, 1320);
+
+            // Cleanup
+            setTimeout(() => {
+                if (ctx.state !== 'closed') ctx.close();
+            }, 1500);
+        } catch (error) {
+            console.error("No se pudo reproducir el sonido del temporizador", error);
+        }
     };
 
     useEffect(() => {
         let interval = null;
-        if (timerActive && timeLeft > 0) {
+        if (timerActive && targetTime) {
+            // Check frequently (e.g. 500ms) to ensure smooth UI even if it lags a bit
             interval = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-            }, 1000);
-        } else if (timeLeft === 0) {
-            setTimerActive(false);
-            playBeep();
-            setTimeout(() => setTimeLeft(selectedDuration), 2000);
+                const now = Date.now();
+                const remaining = Math.max(0, Math.ceil((targetTime - now) / 1000));
+
+                if (remaining > 0) {
+                    setTimeLeft(remaining);
+                } else {
+                    // Timer finished
+                    setTimerActive(false);
+                    setTargetTime(null);
+                    setTimeLeft(0);
+                    playBeep();
+                    setTimeout(() => setTimeLeft(selectedDuration), 2000);
+                }
+            }, 500);
         }
         return () => clearInterval(interval);
-    }, [timerActive, timeLeft, selectedDuration]);
+    }, [timerActive, targetTime, selectedDuration]);
 
     const toggleTimer = () => {
         if (!timerActive) {
+            setTargetTime(Date.now() + selectedDuration * 1000);
             setTimeLeft(selectedDuration);
             setTimerActive(true);
         } else {
             setTimerActive(false);
+            setTargetTime(null);
         }
     };
 
     const handleDurationSelect = (duration) => {
         setSelectedDuration(duration);
         if (!timerActive) {
+            setTimeLeft(duration);
+        } else {
+            // If already active, adjust the target time
+            setTargetTime(Date.now() + duration * 1000);
             setTimeLeft(duration);
         }
     };
@@ -391,7 +427,13 @@ const TrainingView = ({ workout, onFinish }) => {
             </div>
 
             <button
-                onClick={() => onFinish(exerciseLogs)}
+                onClick={() => {
+                    const finalLogs = { ...exerciseLogs };
+                    if (activeWorkout?.cardio) {
+                        finalLogs.cardio = activeWorkout.cardio;
+                    }
+                    onFinish(finalLogs);
+                }}
                 disabled={!allExercisesCompleted}
                 className={cn(
                     "w-full py-4 font-bold rounded-xl transition-all duration-300",
