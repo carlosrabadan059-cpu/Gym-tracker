@@ -114,9 +114,9 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
         unlockAudio();
 
         if (isCompleting) {
-            setSelectedDuration(60);
-            setTargetTime(Date.now() + 60 * 1000);
-            setTimeLeft(60);
+            // Ensure timer restarts from beginning, but use selectedDuration instead of hardcoded 60
+            setTargetTime(Date.now() + selectedDuration * 1000);
+            setTimeLeft(selectedDuration);
             setTimerActive(true);
         }
     };
