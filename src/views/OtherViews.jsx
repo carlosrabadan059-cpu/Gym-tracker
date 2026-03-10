@@ -36,6 +36,44 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
     });
     const [inputErrors, setInputErrors] = useState({});
 
+    const audioCtxRef = React.useRef(null);
+
+    useEffect(() => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                audioCtxRef.current = new AudioContext();
+            }
+        } catch (e) {
+            console.error("AudioContext error:", e);
+        }
+        
+        return () => {
+            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+                audioCtxRef.current.close().catch(() => {});
+            }
+        };
+    }, []);
+
+    const unlockAudio = () => {
+        try {
+            if (audioCtxRef.current) {
+                if (audioCtxRef.current.state === 'suspended') {
+                    audioCtxRef.current.resume();
+                }
+                const osc = audioCtxRef.current.createOscillator();
+                const gain = audioCtxRef.current.createGain();
+                gain.gain.value = 0;
+                osc.connect(gain);
+                gain.connect(audioCtxRef.current.destination);
+                osc.start(audioCtxRef.current.currentTime);
+                osc.stop(audioCtxRef.current.currentTime + 0.001);
+            }
+        } catch (e) {
+            console.error("Unlock error:", e);
+        }
+    };
+
     const handleInputChange = (index, field, value) => {
         setSetsData(prev => ({
             ...prev,
@@ -58,19 +96,37 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
             return;
         }
 
+        const isCompleting = !completedSets[index];
+
         setCompletedSets(prev => ({
             ...prev,
             [index]: !prev[index]
         }));
+
+        unlockAudio();
+
+        if (isCompleting) {
+            setSelectedDuration(60);
+            setTargetTime(Date.now() + 60 * 1000);
+            setTimeLeft(60);
+            setTimerActive(true);
+        }
     };
 
     // Audio context for beep sound (Louder, 3-beep sequence)
     const playBeep = () => {
         try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
+            // Vibrate for mobile devices
+            if ('vibrate' in navigator) {
+                navigator.vibrate([500, 200, 500, 200, 800]); 
+            }
 
-            const ctx = new AudioContext();
+            const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+            if (!ctx) return;
+
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
 
             const scheduleBeep = (startTime, freq) => {
                 const osc = ctx.createOscillator();
@@ -80,28 +136,31 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
                 gain.connect(ctx.destination);
 
                 osc.type = 'square'; // More audible piercing sound
+                gain.gain.value = 1; // Maximum volume
                 osc.frequency.setValueAtTime(freq, startTime);
 
                 // Attack and release envelope to avoid clicking while keeping it loud
                 gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(1, startTime + 0.02);
-                gain.gain.setValueAtTime(1, startTime + 0.15);
-                gain.gain.linearRampToValueAtTime(0, startTime + 0.2);
+                gain.gain.linearRampToValueAtTime(1, startTime + 0.05); // slower attack
+                gain.gain.setValueAtTime(1, startTime + 0.4); // longer sustain
+                gain.gain.linearRampToValueAtTime(0, startTime + 0.5); // slower decay
 
                 osc.start(startTime);
-                osc.stop(startTime + 0.2);
+                osc.stop(startTime + 0.5);
             };
 
             const now = ctx.currentTime;
-            // 3 distinct alarm beeps
+            // 3 distinct alarm beeps (longer and louder)
             scheduleBeep(now, 880);
-            scheduleBeep(now + 0.3, 880);
-            scheduleBeep(now + 0.6, 1320);
+            scheduleBeep(now + 0.6, 880);
+            scheduleBeep(now + 1.2, 1320);
 
-            // Cleanup
-            setTimeout(() => {
-                if (ctx.state !== 'closed') ctx.close();
-            }, 1500);
+            // Do not close it if we are using the shared ref
+            if (ctx !== audioCtxRef.current) {
+                setTimeout(() => {
+                    if (ctx.state !== 'closed') ctx.close().catch(() => {});
+                }, 2000);
+            }
         } catch (error) {
             console.error("No se pudo reproducir el sonido del temporizador", error);
         }
@@ -131,6 +190,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
     }, [timerActive, targetTime, selectedDuration]);
 
     const toggleTimer = () => {
+        unlockAudio();
         if (!timerActive) {
             setTargetTime(Date.now() + selectedDuration * 1000);
             setTimeLeft(selectedDuration);
