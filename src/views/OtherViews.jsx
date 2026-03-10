@@ -57,6 +57,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
 
     const unlockAudio = () => {
         try {
+            // Unlock Web Audio API
             if (audioCtxRef.current) {
                 if (audioCtxRef.current.state === 'suspended') {
                     audioCtxRef.current.resume();
@@ -68,6 +69,13 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
                 gain.connect(audioCtxRef.current.destination);
                 osc.start(audioCtxRef.current.currentTime);
                 osc.stop(audioCtxRef.current.currentTime + 0.001);
+            }
+
+            // Unlock SpeechSynthesis for iOS (must be triggered by user interaction)
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('');
+                utterance.volume = 0;
+                window.speechSynthesis.speak(utterance);
             }
         } catch (e) {
             console.error("Unlock error:", e);
@@ -113,9 +121,19 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
         }
     };
 
-    // Audio context for beep sound (Louder, 3-beep sequence)
+    // Audio context for beep sound (Louder, 3-beep sequence) + Voice
     const playBeep = () => {
         try {
+            // Voice announcement (Reliable on iOS, ducks background music)
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('Recuperación completada');
+                utterance.lang = 'es-ES';
+                utterance.rate = 1.1;
+                utterance.pitch = 1;
+                utterance.volume = 1; // Max volume
+                window.speechSynthesis.speak(utterance);
+            }
+
             // Vibrate for mobile devices
             if ('vibrate' in navigator) {
                 navigator.vibrate([500, 200, 500, 200, 800]); 
