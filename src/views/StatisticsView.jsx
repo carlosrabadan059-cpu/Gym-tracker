@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase';
 import { loadCompletedRoutines, loadWorkoutLogs } from '../lib/utils';
 import { calculateCaloriesByVolume, calculateCardioCalories } from '../lib/routineUtils';
 import { useAuth } from '../context/AuthContext';
+import { routines as localRoutines } from '../data/routines';
 
 const COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#9ca3af'];
 
@@ -57,12 +58,31 @@ export function StatisticsView() {
                     return;
                 }
 
-                // Fetch routines and exercises
-                const { data: routinesData, error: routinesError } = await supabase.from('routines').select('*').in('id', completedIds);
-                if (routinesError && completedIds.length > 0) throw routinesError;
+                const allRoutineIdsToFetch = [...new Set([
+                    ...completedIds,
+                    ...workoutLogs.map(log => log.routineId)
+                ])];
 
-                const { data: exercisesData, error: exercisesError } = await supabase.from('exercises').select('*');
-                if (exercisesError) throw exercisesError;
+                const supabaseRoutineIds = allRoutineIdsToFetch.filter(r => r && String(r).length > 20);
+
+                // Fetch routines and exercises
+                let routinesData = [];
+                if (supabaseRoutineIds.length > 0) {
+                    const { data: rData, error: rError } = await supabase.from('routines').select('*').in('id', supabaseRoutineIds);
+                    if (rError) console.error("Error fetching routines:", rError);
+                    else if (rData) routinesData = rData;
+                }
+                const combinedRoutinesData = [...routinesData, ...localRoutines];
+
+                let exercisesData = [];
+                const { data: eData, error: eError } = await supabase.from('exercises').select('*');
+                if (eError) console.error("Error fetching exercises:", eError);
+                else if (eData) exercisesData = eData;
+
+                const localExercisesData = localRoutines.flatMap(r =>
+                    r.exercises.map(ex => ({ ...ex, routine_id: r.id }))
+                );
+                const combinedExercisesData = [...exercisesData, ...localExercisesData];
 
                 let calsToday = 0;
                 let calsWeek = 0;
@@ -92,7 +112,7 @@ export function StatisticsView() {
                 const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
                 // 1. Calculate base cals and muscles hit properly over time logs
-                if (workoutLogs && workoutLogs.length > 0 && exercisesData && routinesData) {
+                if (workoutLogs && workoutLogs.length > 0 && combinedExercisesData && combinedRoutinesData) {
                     workoutLogs.forEach(session => {
                         const sessionDate = new Date(session.date);
                         let sessionCals = 0;
@@ -107,13 +127,13 @@ export function StatisticsView() {
                             sessionCardioMins = cardio.duration || 0;
                         }
 
-                        const routineExercises = exercisesData.filter(ex => ex.routine_id === session.routineId);
+                        const routineExercises = combinedExercisesData.filter(ex => ex.routine_id === session.routineId);
                         routineExercises.forEach(ex => {
                             sessionCals += calculateCaloriesByVolume(ex, profile?.weight || null);
 
                             // Calculate muscles distribution within the active month
                             if (sessionDate >= startOfThisMonth) {
-                                const routine = routinesData.find(r => r.id === session.routineId);
+                                const routine = combinedRoutinesData.find(r => r.id === session.routineId);
                                 if (routine?.name) {
                                     const name = routine.name.toLowerCase();
                                     if (name.includes('pecho')) muscles['Pecho'] += 1;
@@ -145,15 +165,15 @@ export function StatisticsView() {
                             cardioMonth.mins += sessionCardioMins;
                         }
                     });
-                } else if (routinesData && exercisesData && completedIds.length > 0) {
+                } else if (combinedRoutinesData && combinedExercisesData && completedIds.length > 0) {
                     // Fallback using loaded unique completedIds for the current week if logs don't exist yet
                     completedIds.forEach(routineId => {
                         let routineCals = 0;
-                        const routineExercises = exercisesData.filter(ex => ex.routine_id === routineId);
+                        const routineExercises = combinedExercisesData.filter(ex => ex.routine_id === routineId);
                         routineExercises.forEach(ex => {
                             routineCals += calculateCaloriesByVolume(ex, profile?.weight || null);
 
-                            const routine = routinesData.find(r => r.id === routineId);
+                            const routine = combinedRoutinesData.find(r => r.id === routineId);
                             if (routine?.name) {
                                 const name = routine.name.toLowerCase();
                                 if (name.includes('pecho')) muscles['Pecho'] += 1;
@@ -192,10 +212,10 @@ export function StatisticsView() {
                             });
                         }
                     });
-                } else if (routinesData && exercisesData) {
+                } else if (combinedRoutinesData && combinedExercisesData) {
                     // Fallback volume estimation if no real logs exist yet (legacy compatibility)
                     completedIds.forEach(routineId => {
-                        const routineExercises = exercisesData.filter(ex => ex.routine_id === routineId);
+                        const routineExercises = combinedExercisesData.filter(ex => ex.routine_id === routineId);
                         routineExercises.forEach(ex => {
                             const series = parseInt(ex.series) || 3;
                             const reps = parseInt(ex.reps) || 10;
@@ -288,7 +308,7 @@ export function StatisticsView() {
                         newWeekly[bucketIndex].workouts += 1;
                         newWeekly[bucketIndex].volume += sessionVolume;
                         // Save context for modal
-                        const rData = routinesData ? routinesData.find(r => r.id === session.routineId) : null;
+                        const rData = combinedRoutinesData ? combinedRoutinesData.find(r => r.id === session.routineId) : null;
                         newWeekly[bucketIndex].logs.push({
                             date: sessionDate,
                             routineName: rData?.name || session.routineId,

@@ -102,5 +102,5 @@ export const calculateCardioCalories = (type, minutes, userWeightKg) => {
     // calsPerMin are usually given for a standard ~75kg person, let's scale it slightly by weight
     // Basic scaling: (weight / 75) * baseCals
     const scaleFactor = weight / 75;
-    return Math.round(cardioData.calsPerMin * scaleFactor * minutes);
+    return Math.round(calsPerMin * scaleFactor * minutes);
 };

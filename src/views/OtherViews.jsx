@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { routines } from '../data/routines';
-import { X, Info, Check } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
 import { cn, loadWorkoutLogs } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +35,6 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
         return initial;
     });
     const [inputErrors, setInputErrors] = useState({});
-    const [showInfo, setShowInfo] = useState(false);
 
     const handleInputChange = (index, field, value) => {
         setSetsData(prev => ({
@@ -281,24 +280,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
                         ))}
                     </div>
 
-                    {/* Info / Tips Collapsible */}
-                    <div className="flex flex-col items-start">
-                        <button
-                            onClick={() => setShowInfo(!showInfo)}
-                            className="bg-blue-500/20 p-2 rounded-full text-blue-400 hover:bg-blue-500/30 transition-colors"
-                        >
-                            <Info size={20} />
-                        </button>
 
-                        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showInfo ? 'max-h-24 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
-                            <div
-                                className="rounded-xl bg-blue-500/10 p-3 border border-blue-500/20 text-sm text-blue-200 cursor-pointer"
-                                onClick={() => setShowInfo(false)}
-                            >
-                                Mantén la técnica controlada en todo momento. Descansa 60-90s entre series.
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Footer Action - Fixed at bottom of modal */}
