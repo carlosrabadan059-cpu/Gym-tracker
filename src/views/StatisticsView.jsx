@@ -1,563 +1,678 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    PieChart,
-    Pie,
-    Cell
+    LineChart, Line, XAxis, YAxis, CartesianGrid,
+    Tooltip, ResponsiveContainer, BarChart, Bar
 } from 'recharts';
-import { Flame, Calendar, CalendarDays, CalendarCheck, Activity } from 'lucide-react';
+import {
+    Trophy, TrendingUp, Calendar, Search,
+    Flame, Zap, Target, ChevronRight, Star
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { loadCompletedRoutines, loadWorkoutLogs } from '../lib/utils';
-import { calculateCaloriesByVolume, calculateCardioCalories } from '../lib/routineUtils';
+import { loadWorkoutLogs, loadExerciseHistory } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
-import { routines as localRoutines } from '../data/routines';
 
-const COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#9ca3af'];
+// ─────────────────────────────────────────────────────────
+// Helper: inicio de la semana (lunes)
+// ─────────────────────────────────────────────────────────
+function getWeekStart(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+}
 
-export function StatisticsView() {
-    const { user, profile } = useAuth();
-    const [workoutsCount, setWorkoutsCount] = useState(0);
-    const [caloriesStats, setCaloriesStats] = useState({ today: 0, week: 0, month: 0 });
-    const [cardioStats, setCardioStats] = useState({
-        today: { cals: 0, mins: 0 },
-        week: { cals: 0, mins: 0 },
-        month: { cals: 0, mins: 0 }
-    });
-    const [totalVolume, setTotalVolume] = useState(0);
-    const [muscleData, setMuscleData] = useState([]);
+// ─────────────────────────────────────────────────────────
+// Helper: racha de semanas consecutivas con entrenamiento
+// ─────────────────────────────────────────────────────────
+function calculateStreak(dates) {
+    if (!dates.length) return { current: 0, best: 0 };
+    const weekKeys = [...new Set(dates.map(d =>
+        getWeekStart(d).toISOString().split('T')[0]
+    ))].sort();
 
-    // Advanced Progression States
-    const [weeklyData, setWeeklyData] = useState([
-        { name: 'Sem -3', workouts: 0, volume: 0, logs: [] },
-        { name: 'Sem -2', workouts: 0, volume: 0, logs: [] },
-        { name: 'Sem -1', workouts: 0, volume: 0, logs: [] },
-        { name: 'Actual', workouts: 0, volume: 0, logs: [] },
-    ]);
-    const [monthlyData, setMonthlyData] = useState([]);
-    const [selectedWeek, setSelectedWeek] = useState(null); // Para el modal
+    let best = 1, run = 1;
+    for (let i = 1; i < weekKeys.length; i++) {
+        const diff = (new Date(weekKeys[i]) - new Date(weekKeys[i - 1])) / 86400000;
+        run = diff <= 7 ? run + 1 : 1;
+        if (run > best) best = run;
+    }
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const completedIds = await loadCompletedRoutines(user?.id);
-                const workoutLogs = await loadWorkoutLogs(user?.id);
+    // ¿La racha sigue activa esta semana o la anterior?
+    const lastWeek = new Date(weekKeys[weekKeys.length - 1]);
+    const thisWeek = getWeekStart(new Date());
+    const gapDays = (thisWeek - lastWeek) / 86400000;
+    let current = 1;
+    for (let i = weekKeys.length - 2; i >= 0; i--) {
+        const diff = (new Date(weekKeys[i + 1]) - new Date(weekKeys[i])) / 86400000;
+        if (diff <= 7) current++; else break;
+    }
+    const activeCurrent = gapDays <= 14 ? current : 0;
+    return { current: activeCurrent, best };
+}
 
-                // Count total unique or tracked sessions
-                setWorkoutsCount(Math.max(completedIds.length, workoutLogs.length));
+// ─────────────────────────────────────────────────────────
+// Helper: formatear fecha corta "04 abr"
+// ─────────────────────────────────────────────────────────
+function fmtShort(isoDate) {
+    return new Date(isoDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+}
 
-                if (completedIds.length === 0 && workoutLogs.length === 0) {
-                    return;
-                }
+// ─────────────────────────────────────────────────────────
+// Sub-componente: Heatmap de 90 días
+// ─────────────────────────────────────────────────────────
+function ActivityHeatmap({ heatmapData }) {
+    const firstDayOfWeek = heatmapData[0]?.date?.getDay() ?? 1;
+    const startPad = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+    const paddedDays = [...Array(startPad).fill(null), ...heatmapData];
 
-                const allRoutineIdsToFetch = [...new Set([
-                    ...completedIds,
-                    ...workoutLogs.map(log => log.routineId)
-                ])];
+    const dayLabels = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
-                const supabaseRoutineIds = allRoutineIdsToFetch.filter(r => r && String(r).length > 20);
-
-                // Fetch routines and exercises
-                let routinesData = [];
-                if (supabaseRoutineIds.length > 0) {
-                    const { data: rData, error: rError } = await supabase.from('routines').select('*').in('id', supabaseRoutineIds);
-                    if (rError) console.error("Error fetching routines:", rError);
-                    else if (rData) routinesData = rData;
-                }
-                const combinedRoutinesData = [...routinesData, ...localRoutines];
-
-                let exercisesData = [];
-                const { data: eData, error: eError } = await supabase.from('exercises').select('*');
-                if (eError) console.error("Error fetching exercises:", eError);
-                else if (eData) exercisesData = eData;
-
-                const localExercisesData = localRoutines.flatMap(r =>
-                    r.exercises.map(ex => ({ ...ex, routine_id: r.id }))
-                );
-                const combinedExercisesData = [...exercisesData, ...localExercisesData];
-
-                let calsToday = 0;
-                let calsWeek = 0;
-                let calsMonth = 0;
-
-                let cardioToday = { cals: 0, mins: 0 };
-                let cardioWeek = { cals: 0, mins: 0 };
-                let cardioMonth = { cals: 0, mins: 0 };
-
-                let vol = 0;
-                let muscles = {
-                    'Pecho': 0,
-                    'Espalda': 0,
-                    'Pierna': 0,
-                    'Brazos': 0,
-                    'Hombro': 0
-                };
-
-                const now = new Date();
-                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-                const startOfThisWeek = new Date(now);
-                const dayOfWeek = startOfThisWeek.getDay() === 0 ? 6 : startOfThisWeek.getDay() - 1; // Lunes = 0
-                startOfThisWeek.setDate(now.getDate() - dayOfWeek);
-                startOfThisWeek.setHours(0, 0, 0, 0);
-
-                const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-                // 1. Calculate base cals and muscles hit properly over time logs
-                if (workoutLogs && workoutLogs.length > 0 && combinedExercisesData && combinedRoutinesData) {
-                    workoutLogs.forEach(session => {
-                        const sessionDate = new Date(session.date);
-                        let sessionCals = 0;
-
-                        let sessionCardioCals = 0;
-                        let sessionCardioMins = 0;
-
-                        // Process cardio if exists
-                        if (session.logs && session.logs.cardio) {
-                            const cardio = session.logs.cardio;
-                            sessionCardioCals = calculateCardioCalories(cardio.type, cardio.duration, profile?.weight || null);
-                            sessionCardioMins = cardio.duration || 0;
-                        }
-
-                        const routineExercises = combinedExercisesData.filter(ex => ex.routine_id === session.routineId);
-                        routineExercises.forEach(ex => {
-                            sessionCals += calculateCaloriesByVolume(ex, profile?.weight || null);
-
-                            // Calculate muscles distribution within the active month
-                            if (sessionDate >= startOfThisMonth) {
-                                const routine = combinedRoutinesData.find(r => r.id === session.routineId);
-                                if (routine?.name) {
-                                    const name = routine.name.toLowerCase();
-                                    if (name.includes('pecho')) muscles['Pecho'] += 1;
-                                    else if (name.includes('espalda') || name.includes('dorsal')) muscles['Espalda'] += 1;
-                                    else if (name.includes('pierna') || name.includes('femoral') || name.includes('cuádriceps')) muscles['Pierna'] += 1;
-                                    else if (name.includes('bíceps') || name.includes('tríceps')) muscles['Brazos'] += 1;
-                                    else if (name.includes('hombro')) muscles['Hombro'] += 1;
-                                }
-                            }
-                        });
-
-                        // Total session calories includes cardio
-                        sessionCals += sessionCardioCals;
-
-                        // Calories based on timeframe
-                        if (sessionDate >= startOfToday) {
-                            calsToday += sessionCals;
-                            cardioToday.cals += sessionCardioCals;
-                            cardioToday.mins += sessionCardioMins;
-                        }
-                        if (sessionDate >= startOfThisWeek) {
-                            calsWeek += sessionCals;
-                            cardioWeek.cals += sessionCardioCals;
-                            cardioWeek.mins += sessionCardioMins;
-                        }
-                        if (sessionDate >= startOfThisMonth) {
-                            calsMonth += sessionCals;
-                            cardioMonth.cals += sessionCardioCals;
-                            cardioMonth.mins += sessionCardioMins;
-                        }
-                    });
-                } else if (combinedRoutinesData && combinedExercisesData && completedIds.length > 0) {
-                    // Fallback using loaded unique completedIds for the current week if logs don't exist yet
-                    completedIds.forEach(routineId => {
-                        let routineCals = 0;
-                        const routineExercises = combinedExercisesData.filter(ex => ex.routine_id === routineId);
-                        routineExercises.forEach(ex => {
-                            routineCals += calculateCaloriesByVolume(ex, profile?.weight || null);
-
-                            const routine = combinedRoutinesData.find(r => r.id === routineId);
-                            if (routine?.name) {
-                                const name = routine.name.toLowerCase();
-                                if (name.includes('pecho')) muscles['Pecho'] += 1;
-                                else if (name.includes('espalda') || name.includes('dorsal')) muscles['Espalda'] += 1;
-                                else if (name.includes('pierna') || name.includes('femoral') || name.includes('cuádriceps')) muscles['Pierna'] += 1;
-                                else if (name.includes('bíceps') || name.includes('tríceps')) muscles['Brazos'] += 1;
-                                else if (name.includes('hombro')) muscles['Hombro'] += 1;
-                            }
-                        });
-                        calsWeek += routineCals;
-                        calsMonth += routineCals; // approximation
-                    });
-                }
-
-                // 2. Compute Volume Using Real workoutLogs if available
-                if (workoutLogs && workoutLogs.length > 0) {
-                    workoutLogs.forEach(session => {
-                        if (session.logs) {
-                            Object.keys(session.logs).forEach(logKey => {
-                                if (logKey === 'cardio') return; // Skip cardio entry for volume calculation
-                                const exerciseLog = session.logs[logKey];
-                                const sets = exerciseLog.setsData;
-                                const completed = exerciseLog.completedSets;
-                                if (sets) {
-                                    Object.keys(sets).forEach(setIndex => {
-                                        // Only count sets the user checked off (completed), fallback to counting all if format is missing
-                                        if (completed && !completed[setIndex]) return;
-
-                                        const set = sets[setIndex];
-                                        const weightStr = typeof set.weight === 'string' ? set.weight.replace(',', '.') : String(set.weight);
-                                        const w = parseFloat(weightStr) || 0;
-                                        const r = parseInt(set.reps) || 0;
-                                        vol += (w * r);
-                                    });
-                                }
-                            });
-                        }
-                    });
-                } else if (combinedRoutinesData && combinedExercisesData) {
-                    // Fallback volume estimation if no real logs exist yet (legacy compatibility)
-                    completedIds.forEach(routineId => {
-                        const routineExercises = combinedExercisesData.filter(ex => ex.routine_id === routineId);
-                        routineExercises.forEach(ex => {
-                            const series = parseInt(ex.series) || 3;
-                            const reps = parseInt(ex.reps) || 10;
-                            vol += (series * reps * 10);
-                        });
-                    });
-                }
-
-                setCaloriesStats({
-                    today: Math.round(calsToday),
-                    week: Math.round(calsWeek),
-                    month: Math.round(calsMonth)
-                });
-
-                setCardioStats({
-                    today: cardioToday,
-                    week: cardioWeek,
-                    month: cardioMonth
-                });
-
-                setTotalVolume(vol);
-
-                const formattedMuscles = Object.keys(muscles)
-                    .filter(k => muscles[k] > 0)
-                    .map(k => ({ name: k, value: muscles[k] }));
-
-                if (formattedMuscles.length > 0) {
-                    setMuscleData(formattedMuscles);
-                }
-
-                // 3. Advanced Grouping: Build Weekly and Monthly progress from actual dates
-                let newWeekly = [
-                    { name: 'Sem -3', workouts: 0, volume: 0, logs: [] },
-                    { name: 'Sem -2', workouts: 0, volume: 0, logs: [] },
-                    { name: 'Sem -1', workouts: 0, volume: 0, logs: [] },
-                    { name: 'Actual', workouts: 0, volume: 0, logs: [] },
-                ];
-
-                const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-                let newMonthlyMap = {};
-
-                // Variables now, startOfThisWeek, and dayOfWeek are already declared above
-
-
-                if (workoutLogs && workoutLogs.length > 0) {
-                    workoutLogs.forEach(session => {
-                        const sessionDate = new Date(session.date);
-                        let sessionVolume = 0;
-
-                        // Calculate session isolated volume
-                        if (session.logs) {
-                            Object.keys(session.logs).forEach(logKey => {
-                                if (logKey === 'cardio') return; // skip cardio here
-                                const exerciseLog = session.logs[logKey];
-                                const sets = exerciseLog.setsData;
-                                const completed = exerciseLog.completedSets;
-                                if (sets) {
-                                    Object.keys(sets).forEach(setIndex => {
-                                        if (completed && !completed[setIndex]) return;
-                                        const set = sets[setIndex];
-                                        const wStr = typeof set.weight === 'string' ? set.weight.replace(',', '.') : String(set.weight);
-                                        const w = parseFloat(wStr) || 0;
-                                        const r = parseInt(set.reps) || 0;
-                                        sessionVolume += (w * r);
-                                    });
-                                }
-                            });
-                        }
-
-                        // Append to Monthly Map
-                        const monthName = monthNames[sessionDate.getMonth()];
-                        if (!newMonthlyMap[monthName]) {
-                            newMonthlyMap[monthName] = { name: monthName, workouts: 0, volume: 0 };
-                        }
-                        newMonthlyMap[monthName].workouts += 1;
-                        newMonthlyMap[monthName].volume += sessionVolume;
-
-                        // Determine Week Bucket (0 = actual, 1 = -1, 2 = -2, 3 = -3)
-                        const timeDiff = startOfThisWeek.getTime() - sessionDate.getTime();
-                        const daysDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
-
-                        let bucketIndex = 3; // Default to 'Actual' (index 3) if strictly this week or future
-                        if (daysDiff >= 0) {
-                            const weeksAgo = Math.floor(daysDiff / 7) + 1;
-                            if (weeksAgo === 1) bucketIndex = 2; // Sem -1
-                            else if (weeksAgo === 2) bucketIndex = 1; // Sem -2
-                            else if (weeksAgo >= 3) bucketIndex = 0; // Sem -3
-                        }
-
-                        newWeekly[bucketIndex].workouts += 1;
-                        newWeekly[bucketIndex].volume += sessionVolume;
-                        // Save context for modal
-                        const rData = combinedRoutinesData ? combinedRoutinesData.find(r => r.id === session.routineId) : null;
-                        newWeekly[bucketIndex].logs.push({
-                            date: sessionDate,
-                            routineName: rData?.name || session.routineId,
-                            volume: sessionVolume
-                        });
-                    });
-                }
-
-                // Convert monthly map to array sorted by current year progression basically just mapped from the array holding months
-                // To be safe and simple, we show up to the last 6 active months, or simply sort by month index
-                const sortedMonthly = monthNames
-                    .filter(m => newMonthlyMap[m])
-                    .map(m => newMonthlyMap[m]);
-
-                setWeeklyData(newWeekly);
-                setMonthlyData(sortedMonthly);
-
-            } catch (error) {
-                console.error('Error fetching stats:', error);
-            }
-        };
-
-        fetchStats();
-    }, [profile]);
-
-    const displayMuscleData = muscleData.length > 0 ? muscleData : [{ name: 'Sin datos', value: 100 }];
+    // Colores explícitos para garantizar visibilidad en cualquier tema
+    const getCellBg = (count) => {
+        if (!count || count === 0) return 'rgba(107,114,128,0.2)';
+        if (count === 1) return '#86efac'; // verde suave
+        if (count === 2) return '#4ade80'; // verde medio
+        return '#16a34a';                  // verde oscuro
+    };
 
     return (
-        <div className="space-y-6 pb-20">
-            <header className="mb-6">
+        <div>
+            {/* Cabeceras de día */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px', marginBottom: '4px' }}>
+                {dayLabels.map(l => (
+                    <div key={l} style={{ textAlign: 'center', fontSize: '10px', color: 'var(--text-secondary, #9ca3af)', fontWeight: 600 }}>{l}</div>
+                ))}
+            </div>
+            {/* Celdas */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: '4px' }}>
+                {paddedDays.map((day, idx) => (
+                    <div
+                        key={idx}
+                        title={day ? `${fmtShort(day.date)}: ${day.count} entrenamiento${day.count !== 1 ? 's' : ''}` : ''}
+                        style={{
+                            aspectRatio: '1',
+                            minHeight: '14px',
+                            borderRadius: '3px',
+                            backgroundColor: day ? getCellBg(day.count) : 'transparent',
+                            visibility: day ? 'visible' : 'hidden',
+                            transition: 'background-color 0.2s',
+                        }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────
+// Sub-componente: Tooltip personalizado para la gráfica
+// ─────────────────────────────────────────────────────────
+function CustomTooltip({ active, payload, label }) {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-surface border border-surface-highlight rounded-xl px-3 py-2 shadow-xl text-sm">
+            <p className="text-text-secondary font-medium mb-1">{label}</p>
+            <p className="font-bold text-primary">{payload[0].value} kg</p>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────
+// StatisticsView principal
+// ─────────────────────────────────────────────────────────
+export function StatisticsView() {
+    const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState('resumen');
+    const [loading, setLoading] = useState(true);
+
+    // Datos crudos compartidos entre tabs
+    const [allLogs, setAllLogs] = useState([]);
+    const [exercisesData, setExercisesData] = useState([]);
+
+    // ── Resumen ──
+    const [stats, setStats] = useState({
+        total: 0, volume: 0, currentStreak: 0, bestStreak: 0,
+        currentWeek: 0, bestWeek: 0
+    });
+    const [personalRecords, setPersonalRecords] = useState([]);
+
+    // ── Progresión ──
+    const [exerciseSearch, setExerciseSearch] = useState('');
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [selectedExercise, setSelectedExercise] = useState(null);
+    const [progressionData, setProgressionData] = useState([]);
+    const [progressionLoading, setProgressionLoading] = useState(false);
+
+    // ── Actividad ──
+    const [heatmapData, setHeatmapData] = useState([]);
+    const [weekdayData, setWeekdayData] = useState([]);
+
+    // ─── Carga inicial de datos ────────────────────────────
+    useEffect(() => {
+        if (!user?.id) return;
+        (async () => {
+            setLoading(true);
+            try {
+                const [logs, { data: exData }] = await Promise.all([
+                    loadWorkoutLogs(user.id),
+                    supabase.from('exercises').select('id, name, routine_id')
+                ]);
+                const exercises = exData || [];
+                setAllLogs(logs);
+                setExercisesData(exercises);
+                computeStats(logs, exercises);
+                computeActivity(logs);
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [user]);
+
+    // ─── Cálculo de estadísticas resumen ──────────────────
+    function computeStats(logs, exercises) {
+        const idToName = {};
+        exercises.forEach(ex => { idToName[String(ex.id)] = ex.name; });
+
+        let vol = 0;
+        const prMap = {}; // exerciseName → { maxWeight, date }
+
+        const weekMap = {};
+        logs.forEach(session => {
+            // Volumen y PRs
+            if (session.logs) {
+                Object.entries(session.logs).forEach(([exId, exLog]) => {
+                    if (exId === 'cardio') return;
+                    let sessionMax = 0;
+                    Object.values(exLog.setsData || {}).forEach(set => {
+                        const w = parseFloat(String(set.weight || '0').replace(',', '.')) || 0;
+                        const r = parseInt(set.reps) || 0;
+                        vol += w * r;
+                        if (w > sessionMax) sessionMax = w;
+                    });
+                    const name = idToName[exId];
+                    if (name && sessionMax > 0) {
+                        if (!prMap[name] || sessionMax > prMap[name].maxWeight) {
+                            prMap[name] = { maxWeight: sessionMax, date: session.date };
+                        }
+                    }
+                });
+            }
+            // Semanas
+            const key = getWeekStart(new Date(session.date)).toISOString().split('T')[0];
+            weekMap[key] = (weekMap[key] || 0) + 1;
+        });
+
+        const weekCounts = Object.values(weekMap);
+        const bestWeek = weekCounts.length ? Math.max(...weekCounts) : 0;
+        const thisWeekKey = getWeekStart(new Date()).toISOString().split('T')[0];
+        const currentWeek = weekMap[thisWeekKey] || 0;
+
+        const streak = calculateStreak(logs.map(l => new Date(l.date)));
+
+        setStats({
+            total: logs.length,
+            volume: vol,
+            currentStreak: streak.current,
+            bestStreak: streak.best,
+            currentWeek,
+            bestWeek
+        });
+
+        const prs = Object.entries(prMap)
+            .map(([name, v]) => ({ name, ...v }))
+            .sort((a, b) => b.maxWeight - a.maxWeight)
+            .slice(0, 10);
+        setPersonalRecords(prs);
+    }
+
+    // ─── Cálculo de actividad (heatmap + días de semana) ──
+    function computeActivity(logs) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const days = Array.from({ length: 91 }, (_, i) => {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (90 - i));
+            return { date: d, count: 0 };
+        });
+
+        const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        const weekdayCounts = dayNames.map(n => ({ name: n, workouts: 0 }));
+
+        logs.forEach(session => {
+            const sd = new Date(session.date);
+            sd.setHours(0, 0, 0, 0);
+            const cell = days.find(d => d.date.getTime() === sd.getTime());
+            if (cell) cell.count++;
+            const dow = sd.getDay();
+            const idx = dow === 0 ? 6 : dow - 1;
+            weekdayCounts[idx].workouts++;
+        });
+
+        setHeatmapData(days);
+        setWeekdayData(weekdayCounts);
+    }
+
+    // ─── Catálogo de ejercicios (para búsqueda) ───────────
+    const exerciseCatalog = useMemo(() => (
+        [...new Set(exercisesData.map(e => e.name).filter(Boolean))].sort()
+    ), [exercisesData]);
+
+    const filteredCatalog = useMemo(() => (
+        exerciseSearch.length >= 2
+            ? exerciseCatalog.filter(n => n.toLowerCase().includes(exerciseSearch.toLowerCase())).slice(0, 8)
+            : []
+    ), [exerciseSearch, exerciseCatalog]);
+
+    const selectExercise = async (name) => {
+        setExerciseSearch(name);
+        setSelectedExercise(name);
+        setShowDropdown(false);
+        setProgressionLoading(true);
+        try {
+            const history = await loadExerciseHistory(user?.id, name);
+            // Para la gráfica: max weight por sesión, ordenado cronológicamente
+            const chartData = history
+                .slice()
+                .reverse()
+                .map(session => {
+                    const sets = Object.values(session.setsData || {});
+                    const maxW = sets.reduce((m, s) => {
+                        const w = parseFloat(String(s.weight || '0').replace(',', '.')) || 0;
+                        return w > m ? w : m;
+                    }, 0);
+                    return {
+                        date: fmtShort(session.date),
+                        peso: maxW,
+                        fullDate: session.date
+                    };
+                })
+                .filter(p => p.peso > 0);
+            setProgressionData(chartData);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setProgressionLoading(false);
+        }
+    };
+
+    // ─── Formatear volumen ─────────────────────────────────
+    const fmtVolume = (v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
+
+    // ─── Tabs ──────────────────────────────────────────────
+    const tabs = [
+        { id: 'resumen',    icon: Trophy,     label: 'Resumen'    },
+        { id: 'progresion', icon: TrendingUp,  label: 'Progresión' },
+        { id: 'actividad',  icon: Calendar,    label: 'Actividad'  },
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    <p className="text-text-secondary text-sm">Calculando estadísticas...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // RENDER
+    // ─────────────────────────────────────────────────────────
+    return (
+        <div className="space-y-5 pb-24">
+            {/* Header */}
+            <header>
                 <h2 className="text-2xl font-bold text-text-primary">Estadísticas</h2>
-                <p className="text-text-secondary">Tu progreso en el último mes</p>
+                <p className="text-text-secondary text-sm">Tu progreso histórico</p>
             </header>
 
-            {/* Resume Cards */}
-            <div className="grid grid-cols-2 gap-4">
-                <div
-                    className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight cursor-pointer hover:border-blue-500 transition-colors"
-                    onClick={() => setSelectedWeek(weeklyData[3])}
-                >
-                    <p className="text-text-secondary text-sm">Entrenamientos</p>
-                    <p className="text-3xl font-bold text-text-primary">{weeklyData[3].workouts}</p>
-                    <p className="text-green-500 text-xs mt-1">esta semana (toca para ver)</p>
-                </div>
-                <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight">
-                    <p className="text-text-secondary text-sm">Volumen Total</p>
-                    <p className="text-3xl font-bold text-text-primary">{totalVolume > 0 ? (totalVolume / 1000).toFixed(1) + 'k' : '0'}</p>
-                    <p className="text-green-500 text-xs mt-1">kg levantados</p>
-                </div>
+            {/* Tab bar */}
+            <div className="flex bg-surface rounded-2xl p-1 gap-1 border border-surface-highlight">
+                {tabs.map(tab => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                                isActive
+                                    ? 'bg-primary text-black shadow-md shadow-primary/30'
+                                    : 'text-text-secondary hover:text-text-primary'
+                            }`}
+                        >
+                            <Icon size={14} />
+                            <span className="hidden sm:inline">{tab.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Calories Summary Cards */}
-            <div>
-                <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                    <Flame className="text-orange-500" size={20} />
-                    Calorías Quemadas
-                </h3>
-                <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight flex flex-col items-center justify-center text-center">
-                        <Calendar size={18} className="text-orange-400 mb-2" />
-                        <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Hoy</p>
-                        <p className="text-xl font-bold text-orange-400">{caloriesStats.today}</p>
-                        <p className="text-text-secondary text-[10px]">kcal est.</p>
-                    </div>
-                    <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight flex flex-col items-center justify-center text-center">
-                        <CalendarDays size={18} className="text-orange-500 mb-2" />
-                        <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Semana</p>
-                        <p className="text-xl font-bold text-orange-500">{caloriesStats.week}</p>
-                        <p className="text-text-secondary text-[10px]">kcal</p>
-                    </div>
-                    <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight flex flex-col items-center justify-center text-center">
-                        <CalendarCheck size={18} className="text-orange-600 mb-2" />
-                        <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Mes</p>
-                        <p className="text-xl font-bold text-orange-600">{caloriesStats.month}</p>
-                        <p className="text-text-secondary text-[10px]">kcal</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Cardio Stats Summary */}
-            {(cardioStats.week.mins > 0 || cardioStats.month.mins > 0) && (
-                <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight mt-4 animate-fadeIn">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                        <Activity className="text-blue-500" size={20} />
-                        Resumen de Cardio
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-surface-highlight/50 border border-surface-highlight/50">
-                            <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Esta Semana</p>
-                            <p className="text-lg font-bold text-blue-400">{cardioStats.week.mins} min</p>
-                            <p className="text-text-secondary text-xs">{cardioStats.week.cals} kcal est.</p>
+            {/* ════════════════════════ TAB: RESUMEN ════════════════════════ */}
+            {activeTab === 'resumen' && (
+                <div className="space-y-5 animate-fadeIn">
+                    {/* Big 3 Números */}
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight flex flex-col items-center text-center">
+                            <Target size={20} className="text-blue-400 mb-2" />
+                            <p className="text-2xl font-bold text-text-primary">{stats.total}</p>
+                            <p className="text-[11px] text-text-secondary uppercase tracking-wider mt-0.5">Sesiones</p>
                         </div>
-                        <div className="flex flex-col items-center justify-center p-3 rounded-lg bg-surface-highlight/50 border border-surface-highlight/50">
-                            <p className="text-text-secondary text-xs uppercase tracking-wider mb-1">Este Mes</p>
-                            <p className="text-lg font-bold text-blue-500">{cardioStats.month.mins} min</p>
-                            <p className="text-text-secondary text-xs">{cardioStats.month.cals} kcal est.</p>
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight flex flex-col items-center text-center">
+                            <Flame size={20} className="text-orange-400 mb-2" />
+                            <p className="text-2xl font-bold text-text-primary">{stats.currentStreak}</p>
+                            <p className="text-[11px] text-text-secondary uppercase tracking-wider mt-0.5">Racha sem.</p>
+                        </div>
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight flex flex-col items-center text-center">
+                            <Zap size={20} className="text-primary mb-2" />
+                            <p className="text-2xl font-bold text-text-primary">{fmtVolume(stats.volume)}</p>
+                            <p className="text-[11px] text-text-secondary uppercase tracking-wider mt-0.5">kg totales</p>
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* Weekly Workouts Chart */}
-            <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Frecuencia Semanal</h3>
-                <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={weeklyData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis dataKey="name" stroke="#9ca3af" />
-                            <YAxis stroke="#9ca3af" allowDecimals={false} />
-                            <Tooltip
-                                cursor={{ fill: '#374151', opacity: 0.4 }}
-                                contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
-                                itemStyle={{ color: '#fff' }}
-                            />
-                            <Bar
-                                dataKey="workouts"
-                                fill="#3b82f6"
-                                radius={[4, 4, 0, 0]}
-                                cursor="pointer"
-                                onClick={(data) => setSelectedWeek(data)}
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-                <p className="text-text-secondary text-xs text-center mt-2">Toca una barra para ver el detalle de esa semana</p>
-            </div>
-
-            {/* Volume Progression Chart */}
-            <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Progresión de Volumen (Semanas)</h3>
-                <div className="h-64 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={weeklyData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis dataKey="name" stroke="#9ca3af" />
-                            <YAxis stroke="#9ca3af" />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
-                                itemStyle={{ color: '#fff' }}
-                            />
-                            <Line type="monotone" dataKey="volume" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-
-            {/* Monthly Progression Chart */}
-            {monthlyData.length > 0 && (
-                <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight">
-                    <h3 className="text-lg font-semibold text-text-primary mb-4">Progresión de Volumen (Mensual)</h3>
-                    <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={monthlyData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                <XAxis dataKey="name" stroke="#9ca3af" />
-                                <YAxis stroke="#9ca3af" />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                                <Line type="monotone" dataKey="volume" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: '#f59e0b' }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            )}
-
-            {/* Muscle Distribution Chart */}
-            <div className="bg-surface p-4 rounded-xl shadow-lg border border-surface-highlight">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Distribución Muscular</h3>
-                <div className="h-64 w-full flex items-center justify-center">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={displayMuscleData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {displayMuscleData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
-                                itemStyle={{ color: '#fff' }}
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                    {displayMuscleData.map((entry, index) => {
-                        const totalHits = muscleData.length > 0 ? muscleData.reduce((sum, item) => sum + item.value, 0) : 1;
-                        const percentage = muscleData.length > 0 ? Math.round((entry.value / totalHits) * 100) : 100;
-                        return (
-                            <div key={index} className="flex items-center space-x-2">
-                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                                <span className="text-text-secondary">{entry.name} {entry.name !== 'Sin datos' && `(${percentage}%)`}</span>
+                    {/* Racha visual */}
+                    <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Flame size={18} className="text-orange-400" />
+                                <span className="font-semibold text-text-primary">Racha de consistencia</span>
                             </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Weekly Summary Modal */}
-            {selectedWeek && (
-                <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-                    <div className="bg-surface w-full max-w-md rounded-t-3xl sm:rounded-3xl border border-surface-highlight p-6 max-h-[80vh] overflow-y-auto shadow-2xl animate-fade-in-up">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-text-primary">
-                                Resumen: {selectedWeek.name === 'Actual' ? 'Semana Actual' : selectedWeek.name}
-                            </h3>
-                            <button
-                                onClick={() => setSelectedWeek(null)}
-                                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-highlight rounded-full transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
+                            <span className="text-xs text-text-secondary">Mejor: {stats.bestStreak} sem.</span>
                         </div>
+                        <div className="flex gap-1.5 flex-wrap">
+                            {Array.from({ length: Math.max(stats.bestStreak, stats.currentStreak, 4) }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={`h-4 flex-1 min-w-[12px] rounded-full transition-all ${
+                                        i < stats.currentStreak
+                                            ? 'bg-orange-400 shadow-md shadow-orange-400/30'
+                                            : 'bg-surface-highlight'
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                        {stats.currentStreak === 0 && (
+                            <p className="text-xs text-text-secondary mt-2">Entrena esta semana para iniciar tu racha 🔥</p>
+                        )}
+                        {stats.currentStreak > 0 && (
+                            <p className="text-xs text-orange-400 mt-2 font-medium">
+                                🔥 {stats.currentStreak} semana{stats.currentStreak !== 1 ? 's' : ''} consecutiva{stats.currentStreak !== 1 ? 's' : ''}
+                            </p>
+                        )}
+                    </div>
 
-                        {(!selectedWeek.logs || selectedWeek.logs.length === 0) ? (
-                            <p className="text-text-secondary text-center py-10">No hay entrenamientos registrados esta semana.</p>
+                    {/* Esta semana vs. Mejor semana */}
+                    <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Star size={18} className="text-yellow-400" />
+                            <span className="font-semibold text-text-primary">Esta semana</span>
+                        </div>
+                        <div className="flex items-end gap-4">
+                            <div className="flex-1">
+                                <div className="flex items-end gap-2 mb-1">
+                                    <span className="text-3xl font-bold text-text-primary">{stats.currentWeek}</span>
+                                    <span className="text-text-secondary mb-1">/ {stats.bestWeek} mejor</span>
+                                </div>
+                                <div className="h-2 bg-surface-highlight rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary rounded-full transition-all duration-700"
+                                        style={{ width: stats.bestWeek > 0 ? `${(stats.currentWeek / stats.bestWeek) * 100}%` : '0%' }}
+                                    />
+                                </div>
+                                <p className="text-xs text-text-secondary mt-1">entrenamientos</p>
+                            </div>
+                            {stats.currentWeek >= stats.bestWeek && stats.currentWeek > 0 && (
+                                <div className="text-yellow-400 text-sm font-bold animate-pulse">¡Récord! 🏆</div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Records personales */}
+                    <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Trophy size={18} className="text-yellow-400" />
+                            <span className="font-semibold text-text-primary">Records Personales</span>
+                        </div>
+                        {personalRecords.length === 0 ? (
+                            <p className="text-center text-text-secondary text-sm py-4">
+                                Completa ejercicios con pesos para ver tus récords
+                            </p>
                         ) : (
-                            <div className="space-y-4">
-                                {selectedWeek.logs.map((log, i) => (
-                                    <div key={i} className="bg-background p-4 rounded-xl border border-surface-highlight flex justify-between items-center">
-                                        <div>
-                                            <p className="font-semibold text-text-primary">{log.routineName}</p>
-                                            <p className="text-xs text-text-secondary mt-1">
-                                                {log.date.toLocaleDateString()} a las {log.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
+                            <div className="space-y-2">
+                                {personalRecords.map((pr, i) => (
+                                    <div
+                                        key={pr.name}
+                                        className="flex items-center justify-between gap-3 py-2.5 border-b border-surface-highlight/50 last:border-0"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <span className={`text-xs font-bold w-5 flex-shrink-0 ${
+                                                i === 0 ? 'text-yellow-400' :
+                                                i === 1 ? 'text-gray-300' :
+                                                i === 2 ? 'text-amber-600' : 'text-text-secondary'
+                                            }`}>
+                                                #{i + 1}
+                                            </span>
+                                            <span className="text-sm font-medium text-text-primary truncate">{pr.name}</span>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-green-500">{log.volume > 0 ? (log.volume > 1000 ? (log.volume / 1000).toFixed(1) + 'k' : log.volume) : '0'} kg</p>
-                                            <p className="text-[10px] text-text-secondary uppercase">volumen</p>
+                                        <div className="text-right flex-shrink-0">
+                                            <p className="font-bold text-primary text-base">{pr.maxWeight} kg</p>
+                                            <p className="text-[10px] text-text-secondary">{fmtShort(pr.date)}</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         )}
-                        <div className="mt-6 pt-4 border-t border-surface-highlight flex justify-between items-center">
-                            <span className="text-text-secondary">Volumen total semanal:</span>
-                            <span className="text-xl font-bold text-text-primary">{selectedWeek.volume > 0 ? (selectedWeek.volume > 1000 ? (selectedWeek.volume / 1000).toFixed(1) + 'k' : selectedWeek.volume) : '0'} kg</span>
-                        </div>
                     </div>
+                </div>
+            )}
+
+            {/* ════════════════════════ TAB: PROGRESIÓN ════════════════════════ */}
+            {activeTab === 'progresion' && (
+                <div className="space-y-5 animate-fadeIn">
+                    {/* Buscador */}
+                    <div className="relative">
+                        <Search size={16} className="absolute left-3 top-3.5 text-text-secondary pointer-events-none" />
+                        <input
+                            type="text"
+                            placeholder="Busca un ejercicio para ver tu progresión..."
+                            value={exerciseSearch}
+                            onChange={e => {
+                                setExerciseSearch(e.target.value);
+                                setShowDropdown(true);
+                                if (!e.target.value) {
+                                    setSelectedExercise(null);
+                                    setProgressionData([]);
+                                }
+                            }}
+                            onFocus={() => setShowDropdown(true)}
+                            className="w-full bg-surface border border-surface-highlight rounded-2xl pl-9 pr-4 py-3 text-text-primary text-sm focus:outline-none focus:border-primary transition-colors"
+                        />
+                        {showDropdown && filteredCatalog.length > 0 && (
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-surface-highlight rounded-2xl shadow-2xl z-20 overflow-hidden">
+                                {filteredCatalog.map(name => (
+                                    <button
+                                        key={name}
+                                        className="w-full text-left px-4 py-3 text-sm text-text-primary hover:bg-surface-highlight transition-colors flex items-center justify-between"
+                                        onClick={() => selectExercise(name)}
+                                    >
+                                        <span>{name}</span>
+                                        <ChevronRight size={14} className="text-text-secondary" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {showDropdown && exerciseSearch.length >= 2 && filteredCatalog.length === 0 && (
+                            <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-surface-highlight rounded-2xl z-20 p-4 text-center text-text-secondary text-sm">
+                                Sin resultados para "{exerciseSearch}"
+                            </div>
+                        )}
+                    </div>
+
+                    {!selectedExercise && (
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <TrendingUp size={48} className="text-surface-highlight mb-4" />
+                            <p className="text-text-primary font-semibold">Selecciona un ejercicio</p>
+                            <p className="text-text-secondary text-sm mt-1">Escribe al menos 2 letras para buscar</p>
+                        </div>
+                    )}
+
+                    {progressionLoading && (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        </div>
+                    )}
+
+                    {selectedExercise && !progressionLoading && progressionData.length === 0 && (
+                        <div className="bg-surface rounded-2xl p-6 border border-surface-highlight text-center">
+                            <p className="text-text-secondary text-sm">Sin datos de peso registrados para <strong className="text-text-primary">{selectedExercise}</strong></p>
+                        </div>
+                    )}
+
+                    {selectedExercise && !progressionLoading && progressionData.length > 0 && (
+                        <>
+                            {/* Resumen del PR del ejercicio */}
+                            <div className="bg-gradient-to-r from-primary/20 to-primary/5 rounded-2xl p-4 border border-primary/30 flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-primary uppercase tracking-wider font-semibold">Récord Personal</p>
+                                    <p className="text-2xl font-bold text-text-primary mt-0.5">
+                                        {Math.max(...progressionData.map(p => p.peso))} kg
+                                    </p>
+                                    <p className="text-xs text-text-secondary mt-0.5">{selectedExercise}</p>
+                                </div>
+                                <Trophy size={36} className="text-primary/60" />
+                            </div>
+
+                            {/* Gráfica de progresión */}
+                            <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                                <h3 className="font-semibold text-text-primary mb-4">Evolución del peso</h3>
+                                <div className="h-52">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={progressionData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                            <defs>
+                                                <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                                                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.3} />
+                                                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={1} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
+                                            <XAxis
+                                                dataKey="date"
+                                                stroke="#6b7280"
+                                                tick={{ fontSize: 10 }}
+                                                interval="preserveStartEnd"
+                                            />
+                                            <YAxis
+                                                stroke="#6b7280"
+                                                tick={{ fontSize: 10 }}
+                                                unit=" kg"
+                                                domain={['auto', 'auto']}
+                                            />
+                                            <Tooltip content={<CustomTooltip />} />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="peso"
+                                                stroke="var(--primary)"
+                                                strokeWidth={2.5}
+                                                dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 0 }}
+                                                activeDot={{ r: 6, fill: 'var(--primary)' }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+
+                            {/* Timeline de sesiones */}
+                            <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                                <h3 className="font-semibold text-text-primary mb-3">Historial de sesiones</h3>
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                    {progressionData.slice().reverse().map((p, i) => (
+                                        <div key={i} className="flex items-center justify-between bg-background rounded-xl px-3 py-2.5 border border-surface-highlight">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-1.5 h-8 rounded-full bg-primary/40" />
+                                                <p className="text-sm text-text-primary">{p.date}</p>
+                                            </div>
+                                            <p className="font-bold text-primary">{p.peso} kg</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* ════════════════════════ TAB: ACTIVIDAD ════════════════════════ */}
+            {activeTab === 'actividad' && (
+                <div className="space-y-5 animate-fadeIn">
+                    {/* Heatmap */}
+                    <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <Calendar size={18} className="text-primary" />
+                                <span className="font-semibold text-text-primary">Últimos 90 días</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] text-text-secondary">
+                                <div className="w-3 h-3 rounded-sm bg-surface-highlight/40" /> Sin actividad
+                                <div className="w-3 h-3 rounded-sm bg-primary" /> Activo
+                            </div>
+                        </div>
+                        {heatmapData.length === 0 ? (
+                            <p className="text-center text-text-secondary text-sm py-4">Sin datos de actividad</p>
+                        ) : (
+                            <ActivityHeatmap heatmapData={heatmapData} />
+                        )}
+                    </div>
+
+                    {/* Frecuencia por día de la semana */}
+                    <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Flame size={18} className="text-orange-400" />
+                            <span className="font-semibold text-text-primary">Días más activos</span>
+                        </div>
+                        {weekdayData.every(d => d.workouts === 0) ? (
+                            <p className="text-center text-text-secondary text-sm py-4">Sin datos suficientes</p>
+                        ) : (
+                            <div className="h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={weekdayData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
+                                        <XAxis dataKey="name" stroke="#6b7280" tick={{ fontSize: 11 }} />
+                                        <YAxis stroke="#6b7280" tick={{ fontSize: 10 }} allowDecimals={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', borderRadius: '12px' }}
+                                            cursor={{ fill: '#374151', opacity: 0.4 }}
+                                            formatter={(v) => [`${v} entrenamiento${v !== 1 ? 's' : ''}`, '']}
+                                        />
+                                        <Bar dataKey="workouts" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Resumen actividad */}
+                    {heatmapData.length > 0 && (() => {
+                        const activeDays = heatmapData.filter(d => d.count > 0).length;
+                        const rate = Math.round((activeDays / 90) * 100);
+                        const bestDay = weekdayData.reduce((a, b) => b.workouts > a.workouts ? b : a, weekdayData[0]);
+                        return (
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-surface rounded-2xl p-4 border border-surface-highlight text-center">
+                                    <p className="text-2xl font-bold text-primary">{activeDays}</p>
+                                    <p className="text-xs text-text-secondary mt-1">días activos (90 días)</p>
+                                </div>
+                                <div className="bg-surface rounded-2xl p-4 border border-surface-highlight text-center">
+                                    <p className="text-2xl font-bold text-orange-400">{bestDay?.workouts > 0 ? bestDay.name : '—'}</p>
+                                    <p className="text-xs text-text-secondary mt-1">día favorito</p>
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
         </div>

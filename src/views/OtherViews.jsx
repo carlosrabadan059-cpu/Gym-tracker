@@ -1,12 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { routines } from '../data/routines';
-import { X, Check } from 'lucide-react';
+import { X, Check, History } from 'lucide-react';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
-import { cn, loadWorkoutLogs } from '../lib/utils';
+import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
-const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => {
+/** Formatea una fecha ISO como "hace N días" o "hoy" */
+function formatRelativeDate(isoDate) {
+    if (!isoDate) return '';
+    const diffMs = Date.now() - new Date(isoDate).getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'hoy';
+    if (diffDays === 1) return 'hace 1 día';
+    return `hace ${diffDays} días`;
+}
+
+const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClose }) => {
     const { profile } = useAuth();
     const userWeight = profile?.weight || null;
 
@@ -36,7 +46,14 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
     });
     const [inputErrors, setInputErrors] = useState({});
 
-    const audioCtxRef = React.useRef(null);
+    const audioCtxRef = useRef(null);
+    // Ref para el setTimeout de la notificación de fondo
+    const bgTimeoutRef = useRef(null);
+    // Ref que mantiene siempre el estado actual del timer (evita closures obsoletas)
+    const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
+    useEffect(() => {
+        timerStateRef.current = { timerActive, targetTime, selectedDuration };
+    }, [timerActive, targetTime, selectedDuration]);
 
     useEffect(() => {
         try {
@@ -52,10 +69,36 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
             if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
                 audioCtxRef.current.close().catch(() => {});
             }
+            // Limpiar timeout de fondo al desmontar
+            if (bgTimeoutRef.current) clearTimeout(bgTimeoutRef.current);
         };
     }, []);
 
+    // Pide permiso de notificación del SO (sólo la primera vez)
+    const requestNotificationPermission = () => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    };
+
+    // Lanza una notificación nativa del SO (funciona con la pantalla apagada)
+    const showSystemNotification = useCallback(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                new Notification('¡Recuperación completada! 💪', {
+                    body: '¡Es hora de tu siguiente serie!',
+                    icon: '/favicon.ico',
+                    silent: false,
+                });
+            } catch (e) {
+                console.error('Notification error:', e);
+            }
+        }
+    }, []);
+
     const unlockAudio = () => {
+        // Pedir permiso de notificación en el primer gesto del usuario
+        requestNotificationPermission();
         try {
             // Unlock Web Audio API
             if (audioCtxRef.current) {
@@ -121,91 +164,115 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
         }
     };
 
-    // Audio context for beep sound (Louder, 3-beep sequence) + Voice
-    const playBeep = () => {
+    // Audio context para el sonido de pitido + voz + notificación del SO
+    const playBeep = useCallback(() => {
+        // Notificación nativa del SO (para cuando la app está en segundo plano)
+        showSystemNotification();
         try {
-            // Voice announcement (Reliable on iOS, ducks background music)
+            // Voz (fiable en iOS, interrumpe música de fondo)
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance('Recuperación completada');
                 utterance.lang = 'es-ES';
                 utterance.rate = 1.1;
                 utterance.pitch = 1;
-                utterance.volume = 1; // Max volume
+                utterance.volume = 1;
                 window.speechSynthesis.speak(utterance);
             }
 
-            // Vibrate for mobile devices
+            // Vibración en móvil
             if ('vibrate' in navigator) {
-                navigator.vibrate([500, 200, 500, 200, 800]); 
+                navigator.vibrate([500, 200, 500, 200, 800]);
             }
 
             const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
             if (!ctx) return;
 
-            if (ctx.state === 'suspended') {
-                ctx.resume();
-            }
+            if (ctx.state === 'suspended') ctx.resume();
 
             const scheduleBeep = (startTime, freq) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
-
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-
-                osc.type = 'square'; // More audible piercing sound
-                gain.gain.value = 1; // Maximum volume
+                osc.type = 'square';
+                gain.gain.value = 1;
                 osc.frequency.setValueAtTime(freq, startTime);
-
-                // Attack and release envelope to avoid clicking while keeping it loud
                 gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(1, startTime + 0.05); // slower attack
-                gain.gain.setValueAtTime(1, startTime + 0.4); // longer sustain
-                gain.gain.linearRampToValueAtTime(0, startTime + 0.5); // slower decay
-
+                gain.gain.linearRampToValueAtTime(1, startTime + 0.05);
+                gain.gain.setValueAtTime(1, startTime + 0.4);
+                gain.gain.linearRampToValueAtTime(0, startTime + 0.5);
                 osc.start(startTime);
                 osc.stop(startTime + 0.5);
             };
 
             const now = ctx.currentTime;
-            // 3 distinct alarm beeps (longer and louder)
             scheduleBeep(now, 880);
             scheduleBeep(now + 0.6, 880);
             scheduleBeep(now + 1.2, 1320);
 
-            // Do not close it if we are using the shared ref
             if (ctx !== audioCtxRef.current) {
                 setTimeout(() => {
                     if (ctx.state !== 'closed') ctx.close().catch(() => {});
                 }, 2000);
             }
         } catch (error) {
-            console.error("No se pudo reproducir el sonido del temporizador", error);
+            console.error('No se pudo reproducir el sonido del temporizador', error);
         }
-    };
+    }, [showSystemNotification]);
 
+    // Capa 1: setInterval para actualizar el contador visual
+    // Capa 2: setTimeout exacto que dispara el beep aunque el intervalo esté throttled
     useEffect(() => {
         let interval = null;
-        if (timerActive && targetTime) {
-            // Check frequently (e.g. 500ms) to ensure smooth UI even if it lags a bit
-            interval = setInterval(() => {
-                const now = Date.now();
-                const remaining = Math.max(0, Math.ceil((targetTime - now) / 1000));
 
-                if (remaining > 0) {
-                    setTimeLeft(remaining);
-                } else {
-                    // Timer finished
-                    setTimerActive(false);
-                    setTargetTime(null);
-                    setTimeLeft(0);
-                    playBeep();
-                    setTimeout(() => setTimeLeft(selectedDuration), 2000);
-                }
+        // Cancelar cualquier timeout de fondo previo
+        if (bgTimeoutRef.current) {
+            clearTimeout(bgTimeoutRef.current);
+            bgTimeoutRef.current = null;
+        }
+
+        if (timerActive && targetTime) {
+            // Timeout exacto: se ejecuta en el momento preciso incluso en background
+            const delay = Math.max(0, targetTime - Date.now());
+            bgTimeoutRef.current = setTimeout(() => {
+                setTimerActive(false);
+                setTargetTime(null);
+                setTimeLeft(0);
+                playBeep();
+                setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
+            }, delay);
+
+            // Intervalo solo para actualizar el display visual
+            interval = setInterval(() => {
+                const remaining = Math.max(0, Math.ceil((targetTime - Date.now()) / 1000));
+                setTimeLeft(remaining);
             }, 500);
         }
-        return () => clearInterval(interval);
-    }, [timerActive, targetTime, selectedDuration]);
+
+        return () => {
+            clearInterval(interval);
+            // No cancelamos bgTimeoutRef aquí porque perderíamos la notificación de fondo
+        };
+    }, [timerActive, targetTime, playBeep]);
+
+    // Capa 3: visibilitychange — cuando el usuario vuelve a la app, disparar si el timer ya expiró
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState !== 'visible') return;
+            const { timerActive, targetTime, selectedDuration } = timerStateRef.current;
+            if (!timerActive || !targetTime) return;
+            if (Date.now() >= targetTime) {
+                // El timer expiró mientras estábamos en segundo plano
+                setTimerActive(false);
+                setTargetTime(null);
+                setTimeLeft(0);
+                playBeep();
+                setTimeout(() => setTimeLeft(selectedDuration), 2000);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [playBeep]); // solo se registra una vez, usa ref para el estado
 
     const toggleTimer = () => {
         unlockAudio();
@@ -316,6 +383,78 @@ const ExerciseDetailModal = ({ exercise, initialLog, isCompleted, onClose }) => 
                         </div>
                     </div>
 
+                    {/* Referencia Última Vez */}
+                    {(() => {
+                        const sets = lastLog ? Object.entries(lastLog.setsData) : [];
+
+                        const weights = sets.map(([, s]) => s.weight).filter(Boolean);
+                        const repsArr = sets.map(([, s]) => s.reps).filter(Boolean);
+
+                        const sharedWeight = weights.length > 0 && weights.every(w => w === weights[0]) ? weights[0] : null;
+                        const sharedReps   = repsArr.length > 0 && repsArr.every(r => r === repsArr[0])   ? repsArr[0]  : null;
+
+                        // Construye el badge del header con lo que es común a todas las series
+                        const headerBadge = lastLog && sets.length > 0 ? [
+                            sharedWeight ? `${sharedWeight} kg` : null,
+                            sharedReps   ? `${sharedReps} reps` : null,
+                        ].filter(Boolean).join(' × ') : null;
+
+                        // Solo mostramos la lista de series si hay algo que varía
+                        const needsPerSeriesList = lastLog && sets.length > 0 && (!sharedWeight || !sharedReps);
+
+                        return (
+                            <div className="rounded-2xl border p-4"
+                                style={{
+                                    background: 'color-mix(in srgb, #f59e0b 8%, transparent)',
+                                    borderColor: 'color-mix(in srgb, #f59e0b 30%, transparent)'
+                                }}
+                            >
+                                {/* Header: etiqueta + valores comunes */}
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <History size={14} className="text-amber-400 flex-shrink-0" />
+                                        <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                                            {lastLog ? `Última vez — ${formatRelativeDate(lastLog.date)}` : '¡Primera vez registrada!'}
+                                        </span>
+                                        {lastLog?.fromOtherRoutine && (
+                                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                otra rutina
+                                            </span>
+                                        )}
+                                    </div>
+                                    {headerBadge && (
+                                        <span className="font-mono font-bold text-amber-300 text-sm">
+                                            {headerBadge}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Lista por serie: solo cuando peso o reps varían */}
+                                {needsPerSeriesList && (
+                                    <div className="space-y-1.5 mt-2">
+                                        {sets.map(([idx, set]) => {
+                                            const parts = [];
+                                            if (!sharedWeight && set.weight) parts.push(`${set.weight} kg`);
+                                            if (!sharedReps && set.reps)     parts.push(`${set.reps} reps`);
+                                            return (
+                                                <div key={idx} className="flex items-center justify-between text-sm">
+                                                    <span className="text-text-secondary">Serie {parseInt(idx) + 1}</span>
+                                                    <span className="font-mono font-bold text-amber-300">
+                                                        {parts.join(' × ') || '—'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {!lastLog && (
+                                    <p className="text-xs text-text-secondary mt-1">Aún no hay datos históricos para este ejercicio. ¡Registra tu primera sesión!</p>
+                                )}
+                            </div>
+                        );
+                    })()}
+
                     {/* Logging Inputs */}
                     <div className="space-y-3">
                         <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-2">Registrar Series</h3>
@@ -387,11 +526,14 @@ const TrainingView = ({ workout, onFinish }) => {
     const [activeExercise, setActiveExercise] = useState(null);
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
+    // lastExerciseLogs: { [exerciseId]: { setsData, date } | null }
+    const [lastExerciseLogs, setLastExerciseLogs] = useState({});
 
     useEffect(() => {
         const fetchExistingLogs = async () => {
             if (activeWorkout && user?.id) {
                 try {
+                    // Cargar logs de hoy
                     const allLogs = await loadWorkoutLogs(user.id);
                     const todayStr = new Date().toDateString();
                     const todaysLog = allLogs.find(l =>
@@ -404,8 +546,25 @@ const TrainingView = ({ workout, onFinish }) => {
                         Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
                         setCompletedExercises(completed);
                     }
+
+                    // Cargar último log histórico por ejercicio (para mostrar como referencia)
+                    // Intentamos primero dentro de la misma rutina (mismo ID de ejercicio),
+                    // y si no hay historial, buscamos globalmente por nombre de ejercicio.
+                    if (activeWorkout.exercises?.length) {
+                        const lastLogsEntries = await Promise.all(
+                            activeWorkout.exercises.map(async (ex) => {
+                                let last = await loadLastExerciseLog(user.id, activeWorkout.id, ex.id);
+                                if (!last && ex.name) {
+                                    // Fallback: rutina nueva o ejercicio sin historial en esta rutina
+                                    last = await loadLastExerciseLogGlobal(user.id, ex.name, activeWorkout.id);
+                                }
+                                return [ex.id, last];
+                            })
+                        );
+                        setLastExerciseLogs(Object.fromEntries(lastLogsEntries));
+                    }
                 } catch (error) {
-                    console.error("Failed to fetch todays logs:", error);
+                    console.error("Failed to fetch logs:", error);
                 }
             }
         };
@@ -510,6 +669,7 @@ const TrainingView = ({ workout, onFinish }) => {
                 <ExerciseDetailModal
                     exercise={activeExercise}
                     initialLog={exerciseLogs[activeExercise.id]}
+                    lastLog={lastExerciseLogs[activeExercise.id] ?? null}
                     isCompleted={completedExercises[activeExercise.id]}
                     onClose={handleExerciseModalClose}
                 />

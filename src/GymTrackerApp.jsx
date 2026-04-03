@@ -7,6 +7,8 @@ import { TrainingView, ProgressView } from './views/OtherViews';
 import { ChatView } from './views/ChatView';
 import { ProfileView } from './views/ProfileView';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { NotificationsProvider } from './context/NotificationsContext';
 import { Dumbbell } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
 import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
@@ -17,6 +19,58 @@ import { ClientProfileView } from './views/trainer/ClientProfileView';
 import { RoutineAssignerView } from './views/trainer/RoutineAssignerView';
 import { TrainerLibraryView } from './views/trainer/TrainerLibraryView';
 
+/**
+ * Previene el diálogo nativo de iOS "Shake to Undo" (Deshacer escritura).
+ * Detecta el movimiento del dispositivo y desenfoca el input activo ANTES
+ * de que iOS alcance su propio umbral de detección (~15 m/s²).
+ * Umbral de 8 m/s² da margen suficiente para evitar el diálogo sin
+ * interferir con el uso normal del móvil.
+ */
+function useShakeToUndoPrevention() {
+    useEffect(() => {
+        if (!window.DeviceMotionEvent) return;
+
+        const BLUR_THRESHOLD = 8;   // m/s² sin gravedad — menor que el umbral de iOS
+        const COOLDOWN_MS    = 1500; // evita disparos múltiples consecutivos
+        let lastBlurTime = 0;
+
+        const handleMotion = (event) => {
+            const acc = event.acceleration;
+            if (!acc) return;
+
+            const magnitude = Math.sqrt(
+                (acc.x || 0) ** 2 +
+                (acc.y || 0) ** 2 +
+                (acc.z || 0) ** 2
+            );
+
+            const now = Date.now();
+            if (magnitude > BLUR_THRESHOLD && now - lastBlurTime > COOLDOWN_MS) {
+                lastBlurTime = now;
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                    active.blur();
+                }
+            }
+        };
+
+        // iOS 13+ requiere permiso explícito para DeviceMotionEvent
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+            DeviceMotionEvent.requestPermission()
+                .then(state => {
+                    if (state === 'granted') {
+                        window.addEventListener('devicemotion', handleMotion);
+                    }
+                })
+                .catch(console.error);
+        } else {
+            window.addEventListener('devicemotion', handleMotion);
+        }
+
+        return () => window.removeEventListener('devicemotion', handleMotion);
+    }, []);
+}
+
 // Login Component (Internal for now, to keep everything in one file if possible or extract)
 const LoginView = () => {
     const [loading, setLoading] = useState(false);
@@ -25,11 +79,13 @@ const LoginView = () => {
     const [isSignUp, setIsSignUp] = useState(false);
     const { signIn, signUp } = useAuth();
     const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
 
     const handleAuth = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setSuccess(null);
         try {
             if (isSignUp) {
                 const { error } = await signUp({
@@ -37,14 +93,12 @@ const LoginView = () => {
                     password,
                     options: {
                         data: {
-                            username: email.split('@')[0], // Default username
+                            username: email.split('@')[0],
                         }
                     }
                 });
                 if (error) throw error;
-                // alert('Registro exitoso! Por favor inicia sesión.'); // Commented out for automated testing flow
-                console.log('Registro exitoso');
-                setError('Registro exitoso! Revisa tu email si es necesario o inicia sesión.');
+                setSuccess('Registro exitoso! Revisa tu email si es necesario o inicia sesión.');
                 setIsSignUp(false);
             } else {
                 const { error } = await signIn({ email, password });
@@ -82,6 +136,7 @@ const LoginView = () => {
                 />
 
                 {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+                {success && <p className="text-green-400 text-sm font-medium">{success}</p>}
 
                 <button
                     type="submit"
@@ -103,6 +158,8 @@ const LoginView = () => {
 };
 
 const AuthenticatedApp = () => {
+    useShakeToUndoPrevention(); // Prevenir "Shake to Undo" globalmente
+
     const [view, setView] = useState('setup'); // setup, dashboard, training, progress, chat, profile, trainer
     const { user, profile, loading } = useAuth();
     const [currentWorkout, setCurrentWorkout] = useState(null);
@@ -268,9 +325,6 @@ const AuthenticatedApp = () => {
         </div>
     );
 };
-
-import { ThemeProvider } from './context/ThemeContext';
-import { NotificationsProvider } from './context/NotificationsContext';
 
 export default function GymTrackerApp() {
     return (

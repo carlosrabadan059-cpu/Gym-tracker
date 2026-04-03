@@ -7,11 +7,13 @@ import { PrivacyView } from './profile/PrivacyView';
 import { SettingsView } from './profile/SettingsView';
 import { HelpView } from './profile/HelpView';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationsContext';
 import { supabase } from '../lib/supabase';
 
 export function ProfileView() {
     const [currentView, setCurrentView] = useState('main');
     const { user: authUser, profile, refreshProfile, signOut } = useAuth();
+    const { unreadCount } = useNotifications();
     const [loading, setLoading] = useState(false);
 
     const user = profile ? {
@@ -55,7 +57,7 @@ export function ProfileView() {
     if (!user) return <div className="text-white text-center py-10">No se encontró el usuario</div>;
 
     const menuItems = [
-        { icon: Bell, label: 'Notificaciones', badge: '2', view: 'notifications' },
+        { icon: Bell, label: 'Notificaciones', badge: unreadCount > 0 ? String(unreadCount) : null, view: 'notifications' },
         { icon: Shield, label: 'Privacidad y Seguridad', view: 'privacy' },
         { icon: Settings, label: 'Configuración General', view: 'settings' },
         { icon: CircleHelp, label: 'Ayuda y Soporte', view: 'help' },

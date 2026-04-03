@@ -54,8 +54,7 @@ export function ChatView() {
         }
     }, [user]);
 
-    // TODO: Replace with your actual n8n Webhook URL
-    const N8N_WEBHOOK_URL = 'https://n8n.rabadanhouse.space/webhook/Gym';
+    const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
     const handleSendMessage = async (text) => {
         if (!text.trim()) return;
