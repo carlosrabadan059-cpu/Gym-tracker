@@ -13,6 +13,84 @@ const SUGGESTED_QUESTIONS = [
     "¿Qué suplementos recomiendas?"
 ];
 
+// Paleta de colores para secciones h2, cíclica
+const SECTION_PALETTES = [
+    { bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   icon: 'text-blue-400',   dot: 'bg-blue-400'   },
+    { bg: 'bg-primary/10',    border: 'border-primary/30',    icon: 'text-primary',    dot: 'bg-primary'    },
+    { bg: 'bg-purple-500/10', border: 'border-purple-500/30', icon: 'text-purple-400', dot: 'bg-purple-400' },
+    { bg: 'bg-orange-500/10', border: 'border-orange-500/30', icon: 'text-orange-400', dot: 'bg-orange-400' },
+    { bg: 'bg-green-500/10',  border: 'border-green-500/30',  icon: 'text-green-400',  dot: 'bg-green-400'  },
+];
+
+function BotMarkdown({ text }) {
+    return (
+        <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+                // H2 → tarjeta de sección con acento de color
+                h2: ({ children, node }) => {
+                    // Cuenta cuántos h2 hay antes de este para asignar color
+                    const idx = node?.position?.start?.line ?? 0;
+                    const palette = SECTION_PALETTES[Math.floor(idx / 10) % SECTION_PALETTES.length];
+                    return (
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${palette.bg} border ${palette.border} mt-3 mb-2 first:mt-0`}>
+                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${palette.dot}`} />
+                            <span className={`text-sm font-bold ${palette.icon}`}>{children}</span>
+                        </div>
+                    );
+                },
+                // H3 → subtítulo sutil
+                h3: ({ children }) => (
+                    <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mt-3 mb-1">{children}</p>
+                ),
+                // Párrafo normal
+                p: ({ children }) => (
+                    <p className="text-sm leading-relaxed mb-2 last:mb-0 text-text-primary">{children}</p>
+                ),
+                // Lista → items con pill estilo gym
+                ul: ({ children }) => (
+                    <ul className="space-y-1.5 my-2">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                    <ol className="space-y-1.5 my-2 counter-reset-item">{children}</ol>
+                ),
+                li: ({ children, ordered, index }) => (
+                    <li className="flex items-start gap-2.5 bg-background/60 rounded-xl px-3 py-2 border border-surface-highlight/50">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5">
+                            {ordered
+                                ? <span className="text-[9px] font-bold text-primary">{(index ?? 0) + 1}</span>
+                                : <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                            }
+                        </span>
+                        <span className="text-sm text-text-primary leading-relaxed">{children}</span>
+                    </li>
+                ),
+                // Negritas
+                strong: ({ children }) => (
+                    <strong className="font-bold text-text-primary">{children}</strong>
+                ),
+                // Blockquote → tip card destacada
+                blockquote: ({ children }) => (
+                    <div className="flex gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-3 py-2.5 my-2">
+                        <span className="text-base flex-shrink-0 leading-none mt-0.5">💡</span>
+                        <div className="text-sm text-yellow-200 leading-relaxed [&>p]:mb-0">{children}</div>
+                    </div>
+                ),
+                // Código inline
+                code: ({ children }) => (
+                    <code className="bg-background px-1.5 py-0.5 rounded text-primary text-xs font-mono border border-surface-highlight">{children}</code>
+                ),
+                // Separador horizontal
+                hr: () => (
+                    <div className="border-t border-surface-highlight my-3" />
+                ),
+            }}
+        >
+            {text}
+        </ReactMarkdown>
+    );
+}
+
 function MessageBubble({ msg }) {
     const [copied, setCopied] = useState(false);
 
@@ -30,69 +108,29 @@ function MessageBubble({ msg }) {
 
     return (
         <div className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[85%] flex flex-col gap-1 ${isBot ? 'items-start' : 'items-end'}`}>
-                <div
-                    className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                        isBot
-                            ? 'bg-surface border border-surface-highlight text-text-primary rounded-tl-none'
-                            : 'bg-primary text-black rounded-tr-none font-medium'
-                    }`}
-                >
-                    {isBot ? (
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                                h2: ({ children }) => (
-                                    <h2 className="text-base font-bold text-text-primary mt-3 mb-1 first:mt-0">{children}</h2>
-                                ),
-                                h3: ({ children }) => (
-                                    <h3 className="text-sm font-bold text-text-primary mt-2 mb-1">{children}</h3>
-                                ),
-                                p: ({ children }) => (
-                                    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
-                                ),
-                                ul: ({ children }) => (
-                                    <ul className="space-y-1 my-2 pl-1">{children}</ul>
-                                ),
-                                li: ({ children }) => (
-                                    <li className="flex gap-2">
-                                        <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                                        <span>{children}</span>
-                                    </li>
-                                ),
-                                strong: ({ children }) => (
-                                    <strong className="font-bold text-text-primary">{children}</strong>
-                                ),
-                                blockquote: ({ children }) => (
-                                    <blockquote className="border-l-2 border-primary pl-3 my-2 text-text-secondary italic">
-                                        {children}
-                                    </blockquote>
-                                ),
-                                code: ({ children }) => (
-                                    <code className="bg-background px-1.5 py-0.5 rounded text-primary text-xs font-mono">{children}</code>
-                                ),
-                            }}
-                        >
-                            {msg.text}
-                        </ReactMarkdown>
-                    ) : (
+            <div className={`flex flex-col gap-1 ${isBot ? 'items-start w-full' : 'items-end max-w-[80%]'}`}>
+                {isBot ? (
+                    <div className="w-full space-y-0.5">
+                        <BotMarkdown text={msg.text} />
+                        {msg.image && (
+                            <div className="mt-2 rounded-xl overflow-hidden shadow-sm">
+                                <img
+                                    src={msg.image}
+                                    alt="Generated content"
+                                    className="w-full h-auto object-cover max-h-64 sm:max-h-80"
+                                    loading="lazy"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="bg-primary text-black rounded-2xl rounded-tr-none px-4 py-3 text-sm font-medium leading-relaxed shadow-sm">
                         <span className="whitespace-pre-wrap">{msg.text}</span>
-                    )}
+                    </div>
+                )}
 
-                    {msg.image && (
-                        <div className="mt-2 rounded-xl overflow-hidden shadow-sm">
-                            <img
-                                src={msg.image}
-                                alt="Generated content"
-                                className="w-full h-auto object-cover max-h-64 sm:max-h-80"
-                                loading="lazy"
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                            />
-                        </div>
-                    )}
-                </div>
-
-                {/* Timestamp + copy button */}
+                {/* Timestamp + copy */}
                 <div className={`flex items-center gap-2 px-1 ${isBot ? 'flex-row' : 'flex-row-reverse'}`}>
                     {timeStr && (
                         <span className="text-[10px] text-text-secondary">{timeStr}</span>
