@@ -1,53 +1,53 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Search, Dumbbell, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, ChevronDown, ChevronRight } from 'lucide-react';
 
 export function TrainerLibraryView({ onBack }) {
-    const [routines, setRoutines] = useState([]);
+    const [catalog, setCatalog] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [expandedRoutine, setExpandedRoutine] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [collapsedGroups, setCollapsedGroups] = useState({});
 
     useEffect(() => {
-        const fetchLibrary = async () => {
+        const fetchCatalog = async () => {
             try {
-                const { data: routinesData, error: routinesError } = await supabase
-                    .from('routines')
+                const { data, error } = await supabase
+                    .from('exercise_catalog')
                     .select('*')
-                    .order('id');
-
-                if (routinesError) throw routinesError;
-
-                const { data: exercisesData, error: exercisesError } = await supabase
-                    .from('exercises')
-                    .select('*')
-                    .order('ui_order');
-
-                if (exercisesError) throw exercisesError;
-
-                // Merge exercises into routines
-                const mergedRoutines = routinesData.map(routine => ({
-                    ...routine,
-                    exercises: exercisesData.filter(ex => ex.routine_id === routine.id)
-                }));
-
-                setRoutines(mergedRoutines);
-            } catch (error) {
-                console.error('Error fetching library:', error);
+                    .order('name');
+                if (error) throw error;
+                setCatalog((data || []).map(ex => ({
+                    ...ex,
+                    group: ex.target || ex.category || ex.bodyPart || 'Otros'
+                })));
+            } catch (err) {
+                console.error('Error fetching catalog:', err);
             } finally {
                 setLoading(false);
             }
         };
-
-        fetchLibrary();
+        fetchCatalog();
     }, []);
 
-    const toggleRoutine = (id) => {
-        setExpandedRoutine(expandedRoutine === id ? null : id);
+    const groups = useMemo(() => {
+        const filtered = catalog.filter(ex =>
+            ex.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        const map = {};
+        for (const ex of filtered) {
+            if (!map[ex.group]) map[ex.group] = [];
+            map[ex.group].push(ex);
+        }
+        return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+    }, [catalog, searchQuery]);
+
+    const toggleGroup = (group) => {
+        setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
     };
 
     return (
         <div className="flex flex-col h-full bg-background pb-20">
-            <header className="mb-6 flex items-center gap-4 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
+            <header className="flex items-center gap-4 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
                 <button
                     onClick={onBack}
                     className="p-2 rounded-full hover:bg-surface-highlight transition-colors"
@@ -57,83 +57,82 @@ export function TrainerLibraryView({ onBack }) {
                 <h2 className="text-2xl font-bold text-text-primary">Librería</h2>
             </header>
 
-            <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-12">
-                <p className="text-sm text-text-secondary mb-4">
-                    Tus rutinas y ejercicios disponibles para asignar.
-                </p>
+            <div className="flex-1 overflow-y-auto px-4 pt-4 space-y-4 pb-12">
+                {/* Search */}
+                <div className="relative">
+                    <Search className="absolute left-3 top-2.5 text-text-secondary" size={16} />
+                    <input
+                        type="text"
+                        placeholder="Buscar ejercicio..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-surface border border-surface-highlight rounded-xl pl-9 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                    />
+                </div>
 
                 {loading ? (
-                    <div className="space-y-4">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="bg-surface p-5 rounded-2xl border border-surface-highlight animate-pulse">
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="space-y-2 flex-1">
-                                        <div className="h-4 bg-surface-highlight rounded w-1/2" />
-                                        <div className="h-3 bg-surface-highlight rounded w-1/3" />
-                                    </div>
+                    <div className="space-y-3">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="bg-surface rounded-xl border border-surface-highlight animate-pulse">
+                                <div className="px-4 py-3 flex justify-between items-center">
+                                    <div className="h-4 bg-surface-highlight rounded w-1/3" />
+                                    <div className="h-3 bg-surface-highlight rounded w-16" />
                                 </div>
                             </div>
                         ))}
                     </div>
-                ) : routines.length === 0 ? (
-                    <div className="text-center text-text-secondary mt-10">
-                        <Dumbbell size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No hay rutinas en la librería.</p>
+                ) : groups.length === 0 ? (
+                    <div className="text-center text-text-secondary mt-16">
+                        <Dumbbell size={40} className="mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">No se encontraron ejercicios</p>
                     </div>
                 ) : (
-                    routines.map((routine) => {
-                        const isExpanded = expandedRoutine === routine.id;
+                    <div className="space-y-3">
+                        {groups.map(([groupName, exercises]) => {
+                            const isCollapsed = collapsedGroups[groupName];
+                            return (
+                                <div key={groupName} className="bg-surface rounded-2xl border border-surface-highlight overflow-hidden">
+                                    {/* Group header */}
+                                    <button
+                                        onClick={() => toggleGroup(groupName)}
+                                        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-surface-highlight/40 transition-colors"
+                                    >
+                                        <span className="font-bold text-text-primary">{groupName}</span>
+                                        <div className="flex items-center gap-2 text-text-secondary">
+                                            <span className="text-xs">{exercises.length} ejercicios</span>
+                                            {isCollapsed
+                                                ? <ChevronRight size={16} />
+                                                : <ChevronDown size={16} />
+                                            }
+                                        </div>
+                                    </button>
 
-                        return (
-                            <div
-                                key={routine.id}
-                                className={`bg-surface p-5 rounded-2xl border transition-all cursor-pointer border-l-4 ${routine.border_color} ${isExpanded ? 'border-primary shadow-lg' : 'border-surface-highlight hover:border-gray-500'}`}
-                                onClick={() => toggleRoutine(routine.id)}
-                            >
-                                <div className="flex justify-between items-center mb-2">
-                                    <div>
-                                        <h3 className={`font-bold text-lg ${routine.text_color}`}>
-                                            {routine.name}
-                                        </h3>
-                                        <p className="text-xs text-text-secondary mt-1">
-                                            {routine.exercises.length} Ejercicios registrados
-                                        </p>
-                                    </div>
-                                    <ChevronRight
-                                        size={20}
-                                        className={`text-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
-                                    />
+                                    {/* Exercise list */}
+                                    {!isCollapsed && (
+                                        <div className="divide-y divide-surface-highlight border-t border-surface-highlight">
+                                            {exercises.map(ex => (
+                                                <div key={ex.id} className="flex items-center gap-3 px-4 py-2.5">
+                                                    <div className="w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                                        {ex.image_url ? (
+                                                            <img
+                                                                src={ex.image_url}
+                                                                alt={ex.name}
+                                                                className="w-full h-full object-cover"
+                                                                referrerPolicy="no-referrer"
+                                                            />
+                                                        ) : (
+                                                            <Dumbbell size={14} className="text-text-secondary" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-sm text-text-primary">{ex.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-
-                                {isExpanded && (
-                                    <div className="mt-4 space-y-3 pt-4 border-t border-surface-highlight animate-fadeIn">
-                                        {routine.exercises.map((ex) => (
-                                            <div key={ex.id} className="flex items-center gap-3">
-                                                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-surface-highlight">
-                                                    {ex.image_url ? (
-                                                        <img
-                                                            src={ex.image_url}
-                                                            alt={ex.name}
-                                                            className="h-full w-full object-cover"
-                                                            referrerPolicy="no-referrer"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-full w-full flex items-center justify-center">
-                                                            <Dumbbell size={16} className="text-gray-500" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-1 items-center justify-between text-sm text-text-secondary">
-                                                    <span className="font-medium text-text-primary">{ex.name}</span>
-                                                    <span className="text-xs opacity-70 ml-2 whitespace-nowrap bg-background px-2 py-1 rounded-md">{ex.series}x{ex.reps}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })
+                            );
+                        })}
+                    </div>
                 )}
             </div>
         </div>

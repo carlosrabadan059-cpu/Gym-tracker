@@ -1,376 +1,381 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, CheckCircle2, Search, Plus, Trash2, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
+
+const COLORS = [
+    { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
+    { value: 'bg-red-500', border: 'border-red-500', text: 'text-red-500' },
+    { value: 'bg-green-500', border: 'border-green-500', text: 'text-green-500' },
+    { value: 'bg-yellow-500', border: 'border-yellow-500', text: 'text-yellow-500' },
+    { value: 'bg-purple-500', border: 'border-purple-500', text: 'text-purple-500' },
+    { value: 'bg-orange-500', border: 'border-orange-500', text: 'text-orange-500' },
+];
+
+function Stepper({ label, value, onChange, min = 1, max = 99 }) {
+    return (
+        <div className="flex flex-col items-center gap-1">
+            <span className="text-[10px] text-text-secondary uppercase tracking-wide">{label}</span>
+            <div className="flex items-center gap-1.5">
+                <button
+                    onClick={(e) => { e.stopPropagation(); onChange(Math.max(min, Number(value) - 1)); }}
+                    className="w-6 h-6 rounded-md bg-black/20 flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                >
+                    <Minus size={10} />
+                </button>
+                <span className="w-5 text-center text-sm font-bold text-white">{value}</span>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onChange(Math.min(max, Number(value) + 1)); }}
+                    className="w-6 h-6 rounded-md bg-black/20 flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                >
+                    <Plus size={10} />
+                </button>
+            </div>
+        </div>
+    );
+}
+
+function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
+    return (
+        <div
+            onClick={() => onToggle(ex)}
+            className={`relative rounded-xl overflow-hidden cursor-pointer border-2 transition-all aspect-square ${
+                selected ? 'border-primary shadow-lg shadow-primary/30 scale-[1.02]' : 'border-transparent hover:border-surface-highlight'
+            }`}
+        >
+            {/* Image or placeholder */}
+            {ex.image_url ? (
+                <img
+                    src={ex.image_url}
+                    alt={ex.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                />
+            ) : (
+                <div className="w-full h-full bg-surface-highlight flex items-center justify-center">
+                    <Dumbbell size={24} className="text-text-secondary opacity-50" />
+                </div>
+            )}
+
+            {/* Gradient overlay always */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+            {/* Exercise name */}
+            <div className="absolute bottom-0 inset-x-0 p-1.5">
+                <p className="text-white text-[10px] font-semibold leading-tight line-clamp-2">{ex.name}</p>
+            </div>
+
+            {/* Selected overlay with steppers */}
+            {selected && onUpdate && (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-1">
+                    <Check size={16} className="text-primary" strokeWidth={3} />
+                    <div className="flex gap-2">
+                        <Stepper
+                            label="Series"
+                            value={selected.series}
+                            onChange={(v) => onUpdate(ex.id, 'series', v)}
+                        />
+                        <Stepper
+                            label="Reps"
+                            value={selected.reps}
+                            onChange={(v) => onUpdate(ex.id, 'reps', v)}
+                        />
+                    </div>
+                    <p className="text-[9px] text-white/60 mt-0.5 text-center leading-tight line-clamp-1">{ex.name}</p>
+                </div>
+            )}
+
+            {/* Check badge (unselected hover) */}
+            {!selected && (
+                <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/40 flex items-center justify-center">
+                    <Plus size={10} className="text-white/70" />
+                </div>
+            )}
+        </div>
+    );
+}
 
 export function RoutineAssignerView({ client, onBack, onSuccess }) {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    // Step management
-    const [step, setStep] = useState(1); // 1: Info & Selection, 2: Customization
-
-    // Form data
     const [routineName, setRoutineName] = useState('');
-    const [routineColor, setRoutineColor] = useState('bg-blue-500');
+    const [routineColor, setRoutineColor] = useState(COLORS[0]);
 
-    // Exercise data
-    const [allExercises, setAllExercises] = useState([]);
+    const [catalog, setCatalog] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Selected exercises to assign
-    const [selectedExercises, setSelectedExercises] = useState([]);
-
-    const colors = [
-        { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
-        { value: 'bg-red-500', border: 'border-red-500', text: 'text-red-500' },
-        { value: 'bg-green-500', border: 'border-green-500', text: 'text-green-500' },
-        { value: 'bg-yellow-500', border: 'border-yellow-500', text: 'text-yellow-500' },
-        { value: 'bg-purple-500', border: 'border-purple-500', text: 'text-purple-500' },
-        { value: 'bg-orange-500', border: 'border-orange-500', text: 'text-orange-500' },
-    ];
+    const [selectedExercises, setSelectedExercises] = useState([]); // { catalog_id, name, image_url, series, reps }
+    const [collapsedGroups, setCollapsedGroups] = useState({});
+    const [showSelected, setShowSelected] = useState(false);
 
     useEffect(() => {
-        // Fetch from exercise_catalog instead of exercises for the full 90-exercise list
-        const fetchExercises = async () => {
+        const fetchCatalog = async () => {
             try {
                 const { data, error } = await supabase
                     .from('exercise_catalog')
-                    .select('*');
-
+                    .select('*')
+                    .order('name');
                 if (error) throw error;
-
-                // Group by category (or target, depending on what the DB column is named)
-                const catalog = data || [];
-
-                // Set default series/reps and group
-                const processedEx = catalog.map(ex => ({
+                setCatalog((data || []).map(ex => ({
                     ...ex,
-                    series: ex.series || '4',
-                    reps: ex.reps || '10',
-                    group: ex.target || ex.category || ex.bodyPart || 'Otros' // fallback property checks
-                }));
-
-                setAllExercises(processedEx);
-            } catch (error) {
-                console.error('Error fetching exercise_catalog:', error);
-                alert('No se pudieron cargar los ejercicios del catálogo.');
+                    group: ex.target || ex.category || ex.bodyPart || 'Otros'
+                })));
+            } catch (err) {
+                console.error('Error fetching catalog:', err);
             } finally {
                 setLoading(false);
             }
         };
-
-        fetchExercises();
+        fetchCatalog();
     }, []);
 
-    const toggleExercise = (exercise) => {
-        const isSelected = selectedExercises.some(ex => ex.name === exercise.name);
-        if (isSelected) {
-            setSelectedExercises(prev => prev.filter(ex => ex.name !== exercise.name));
+    const groups = useMemo(() => {
+        const filtered = catalog.filter(ex =>
+            ex.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        const map = {};
+        for (const ex of filtered) {
+            if (!map[ex.group]) map[ex.group] = [];
+            map[ex.group].push(ex);
+        }
+        return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+    }, [catalog, searchQuery]);
+
+    const getSelected = (exId) => selectedExercises.find(s => s.catalog_id === exId);
+
+    const toggleExercise = (ex) => {
+        if (getSelected(ex.id)) {
+            setSelectedExercises(prev => prev.filter(s => s.catalog_id !== ex.id));
         } else {
-            setSelectedExercises(prev => [...prev, { ...exercise, id: Date.now() + Math.random() }]);
+            setSelectedExercises(prev => [...prev, {
+                catalog_id: ex.id,
+                name: ex.name,
+                image_url: ex.image_url || null,
+                series: 3,
+                reps: 10,
+            }]);
         }
     };
 
-    const updateExerciseLogistics = (idx, field, value) => {
-        const updated = [...selectedExercises];
-        updated[idx][field] = value;
-        setSelectedExercises(updated);
+    const updateSelected = (catalogId, field, value) => {
+        setSelectedExercises(prev =>
+            prev.map(s => s.catalog_id === catalogId ? { ...s, [field]: value } : s)
+        );
     };
 
-    const moveExercise = (idx, direction) => {
-        if (direction === -1 && idx === 0) return;
-        if (direction === 1 && idx === selectedExercises.length - 1) return;
-
-        const updated = [...selectedExercises];
-        const temp = updated[idx];
-        updated[idx] = updated[idx + direction];
-        updated[idx + direction] = temp;
-        setSelectedExercises(updated);
+    const toggleGroup = (group) => {
+        setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
     };
 
-    const handleAssign = async () => {
-        if (!routineName || selectedExercises.length === 0 || !client) return;
+    const canSave = routineName.trim() && selectedExercises.length > 0;
+
+    const handleSave = async () => {
+        if (!canSave || !client) return;
         setSaving(true);
-
         try {
-            const customRoutineId = `custom_${Date.now()}_${client.user_id.substring(0, 5)}`;
-            const colorConfig = colors.find(c => c.value === routineColor) || colors[0];
+            const routineId = `custom_${Date.now()}_${client.user_id.substring(0, 5)}`;
 
-            // 1. Insert Routine
-            const { error: routineError } = await supabase
-                .from('routines')
-                .insert([{
-                    id: customRoutineId,
-                    name: routineName,
-                    color: colorConfig.value,
-                    border_color: colorConfig.border,
-                    text_color: colorConfig.text
-                }]);
-
+            const { error: routineError } = await supabase.from('routines').insert([{
+                id: routineId,
+                name: routineName.trim(),
+                color: routineColor.value,
+                border_color: routineColor.border,
+                text_color: routineColor.text,
+            }]);
             if (routineError) throw routineError;
 
-            // 2. Insert Custom Exercises
-            const exrToInsert = selectedExercises.map((ex, index) => ({
-                routine_id: customRoutineId,
-                name: ex.name,
-                series: ex.series.toString(),
-                reps: ex.reps.toString(),
-                image_url: ex.image_url,
-                ui_order: index + 1
-            }));
-
-            const { error: exError } = await supabase
-                .from('exercises')
-                .insert(exrToInsert);
-
+            const { error: exError } = await supabase.from('exercises').insert(
+                selectedExercises.map((ex, i) => ({
+                    routine_id: routineId,
+                    name: ex.name,
+                    series: String(ex.series),
+                    reps: String(ex.reps),
+                    image_url: ex.image_url,
+                    ui_order: i + 1,
+                }))
+            );
             if (exError) throw exError;
 
-            // 3. Assign Routine to Client
-            const { error: assignError } = await supabase
-                .from('assigned_routines')
-                .insert([{
-                    client_id: client.user_id,
-                    routine_id: customRoutineId,
-                    assigned_by: user.id
-                }]);
-
+            const { error: assignError } = await supabase.from('assigned_routines').insert([{
+                client_id: client.user_id,
+                routine_id: routineId,
+                assigned_by: user.id,
+            }]);
             if (assignError) throw assignError;
 
-            // 4. Send Notification
-            const { error: notifyError } = await supabase
-                .from('notifications')
-                .insert([{
-                    user_id: client.user_id,
-                    title: '¡Nueva Rutina Personalizada!',
-                    message: `Tu entrenador te ha asignado: ${routineName}. ¡A darle duro!`,
-                    read: false
-                }]);
+            await supabase.from('notifications').insert([{
+                user_id: client.user_id,
+                title: '¡Nueva Rutina Personalizada!',
+                message: `Tu entrenador te ha asignado: ${routineName.trim()}. ¡A darle duro!`,
+                read: false,
+            }]);
 
-            if (notifyError) throw notifyError;
-
-            // Done!
             onSuccess();
-        } catch (error) {
-            console.error('Error al asignar rutina:', error);
-            alert('Hubo un error al crear y asignar la rutina. Revisa que tengas los permisos en Supabase (RLS Policies).');
+        } catch (err) {
+            console.error('Error saving routine:', err);
+            alert('Error al guardar. Revisa los permisos RLS en Supabase.');
         } finally {
             setSaving(false);
         }
     };
 
-    const filteredCatalog = allExercises.filter(ex => ex.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return (
+        <div className="flex flex-col h-full bg-background">
+            {/* Header */}
+            <header className="flex items-center gap-3 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
+                <button onClick={onBack} className="p-2 rounded-full hover:bg-surface-highlight transition-colors">
+                    <ArrowLeft size={22} className="text-text-primary" />
+                </button>
+                <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-bold text-text-primary">Nueva Rutina</h2>
+                    <p className="text-xs text-text-secondary truncate">{client?.fullName || client?.username}</p>
+                </div>
+                <button
+                    onClick={handleSave}
+                    disabled={!canSave || saving}
+                    className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
+                >
+                    {saving ? 'Guardando...' : 'Guardar'}
+                </button>
+            </header>
 
-    const categories = {};
-    for (const ex of filteredCatalog) {
-        if (!categories[ex.group]) categories[ex.group] = [];
-        categories[ex.group].push(ex);
-    }
-
-    // --- STEP 1: SELECTION ---
-    if (step === 1) {
-        return (
-            <div className="flex flex-col h-full bg-background pb-20">
-                <header className="mb-6 flex items-center gap-4 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
-                    <button onClick={onBack} className="p-2 rounded-full hover:bg-surface-highlight transition-colors">
-                        <ArrowLeft size={24} className="text-text-primary" />
-                    </button>
-                    <div>
-                        <h2 className="text-xl font-bold text-text-primary">Creador de Rutinas</h2>
-                        <p className="text-xs text-text-secondary">Paso 1: Seleccionar Ejercicios</p>
-                    </div>
-                </header>
-
-                <div className="flex-1 overflow-y-auto px-4 space-y-6">
-                    {/* Routine Info inputs */}
-                    <div className="bg-surface p-4 rounded-2xl border border-surface-highlight space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1">Nombre de la Rutina</label>
-                            <input
-                                type="text"
-                                placeholder="Ej: Día 1: Pecho (Adaptado)"
-                                value={routineName}
-                                onChange={(e) => setRoutineName(e.target.value)}
-                                className="w-full bg-background border border-surface-highlight rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-primary transition-colors"
-                            />
+            <div className="flex-1 overflow-y-auto">
+                {/* Routine config */}
+                <div className="p-4 space-y-3 border-b border-surface-highlight">
+                    <input
+                        type="text"
+                        placeholder="Nombre de la rutina (ej: Día 1 - Pecho)"
+                        value={routineName}
+                        onChange={(e) => setRoutineName(e.target.value)}
+                        className="w-full bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-text-primary text-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-text-secondary">Color:</span>
+                        <div className="flex gap-2">
+                            {COLORS.map(c => (
+                                <button
+                                    key={c.value}
+                                    onClick={() => setRoutineColor(c)}
+                                    className={`w-6 h-6 rounded-full ${c.value} transition-all ${routineColor.value === c.value ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' : 'opacity-40 hover:opacity-70'}`}
+                                />
+                            ))}
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-2">Color del Bloque</label>
-                            <div className="flex gap-2">
-                                {colors.map(c => (
+                    </div>
+                </div>
+
+                {/* Search */}
+                <div className="px-4 pt-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-2.5 text-text-secondary" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Buscar ejercicio..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-surface border border-surface-highlight rounded-xl pl-9 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                        />
+                    </div>
+                </div>
+
+                {/* Exercise grid by group */}
+                <div className="px-4 pb-32 pt-4 space-y-6">
+                    {loading ? (
+                        <div className="grid grid-cols-4 gap-2">
+                            {Array.from({ length: 12 }).map((_, i) => (
+                                <div key={i} className="aspect-square bg-surface rounded-xl animate-pulse border border-surface-highlight" />
+                            ))}
+                        </div>
+                    ) : groups.length === 0 ? (
+                        <div className="text-center py-12 text-text-secondary">
+                            <Dumbbell size={36} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">No se encontraron ejercicios</p>
+                        </div>
+                    ) : (
+                        groups.map(([groupName, exercises]) => {
+                            const isCollapsed = collapsedGroups[groupName];
+                            const selectedCount = exercises.filter(ex => getSelected(ex.id)).length;
+                            return (
+                                <div key={groupName}>
+                                    {/* Group header */}
                                     <button
-                                        key={c.value}
-                                        onClick={() => setRoutineColor(c.value)}
-                                        className={`w-8 h-8 rounded-full ${c.value} ${routineColor === c.value ? 'ring-2 ring-white ring-offset-2 ring-offset-background' : 'opacity-50 hover:opacity-100'} transition-all`}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                                        onClick={() => toggleGroup(groupName)}
+                                        className="w-full flex items-center justify-between mb-3"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">{groupName}</h3>
+                                            {selectedCount > 0 && (
+                                                <span className="bg-primary text-black text-xs font-bold rounded-full px-1.5 py-0.5 leading-none">{selectedCount}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1 text-text-secondary">
+                                            <span className="text-xs">{exercises.length}</span>
+                                            {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                        </div>
+                                    </button>
 
-                    {/* Exercise Catalogue */}
-                    <div>
-                        <h3 className="font-bold text-lg text-text-primary mb-3">Catálogo de Ejercicios</h3>
-                        <div className="relative mb-4">
-                            <Search className="absolute left-3 top-3 text-text-secondary" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Buscar ejercicio..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-surface border border-surface-highlight rounded-xl pl-10 pr-4 py-3 text-text-primary focus:outline-none focus:border-primary transition-colors"
-                            />
-                        </div>
-
-                        {loading ? (
-                            <p className="text-center text-text-secondary py-8">Cargando ejercicios...</p>
-                        ) : (
-                            <div className="space-y-6">
-                                {Object.keys(categories).sort().map(groupName => (
-                                    <div key={groupName} className="space-y-2">
-                                        <h4 className="font-bold text-primary uppercase text-xs tracking-wider border-b border-surface-highlight pb-1 mb-3">{groupName}</h4>
-                                        <div className="space-y-2">
-                                            {categories[groupName].map(ex => {
-                                                const isSelected = selectedExercises.some(s => s.name === ex.name);
+                                    {/* Grid */}
+                                    {!isCollapsed && (
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {exercises.map(ex => {
+                                                const sel = getSelected(ex.id);
                                                 return (
-                                                    <div
-                                                        key={ex.name}
-                                                        onClick={() => toggleExercise(ex)}
-                                                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${isSelected ? 'bg-primary/10 border-primary' : 'bg-surface border-surface-highlight hover:border-gray-500'}`}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-lg bg-background overflow-hidden flex items-center justify-center flex-shrink-0">
-                                                                {ex.image_url ? (
-                                                                    <img src={ex.image_url} alt={ex.name} className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    <Dumbbell size={16} className="text-text-secondary" />
-                                                                )}
-                                                            </div>
-                                                            <span className={`font-medium ${isSelected ? 'text-primary' : 'text-text-primary'}`}>{ex.name}</span>
-                                                        </div>
-                                                        <div className="flex-shrink-0">
-                                                            {isSelected ? (
-                                                                <CheckCircle2 size={24} className="text-primary" />
-                                                            ) : (
-                                                                <Plus size={24} className="text-text-secondary" />
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                                    <ExerciseCard
+                                                        key={ex.id}
+                                                        ex={ex}
+                                                        selected={sel || null}
+                                                        onToggle={toggleExercise}
+                                                        onUpdate={updateSelected}
+                                                    />
                                                 );
                                             })}
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="p-4 bg-background border-t border-surface-highlight">
-                    <button
-                        onClick={() => setStep(2)}
-                        disabled={!routineName || selectedExercises.length === 0}
-                        className="w-full bg-primary text-black font-bold py-4 rounded-xl hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                    >
-                        Configurar {selectedExercises.length} Ejercicio{selectedExercises.length !== 1 ? 's' : ''} →
-                    </button>
-                    {(!routineName || selectedExercises.length === 0) && (
-                        <p className="text-center text-xs text-text-secondary mt-2">Introduce un nombre y selecciona ejercicios.</p>
+                                    )}
+                                </div>
+                            );
+                        })
                     )}
                 </div>
             </div>
-        );
-    }
 
-    // --- STEP 2: CUSTOMIZATION ---
-    return (
-        <div className="flex flex-col h-full bg-background pb-20">
-            <header className="mb-6 flex items-center justify-between p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
-                <button onClick={() => setStep(1)} className="p-2 rounded-full hover:bg-surface-highlight transition-colors">
-                    <ArrowLeft size={24} className="text-text-primary" />
-                </button>
-                <div>
-                    <h2 className="text-xl font-bold text-text-primary text-right">Ajustes</h2>
-                    <p className="text-xs text-text-secondary text-right">Paso 2: Series y Reps</p>
-                </div>
-            </header>
+            {/* Bottom selected bar */}
+            {selectedExercises.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
+                    <button
+                        onClick={() => setShowSelected(!showSelected)}
+                        className="w-full flex items-center justify-between"
+                    >
+                        <span className="text-sm font-bold text-text-primary">
+                            {selectedExercises.length} ejercicio{selectedExercises.length !== 1 ? 's' : ''} seleccionado{selectedExercises.length !== 1 ? 's' : ''}
+                        </span>
+                        <ChevronDown size={16} className={`text-text-secondary transition-transform ${showSelected ? 'rotate-180' : ''}`} />
+                    </button>
 
-            <div className="flex-1 overflow-y-auto px-4 space-y-4">
-                <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 flex gap-3">
-                    <CheckCircle2 className="text-primary flex-shrink-0 mt-0.5" size={20} />
-                    <div>
-                        <h4 className="font-bold text-primary">{routineName}</h4>
-                        <p className="text-xs text-text-secondary">Ajusta los volúmenes para <strong className="text-text-primary">{client.fullName || client.username}</strong>. Puedes reordenarlos.</p>
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    {selectedExercises.map((ex, idx) => (
-                        <div key={ex.id} className="bg-surface p-4 rounded-xl border border-surface-highlight flex flex-col gap-3">
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-text-secondary w-5">{idx + 1}.</span>
-                                    <span className="font-bold text-text-primary">{ex.name}</span>
-                                </div>
-                                <button onClick={() => setSelectedExercises(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors">
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-
-                            <div className="flex gap-4 items-center">
-                                <div className="flex-1">
-                                    <label className="block text-xs text-text-secondary mb-1">Series</label>
-                                    <input
-                                        type="text"
-                                        value={ex.series}
-                                        onChange={(e) => updateExerciseLogistics(idx, 'series', e.target.value)}
-                                        className="w-full bg-background border border-surface-highlight rounded-lg px-3 py-2 text-sm text-text-primary focus:border-primary outline-none"
-                                    />
-                                </div>
-                                <span className="text-text-secondary mt-5">x</span>
-                                <div className="flex-1">
-                                    <label className="block text-xs text-text-secondary mb-1">Reps</label>
-                                    <input
-                                        type="text"
-                                        value={ex.reps}
-                                        onChange={(e) => updateExerciseLogistics(idx, 'reps', e.target.value)}
-                                        className="w-full bg-background border border-surface-highlight rounded-lg px-3 py-2 text-sm text-text-primary focus:border-primary outline-none"
-                                    />
-                                </div>
-
-                                {/* Reorder buttons */}
-                                <div className="flex flex-col gap-1 ml-2 mt-4">
+                    {showSelected && (
+                        <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                            {selectedExercises.map((ex) => (
+                                <div key={ex.catalog_id} className="flex items-center gap-3 bg-background rounded-xl px-3 py-2">
+                                    {ex.image_url ? (
+                                        <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
+                                            <Dumbbell size={12} className="text-text-secondary" />
+                                        </div>
+                                    )}
+                                    <span className="flex-1 text-xs text-text-primary truncate">{ex.name}</span>
+                                    <span className="text-xs text-text-secondary font-bold">{ex.series}×{ex.reps}</span>
                                     <button
-                                        onClick={() => moveExercise(idx, -1)}
-                                        disabled={idx === 0}
-                                        className="p-1 text-text-secondary hover:text-text-primary disabled:opacity-30 bg-background rounded"
+                                        onClick={() => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== ex.catalog_id))}
+                                        className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors"
                                     >
-                                        ▲
-                                    </button>
-                                    <button
-                                        onClick={() => moveExercise(idx, 1)}
-                                        disabled={idx === selectedExercises.length - 1}
-                                        className="p-1 text-text-secondary hover:text-text-primary disabled:opacity-30 bg-background rounded"
-                                    >
-                                        ▼
+                                        <X size={12} />
                                     </button>
                                 </div>
-                            </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
-            </div>
-
-            <div className="p-4 bg-background border-t border-surface-highlight">
-                <button
-                    onClick={handleAssign}
-                    disabled={saving}
-                    className="w-full bg-primary text-black font-bold py-4 rounded-xl hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                >
-                    {saving ? 'Guardando en Base de Datos...' : 'Guardar y Asignar'}
-                </button>
-            </div>
+            )}
         </div>
     );
 }
