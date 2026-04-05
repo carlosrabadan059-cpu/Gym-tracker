@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Copy, Check as CheckIcon } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
     "¿Cómo mejorar mi press de banca?",
@@ -11,6 +13,107 @@ const SUGGESTED_QUESTIONS = [
     "¿Qué suplementos recomiendas?"
 ];
 
+function MessageBubble({ msg }) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(msg.text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const timeStr = msg.timestamp
+        ? new Date(msg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        : null;
+
+    const isBot = msg.type === 'bot';
+
+    return (
+        <div className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
+            <div className={`max-w-[85%] flex flex-col gap-1 ${isBot ? 'items-start' : 'items-end'}`}>
+                <div
+                    className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                        isBot
+                            ? 'bg-surface border border-surface-highlight text-text-primary rounded-tl-none'
+                            : 'bg-primary text-black rounded-tr-none font-medium'
+                    }`}
+                >
+                    {isBot ? (
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                h2: ({ children }) => (
+                                    <h2 className="text-base font-bold text-text-primary mt-3 mb-1 first:mt-0">{children}</h2>
+                                ),
+                                h3: ({ children }) => (
+                                    <h3 className="text-sm font-bold text-text-primary mt-2 mb-1">{children}</h3>
+                                ),
+                                p: ({ children }) => (
+                                    <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                ),
+                                ul: ({ children }) => (
+                                    <ul className="space-y-1 my-2 pl-1">{children}</ul>
+                                ),
+                                li: ({ children }) => (
+                                    <li className="flex gap-2">
+                                        <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                                        <span>{children}</span>
+                                    </li>
+                                ),
+                                strong: ({ children }) => (
+                                    <strong className="font-bold text-text-primary">{children}</strong>
+                                ),
+                                blockquote: ({ children }) => (
+                                    <blockquote className="border-l-2 border-primary pl-3 my-2 text-text-secondary italic">
+                                        {children}
+                                    </blockquote>
+                                ),
+                                code: ({ children }) => (
+                                    <code className="bg-background px-1.5 py-0.5 rounded text-primary text-xs font-mono">{children}</code>
+                                ),
+                            }}
+                        >
+                            {msg.text}
+                        </ReactMarkdown>
+                    ) : (
+                        <span className="whitespace-pre-wrap">{msg.text}</span>
+                    )}
+
+                    {msg.image && (
+                        <div className="mt-2 rounded-xl overflow-hidden shadow-sm">
+                            <img
+                                src={msg.image}
+                                alt="Generated content"
+                                className="w-full h-auto object-cover max-h-64 sm:max-h-80"
+                                loading="lazy"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Timestamp + copy button */}
+                <div className={`flex items-center gap-2 px-1 ${isBot ? 'flex-row' : 'flex-row-reverse'}`}>
+                    {timeStr && (
+                        <span className="text-[10px] text-text-secondary">{timeStr}</span>
+                    )}
+                    {isBot && (
+                        <button
+                            onClick={handleCopy}
+                            className="flex items-center gap-1 text-[10px] text-text-secondary hover:text-text-primary transition-colors"
+                        >
+                            {copied
+                                ? <><CheckIcon size={10} className="text-green-400" /><span className="text-green-400">Copiado</span></>
+                                : <><Copy size={10} /><span>Copiar</span></>
+                            }
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function ChatView() {
     const { user } = useAuth();
     const [userProfile, setUserProfile] = useState(null);
@@ -18,7 +121,8 @@ export function ChatView() {
         {
             id: 1,
             type: 'bot',
-            text: '¡Hola! Soy tu Entrenador IA. Estoy aquí para ayudarte a optimizar tu entrenamiento, resolver dudas sobre nutrición o ajustar tu rutina. ¿En qué puedo ayudarte hoy?'
+            text: '¡Hola! Soy tu **Entrenador IA**. Estoy aquí para ayudarte a optimizar tu entrenamiento, resolver dudas sobre nutrición o ajustar tu rutina.\n\n¿En qué puedo ayudarte hoy?',
+            timestamp: new Date()
         }
     ]);
     const [inputValue, setInputValue] = useState('');
@@ -60,7 +164,7 @@ export function ChatView() {
         if (!text.trim()) return;
 
         // Add user message
-        const userMsg = { id: Date.now(), type: 'user', text: text };
+        const userMsg = { id: Date.now(), type: 'user', text: text, timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
@@ -134,7 +238,8 @@ export function ChatView() {
                 id: Date.now() + 1,
                 type: 'bot',
                 text: botText,
-                image: botImage
+                image: botImage,
+                timestamp: new Date()
             };
             setMessages(prev => [...prev, botMsg]);
 
@@ -143,7 +248,8 @@ export function ChatView() {
             const errorMsg = {
                 id: Date.now() + 1,
                 type: 'bot',
-                text: "⚠️ Error de conexión: Asegúrate de que tu webhook de n8n esté activo."
+                text: "⚠️ **Error de conexión:** Asegúrate de que tu webhook de n8n esté activo.",
+                timestamp: new Date()
             };
             setMessages(prev => [...prev, errorMsg]);
         } finally {
@@ -172,30 +278,7 @@ export function ChatView() {
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4">
                 {messages.map((msg) => (
-                    <div
-                        key={msg.id}
-                        className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div
-                            className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm flex flex-col gap-2 ${msg.type === 'user'
-                                ? 'bg-primary text-black rounded-tr-none font-medium'
-                                : 'bg-surface-highlight text-text-primary rounded-tl-none border border-surface-highlight'
-                                }`}
-                        >
-                            <span className="whitespace-pre-wrap">{msg.text}</span>
-                            {msg.image && (
-                                <div className="mt-2 rounded-xl overflow-hidden shadow-sm">
-                                    <img
-                                        src={msg.image}
-                                        alt="Generated content"
-                                        className="w-full h-auto object-cover max-h-64 sm:max-h-80"
-                                        loading="lazy"
-                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <MessageBubble key={msg.id} msg={msg} />
                 ))}
 
                 {isTyping && (
