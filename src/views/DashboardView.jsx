@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, TrendingUp, ChevronRight, Check } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -16,73 +16,155 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
 
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
+    const [pullDistance, setPullDistance] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const touchStartY = useRef(0);
+    const containerRef = useRef(null);
 
     const userWeight = profile?.weight || null;
 
-    useEffect(() => {
-        const fetchRoutines = async () => {
-            if (!user) return;
-            try {
-                // Check for assigned routines
-                const { data: assigned, error: assignedErr } = await supabase
-                    .from('assigned_routines')
-                    .select('routine_id')
-                    .eq('client_id', user.id);
+    const fetchRoutines = useCallback(async () => {
+        if (!user) return;
+        try {
+            const { data: assigned, error: assignedErr } = await supabase
+                .from('assigned_routines')
+                .select('routine_id')
+                .eq('client_id', user.id);
 
-                let targetRoutineIds = [];
-                if (!assignedErr && assigned && assigned.length > 0) {
-                    targetRoutineIds = assigned.map(a => a.routine_id);
-                } else {
-                    targetRoutineIds = ['day1', 'day2', 'day3', 'day4']; // defaults
-                }
-
-                const { data: routinesData, error: routinesError } = await supabase
-                    .from('routines')
-                    .select('*')
-                    .in('id', targetRoutineIds)
-                    .order('id');
-
-                if (routinesError) throw routinesError;
-
-                const { data: exercisesData, error: exercisesError } = await supabase
-                    .from('exercises')
-                    .select('*')
-                    .order('ui_order');
-
-                if (exercisesError) throw exercisesError;
-
-                // Merge exercises into routines
-                const mergedRoutines = routinesData.map(routine => ({
-                    ...routine,
-                    exercises: exercisesData.filter(ex => ex.routine_id === routine.id)
-                }));
-
-                setRoutines(mergedRoutines);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            } finally {
-                setLoading(false);
+            let targetRoutineIds = [];
+            if (!assignedErr && assigned && assigned.length > 0) {
+                targetRoutineIds = assigned.map(a => a.routine_id);
+            } else {
+                targetRoutineIds = ['day1', 'day2', 'day3', 'day4'];
             }
-        };
 
-        if (user) {
-            fetchRoutines();
+            const { data: routinesData, error: routinesError } = await supabase
+                .from('routines')
+                .select('*')
+                .in('id', targetRoutineIds)
+                .order('id');
+
+            if (routinesError) throw routinesError;
+
+            const { data: exercisesData, error: exercisesError } = await supabase
+                .from('exercises')
+                .select('*')
+                .order('ui_order');
+
+            if (exercisesError) throw exercisesError;
+
+            const mergedRoutines = routinesData.map(routine => ({
+                ...routine,
+                exercises: exercisesData.filter(ex => ex.routine_id === routine.id)
+            }));
+
+            setRoutines(mergedRoutines);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+            setIsRefreshing(false);
         }
     }, [user]);
+
+    useEffect(() => {
+        if (user) fetchRoutines();
+    }, [user, fetchRoutines]);
+
+    // Pull-to-refresh touch handlers
+    useEffect(() => {
+        const el = containerRef.current;
+        if (!el) return;
+
+        const onTouchStart = (e) => {
+            if (el.scrollTop === 0) {
+                touchStartY.current = e.touches[0].clientY;
+            }
+        };
+        const onTouchMove = (e) => {
+            if (touchStartY.current === 0) return;
+            const delta = e.touches[0].clientY - touchStartY.current;
+            if (delta > 0 && el.scrollTop === 0) {
+                setPullDistance(Math.min(delta * 0.4, 70));
+            }
+        };
+        const onTouchEnd = () => {
+            if (pullDistance >= 60 && !isRefreshing) {
+                setIsRefreshing(true);
+                setLoading(true);
+                fetchRoutines();
+            }
+            setPullDistance(0);
+            touchStartY.current = 0;
+        };
+
+        el.addEventListener('touchstart', onTouchStart, { passive: true });
+        el.addEventListener('touchmove', onTouchMove, { passive: true });
+        el.addEventListener('touchend', onTouchEnd);
+        return () => {
+            el.removeEventListener('touchstart', onTouchStart);
+            el.removeEventListener('touchmove', onTouchMove);
+            el.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [pullDistance, isRefreshing, fetchRoutines]);
 
     const toggleRoutine = (id) => {
         setExpandedRoutine(expandedRoutine === id ? null : id);
     };
 
-    if (loading) return <div className="text-text-primary text-center py-10">Cargando rutinas...</div>;
+    if (loading) return (
+        <div className="space-y-4 pb-24">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="bg-surface rounded-2xl p-5 border border-surface-highlight animate-pulse">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="h-14 w-14 rounded-2xl bg-surface-highlight flex-shrink-0" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-surface-highlight rounded w-2/3" />
+                            <div className="h-3 bg-surface-highlight rounded w-1/3" />
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        {[1, 2, 3].map(j => (
+                            <div key={j} className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-lg bg-surface-highlight flex-shrink-0" />
+                                <div className="flex-1 h-3 bg-surface-highlight rounded" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-4 h-9 bg-surface-highlight rounded-full" />
+                </div>
+            ))}
+        </div>
+    );
 
     return (
-        <div className="space-y-6 pb-24">
+        <div ref={containerRef} className="space-y-6 pb-24 overflow-y-auto">
+            {/* Pull-to-refresh indicator */}
+            {(pullDistance > 0 || isRefreshing) && (
+                <div
+                    className="flex items-center justify-center transition-all"
+                    style={{ height: isRefreshing ? 48 : pullDistance, overflow: 'hidden' }}
+                >
+                    <div className={`w-6 h-6 rounded-full border-2 border-primary border-t-transparent ${isRefreshing ? 'animate-spin' : ''}`}
+                        style={{ transform: `rotate(${pullDistance * 3}deg)` }}
+                    />
+                </div>
+            )}
             {/* Daily Routines */}
             <div>
                 <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-xl font-bold text-text-primary">Tus Rutinas Diarias</h3>
                 </div>
+
+                {routines.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="p-5 bg-surface-highlight rounded-full mb-4">
+                            <TrendingUp size={40} className="text-text-secondary opacity-50" />
+                        </div>
+                        <p className="text-text-primary font-semibold">No hay rutinas asignadas</p>
+                        <p className="text-text-secondary text-sm mt-1">Contacta con tu entrenador para que te asigne una rutina</p>
+                    </div>
+                ) : null}
 
                 <div className="space-y-4">
                     {routines.map((routine) => {

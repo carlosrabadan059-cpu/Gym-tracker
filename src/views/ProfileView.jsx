@@ -192,7 +192,11 @@ export function ProfileView() {
 
             {/* Logout */}
             <button
-                onClick={() => signOut()}
+                onClick={() => {
+                    if (window.confirm('¿Seguro que quieres cerrar sesión?')) {
+                        signOut();
+                    }
+                }}
                 className="w-full flex items-center justify-center gap-3 p-4 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors mt-4 border border-red-500/20"
             >
                 <LogOut size={20} />

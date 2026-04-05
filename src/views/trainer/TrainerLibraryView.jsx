@@ -63,7 +63,18 @@ export function TrainerLibraryView({ onBack }) {
                 </p>
 
                 {loading ? (
-                    <div className="text-center text-text-secondary mt-10">Cargando librería...</div>
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-surface p-5 rounded-2xl border border-surface-highlight animate-pulse">
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="space-y-2 flex-1">
+                                        <div className="h-4 bg-surface-highlight rounded w-1/2" />
+                                        <div className="h-3 bg-surface-highlight rounded w-1/3" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 ) : routines.length === 0 ? (
                     <div className="text-center text-text-secondary mt-10">
                         <Dumbbell size={48} className="mx-auto mb-4 opacity-50" />

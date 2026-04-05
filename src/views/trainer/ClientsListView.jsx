@@ -40,7 +40,17 @@ export function ClientsListView({ onBack, onSelectClient }) {
 
             <div className="flex-1 overflow-y-auto px-4 space-y-3">
                 {loading ? (
-                    <div className="text-center text-text-secondary mt-10">Cargando clientes...</div>
+                    <div className="space-y-3">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-surface p-4 rounded-2xl border border-surface-highlight animate-pulse flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-surface-highlight flex-shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-surface-highlight rounded w-1/2" />
+                                    <div className="h-3 bg-surface-highlight rounded w-2/3" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 ) : clients.length === 0 ? (
                     <div className="text-center text-text-secondary mt-10">
                         <User size={48} className="mx-auto mb-4 opacity-50" />
