@@ -7,10 +7,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
-    "¿Cómo mejorar mi press de banca?",
-    "Plan de nutrición para ganar masa",
-    "Ejercicios para dolor de espalda",
-    "¿Qué suplementos recomiendas?"
+    "Analiza mis rutinas y sugiere mejoras",
+    "¿Qué ejercicios me faltan en mi plan?",
+    "Plan de nutrición para mi objetivo",
+    "¿Cómo mejorar mi técnica en mis ejercicios?"
 ];
 
 // Paleta de colores para secciones h2, cíclica
@@ -155,6 +155,7 @@ function MessageBubble({ msg }) {
 export function ChatView() {
     const { user } = useAuth();
     const [userProfile, setUserProfile] = useState(null);
+    const [userRoutines, setUserRoutines] = useState([]);
     const [messages, setMessages] = useState([
         {
             id: 1,
@@ -175,25 +176,57 @@ export function ChatView() {
         scrollToBottom();
     }, [messages, isTyping]);
 
-    // Fetch user profile data to provide context to the AI
+    // Fetch user profile + routines to provide full context to the AI
     useEffect(() => {
-        if (user) {
-            const fetchProfile = async () => {
-                try {
-                    const { data, error } = await supabase
-                        .from('profiles')
-                        .select('username, weight, height, age, gender, goal')
-                        .eq('user_id', user.id)
-                        .single();
+        if (!user) return;
 
-                    if (error) throw error;
-                    setUserProfile(data);
-                } catch (error) {
-                    console.error('Error fetching profile for chat context:', error);
+        const fetchContext = async () => {
+            try {
+                // Profile
+                const { data: profileData, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('username, weight, height, age, gender, goal')
+                    .eq('user_id', user.id)
+                    .single();
+                if (!profileError) setUserProfile(profileData);
+
+                // Assigned routines
+                const { data: assigned } = await supabase
+                    .from('assigned_routines')
+                    .select('routine_id')
+                    .eq('client_id', user.id);
+
+                const routineIds = assigned?.length
+                    ? assigned.map(a => a.routine_id)
+                    : ['day1', 'day2', 'day3', 'day4'];
+
+                const { data: routinesData } = await supabase
+                    .from('routines')
+                    .select('id, name')
+                    .in('id', routineIds)
+                    .order('id');
+
+                const { data: exercisesData } = await supabase
+                    .from('exercises')
+                    .select('routine_id, name, series, reps, muscle_group')
+                    .in('routine_id', routineIds)
+                    .order('ui_order');
+
+                if (routinesData) {
+                    const merged = routinesData.map(r => ({
+                        name: r.name,
+                        exercises: (exercisesData || [])
+                            .filter(e => e.routine_id === r.id)
+                            .map(e => ({ name: e.name, series: e.series, reps: e.reps, muscleGroup: e.muscle_group }))
+                    }));
+                    setUserRoutines(merged);
                 }
-            };
-            fetchProfile();
-        }
+            } catch (err) {
+                console.error('Error fetching chat context:', err);
+            }
+        };
+
+        fetchContext();
     }, [user]);
 
     const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
@@ -207,7 +240,6 @@ export function ChatView() {
         setInputValue('');
         setIsTyping(true);
 
-        // Check if userProfile is loaded, otherwise use what we have
         const profileContext = {
             name: userProfile?.username || user?.email?.split('@')[0] || "Usuario",
             age: userProfile?.age ? `${userProfile.age} años` : 'No especificado',
@@ -216,17 +248,25 @@ export function ChatView() {
             goal: userProfile?.goal || 'No especificado'
         };
 
+        // Build routines context string
+        const routinesString = userRoutines.length > 0
+            ? userRoutines.map(r =>
+                `  Rutina: ${r.name}\n` +
+                r.exercises.map(e => `    - ${e.name}: ${e.series}x${e.reps}${e.muscleGroup ? ` (${e.muscleGroup})` : ''}`).join('\n')
+              ).join('\n')
+            : '  No hay rutinas asignadas actualmente.';
 
-
-        const contextString = `
-[CONTEXTO DEL USUARIO]
+        const contextString = `[CONTEXTO DEL USUARIO]
 - Nombre: ${profileContext.name}
 - Edad: ${profileContext.age}
 - Peso: ${profileContext.weight}
 - Altura: ${profileContext.height}
 - OBJETIVO PRINCIPAL: ${profileContext.goal}
 [FIN CONTEXTO]
-`;
+
+[RUTINAS ACTUALES DEL USUARIO]
+${routinesString}
+[FIN RUTINAS]`;
 
         try {
             const response = await fetch(N8N_WEBHOOK_URL, {
@@ -234,11 +274,12 @@ export function ChatView() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     sessionId: user?.id || "anonymous",
-                    chatInput: text, // Some n8n workflows use chatInput
-                    message: `${contextString}\n\n${text}`, // Inject context into main message
+                    chatInput: text,
+                    message: `${contextString}\n\nPregunta del usuario: ${text}`,
                     userData: {
                         ...profileContext,
-                        email: user?.email
+                        email: user?.email,
+                        routines: userRoutines
                     }
                 })
             });
