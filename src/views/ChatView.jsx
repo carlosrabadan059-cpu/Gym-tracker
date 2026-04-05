@@ -77,9 +77,9 @@ function BotMarkdown({ text }) {
         } else if (/^> /.test(line)) {
             flushList();
             elements.push(
-                <div key={i} className="flex gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-3 py-2.5 my-2">
+                <div key={i} className="flex gap-3 bg-amber-400 border border-amber-500 rounded-xl px-3 py-2.5 my-2">
                     <span className="text-base flex-shrink-0">💡</span>
-                    <p className="text-sm text-yellow-200 leading-relaxed">{renderInline(line.slice(2))}</p>
+                    <p className="text-sm text-gray-900 font-medium leading-relaxed">{renderInline(line.slice(2))}</p>
                 </div>
             );
         // HR
