@@ -3,8 +3,6 @@ import { Send, Bot, User, Loader2, Sparkles, Copy, Check as CheckIcon } from 'lu
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 
 const SUGGESTED_QUESTIONS = [
     "Analiza mis rutinas y sugiere mejoras",
@@ -22,73 +20,89 @@ const SECTION_PALETTES = [
     { bg: 'bg-green-500/10',  border: 'border-green-500/30',  icon: 'text-green-400',  dot: 'bg-green-400'  },
 ];
 
+// Renderiza texto inline: **bold** y `code`
+function renderInline(text) {
+    const parts = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+    return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**'))
+            return <strong key={i} className="font-bold text-text-primary">{part.slice(2, -2)}</strong>;
+        if (part.startsWith('`') && part.endsWith('`'))
+            return <code key={i} className="bg-background px-1.5 py-0.5 rounded text-primary text-xs font-mono border border-surface-highlight">{part.slice(1, -1)}</code>;
+        return part;
+    });
+}
+
+// Renderizador Markdown ligero sin dependencias externas
 function BotMarkdown({ text }) {
-    return (
-        <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-                // H2 → tarjeta de sección con acento de color
-                h2: ({ children, node }) => {
-                    // Cuenta cuántos h2 hay antes de este para asignar color
-                    const idx = node?.position?.start?.line ?? 0;
-                    const palette = SECTION_PALETTES[Math.floor(idx / 10) % SECTION_PALETTES.length];
-                    return (
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl ${palette.bg} border ${palette.border} mt-3 mb-2 first:mt-0`}>
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${palette.dot}`} />
-                            <span className={`text-sm font-bold ${palette.icon}`}>{children}</span>
-                        </div>
-                    );
-                },
-                // H3 → subtítulo sutil
-                h3: ({ children }) => (
-                    <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mt-3 mb-1">{children}</p>
-                ),
-                // Párrafo normal
-                p: ({ children }) => (
-                    <p className="text-sm leading-relaxed mb-2 last:mb-0 text-text-primary">{children}</p>
-                ),
-                // Lista → items con pill estilo gym
-                ul: ({ children }) => (
-                    <ul className="space-y-1.5 my-2">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                    <ol className="space-y-1.5 my-2 counter-reset-item">{children}</ol>
-                ),
-                li: ({ children, ordered, index }) => (
-                    <li className="flex items-start gap-2.5 bg-background/60 rounded-xl px-3 py-2 border border-surface-highlight/50">
+    const lines = String(text || '').split('\n');
+    const elements = [];
+    let listItems = [];
+    let paletteIdx = 0;
+
+    const flushList = () => {
+        if (!listItems.length) return;
+        elements.push(
+            <ul key={`ul-${elements.length}`} className="space-y-1.5 my-2">
+                {listItems.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5 bg-background/60 rounded-xl px-3 py-2 border border-surface-highlight/50">
                         <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mt-0.5">
-                            {ordered
-                                ? <span className="text-[9px] font-bold text-primary">{(index ?? 0) + 1}</span>
-                                : <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
-                            }
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
                         </span>
-                        <span className="text-sm text-text-primary leading-relaxed">{children}</span>
+                        <span className="text-sm text-text-primary leading-relaxed">{renderInline(item)}</span>
                     </li>
-                ),
-                // Negritas
-                strong: ({ children }) => (
-                    <strong className="font-bold text-text-primary">{children}</strong>
-                ),
-                // Blockquote → tip card destacada
-                blockquote: ({ children }) => (
-                    <div className="flex gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-3 py-2.5 my-2">
-                        <span className="text-base flex-shrink-0 leading-none mt-0.5">💡</span>
-                        <div className="text-sm text-yellow-200 leading-relaxed [&>p]:mb-0">{children}</div>
-                    </div>
-                ),
-                // Código inline
-                code: ({ children }) => (
-                    <code className="bg-background px-1.5 py-0.5 rounded text-primary text-xs font-mono border border-surface-highlight">{children}</code>
-                ),
-                // Separador horizontal
-                hr: () => (
-                    <div className="border-t border-surface-highlight my-3" />
-                ),
-            }}
-        >
-            {text}
-        </ReactMarkdown>
-    );
+                ))}
+            </ul>
+        );
+        listItems = [];
+    };
+
+    lines.forEach((line, i) => {
+        // H2
+        if (/^## /.test(line)) {
+            flushList();
+            const p = SECTION_PALETTES[paletteIdx++ % SECTION_PALETTES.length];
+            elements.push(
+                <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-xl ${p.bg} border ${p.border} mt-3 mb-2`}>
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.dot}`} />
+                    <span className={`text-sm font-bold ${p.icon}`}>{line.slice(3)}</span>
+                </div>
+            );
+        // H3
+        } else if (/^### /.test(line)) {
+            flushList();
+            elements.push(
+                <p key={i} className="text-xs font-bold text-text-secondary uppercase tracking-wider mt-3 mb-1">{line.slice(4)}</p>
+            );
+        // Blockquote
+        } else if (/^> /.test(line)) {
+            flushList();
+            elements.push(
+                <div key={i} className="flex gap-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-3 py-2.5 my-2">
+                    <span className="text-base flex-shrink-0">💡</span>
+                    <p className="text-sm text-yellow-200 leading-relaxed">{renderInline(line.slice(2))}</p>
+                </div>
+            );
+        // HR
+        } else if (/^---/.test(line)) {
+            flushList();
+            elements.push(<div key={i} className="border-t border-surface-highlight my-3" />);
+        // List item
+        } else if (/^[-*] /.test(line)) {
+            listItems.push(line.slice(2));
+        // Empty line
+        } else if (!line.trim()) {
+            flushList();
+        // Paragraph
+        } else {
+            flushList();
+            elements.push(
+                <p key={i} className="text-sm leading-relaxed mb-2 text-text-primary">{renderInline(line)}</p>
+            );
+        }
+    });
+
+    flushList();
+    return <div className="space-y-0.5">{elements}</div>;
 }
 
 function MessageBubble({ msg }) {
