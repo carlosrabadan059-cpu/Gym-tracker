@@ -161,34 +161,36 @@ export function ProfileView() {
                 </div>
             </div>
 
-            {/* Developer Toggle Trainer Role */}
-            <button
-                onClick={async () => {
-                    if (!authUser) return;
-                    const newRole = profile?.role === 'trainer' ? 'client' : 'trainer';
-                    setLoading(true);
-                    try {
-                        const { error } = await supabase
-                            .from('profiles')
-                            .update({ role: newRole })
-                            .eq('user_id', authUser.id);
-                        if (error) throw error;
-                        await refreshProfile();
-                        alert(`Rol cambiado a: ${newRole}. Recarga la página si es necesario.`);
-                        // Full reload to reset navigation state
-                        window.location.reload();
-                    } catch (err) {
-                        console.error('Error toggling role:', err);
-                        alert('Error cambiando el rol');
-                    } finally {
-                        setLoading(false);
-                    }
-                }}
-                className="w-full flex items-center justify-center gap-3 p-4 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-xl transition-colors mt-8 border border-purple-500/30"
-            >
-                <Shield size={20} />
-                <span className="font-bold">Dev: Cambiar a {profile?.role === 'trainer' ? 'Cliente' : 'Entrenador'}</span>
-            </button>
+            {/* Developer Toggle Trainer Role — solo visible en entorno de desarrollo */}
+            {import.meta.env.DEV && (
+                <button
+                    onClick={async () => {
+                        if (!authUser) return;
+                        const newRole = profile?.role === 'trainer' ? 'client' : 'trainer';
+                        setLoading(true);
+                        try {
+                            const { error } = await supabase
+                                .from('profiles')
+                                .update({ role: newRole })
+                                .eq('user_id', authUser.id);
+                            if (error) throw error;
+                            await refreshProfile();
+                            alert(`Rol cambiado a: ${newRole}. Recarga la página si es necesario.`);
+                            // Full reload to reset navigation state
+                            window.location.reload();
+                        } catch (err) {
+                            console.error('Error toggling role:', err);
+                            alert('Error cambiando el rol');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }}
+                    className="w-full flex items-center justify-center gap-3 p-4 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 rounded-xl transition-colors mt-8 border border-purple-500/30"
+                >
+                    <Shield size={20} />
+                    <span className="font-bold">Dev: Cambiar a {profile?.role === 'trainer' ? 'Cliente' : 'Entrenador'}</span>
+                </button>
+            )}
 
             {/* Logout */}
             <button

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, Copy, Check as CheckIcon } from 'lucide-react';
+import { Send, Bot, Loader2, Sparkles, Copy, Check as CheckIcon, Trash2 } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -166,21 +166,50 @@ function MessageBubble({ msg }) {
     );
 }
 
+const WELCOME_MESSAGE = {
+    id: 1,
+    type: 'bot',
+    text: '¡Hola! Soy tu **Entrenador IA**. Estoy aquí para ayudarte a optimizar tu entrenamiento, resolver dudas sobre nutrición o ajustar tu rutina.\n\n¿En qué puedo ayudarte hoy?',
+    timestamp: new Date().toISOString()
+};
+const MAX_STORED_MESSAGES = 100;
+
 export function ChatView() {
     const { user } = useAuth();
     const [userProfile, setUserProfile] = useState(null);
     const [userRoutines, setUserRoutines] = useState([]);
-    const [messages, setMessages] = useState([
-        {
-            id: 1,
-            type: 'bot',
-            text: '¡Hola! Soy tu **Entrenador IA**. Estoy aquí para ayudarte a optimizar tu entrenamiento, resolver dudas sobre nutrición o ajustar tu rutina.\n\n¿En qué puedo ayudarte hoy?',
-            timestamp: new Date()
-        }
-    ]);
+    const [messages, setMessages] = useState([WELCOME_MESSAGE]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+    const storageKey = user?.id ? `gym_chat_${user.id}` : null;
+
+    // Cargar historial de localStorage al montar
+    useEffect(() => {
+        if (!storageKey) return;
+        try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setMessages(parsed);
+                }
+            }
+        } catch (e) {
+            // Si los datos están corruptos, se queda con el mensaje de bienvenida
+        }
+    }, [storageKey]);
+
+    // Guardar en localStorage cada vez que cambia el historial
+    useEffect(() => {
+        if (!storageKey || messages.length === 0) return;
+        try {
+            const toStore = messages.slice(-MAX_STORED_MESSAGES);
+            localStorage.setItem(storageKey, JSON.stringify(toStore));
+        } catch (e) {
+            // localStorage lleno u otro error — no bloqueante
+        }
+    }, [messages, storageKey]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -249,7 +278,7 @@ export function ChatView() {
         if (!text.trim()) return;
 
         // Add user message
-        const userMsg = { id: Date.now(), type: 'user', text: text, timestamp: new Date() };
+        const userMsg = { id: Date.now(), type: 'user', text: text, timestamp: new Date().toISOString() };
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
@@ -334,7 +363,7 @@ ${routinesString}
                 type: 'bot',
                 text: botText,
                 image: botImage,
-                timestamp: new Date()
+                timestamp: new Date().toISOString()
             };
             setMessages(prev => [...prev, botMsg]);
 
@@ -344,7 +373,7 @@ ${routinesString}
                 id: Date.now() + 1,
                 type: 'bot',
                 text: "⚠️ **Error de conexión:** Asegúrate de que tu webhook de n8n esté activo.",
-                timestamp: new Date()
+                timestamp: new Date().toISOString()
             };
             setMessages(prev => [...prev, errorMsg]);
         } finally {
@@ -361,13 +390,24 @@ ${routinesString}
                 <div className="p-2 bg-primary/20 rounded-full">
                     <Bot size={24} className="text-primary" />
                 </div>
-                <div>
+                <div className="flex-1">
                     <h2 className="font-bold text-text-primary flex items-center gap-2">
                         Entrenador IA
                         <Sparkles size={14} className="text-yellow-400" />
                     </h2>
                     <p className="text-xs text-text-secondary">Siempre activo • v1.0</p>
                 </div>
+                <button
+                    onClick={() => {
+                        if (!window.confirm('¿Borrar el historial del chat?')) return;
+                        if (storageKey) localStorage.removeItem(storageKey);
+                        setMessages([WELCOME_MESSAGE]);
+                    }}
+                    className="p-2 text-text-secondary hover:text-red-400 transition-colors rounded-lg hover:bg-red-400/10"
+                    title="Limpiar conversación"
+                >
+                    <Trash2 size={18} />
+                </button>
             </div>
 
             {/* Messages Area */}

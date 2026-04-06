@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, BarChart, Bar
@@ -120,6 +120,88 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 // ─────────────────────────────────────────────────────────
+// Funciones puras de cálculo (fuera del componente → no se
+// re-crean en cada render)
+// ─────────────────────────────────────────────────────────
+function computeStats(logs, exercises) {
+    const idToName = {};
+    exercises.forEach(ex => { idToName[String(ex.id)] = ex.name; });
+
+    let vol = 0;
+    const prMap = {};
+    const weekMap = {};
+
+    logs.forEach(session => {
+        if (session.logs) {
+            Object.entries(session.logs).forEach(([exId, exLog]) => {
+                if (exId === 'cardio') return;
+                let sessionMax = 0;
+                Object.values(exLog.setsData || {}).forEach(set => {
+                    const w = parseFloat(String(set.weight || '0').replace(',', '.')) || 0;
+                    const r = parseInt(set.reps) || 0;
+                    vol += w * r;
+                    if (w > sessionMax) sessionMax = w;
+                });
+                const name = idToName[exId];
+                if (name && sessionMax > 0) {
+                    if (!prMap[name] || sessionMax > prMap[name].maxWeight) {
+                        prMap[name] = { maxWeight: sessionMax, date: session.date };
+                    }
+                }
+            });
+        }
+        const key = getWeekStart(new Date(session.date)).toISOString().split('T')[0];
+        weekMap[key] = (weekMap[key] || 0) + 1;
+    });
+
+    const weekCounts = Object.values(weekMap);
+    const bestWeek = weekCounts.length ? Math.max(...weekCounts) : 0;
+    const thisWeekKey = getWeekStart(new Date()).toISOString().split('T')[0];
+    const currentWeek = weekMap[thisWeekKey] || 0;
+    const streak = calculateStreak(logs.map(l => new Date(l.date)));
+
+    const stats = {
+        total: logs.length,
+        volume: vol,
+        currentStreak: streak.current,
+        bestStreak: streak.best,
+        currentWeek,
+        bestWeek
+    };
+    const personalRecords = Object.entries(prMap)
+        .map(([name, v]) => ({ name, ...v }))
+        .sort((a, b) => b.maxWeight - a.maxWeight)
+        .slice(0, 10);
+
+    return { stats, personalRecords };
+}
+
+function computeActivity(logs) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const days = Array.from({ length: 91 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - (90 - i));
+        return { date: d, count: 0 };
+    });
+
+    const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const weekdayCounts = dayNames.map(n => ({ name: n, workouts: 0 }));
+
+    logs.forEach(session => {
+        const sd = new Date(session.date);
+        sd.setHours(0, 0, 0, 0);
+        const cell = days.find(d => d.date.getTime() === sd.getTime());
+        if (cell) cell.count++;
+        const dow = sd.getDay();
+        const idx = dow === 0 ? 6 : dow - 1;
+        weekdayCounts[idx].workouts++;
+    });
+
+    return { heatmapData: days, weekdayData: weekdayCounts };
+}
+
+// ─────────────────────────────────────────────────────────
 // StatisticsView principal
 // ─────────────────────────────────────────────────────────
 export function StatisticsView() {
@@ -127,8 +209,7 @@ export function StatisticsView() {
     const [activeTab, setActiveTab] = useState('resumen');
     const [loading, setLoading] = useState(true);
 
-    // Datos crudos compartidos entre tabs
-    const [allLogs, setAllLogs] = useState([]);
+    // Datos crudos del catálogo de ejercicios (para búsqueda en tab Progresión)
     const [exercisesData, setExercisesData] = useState([]);
 
     // ── Resumen ──
@@ -144,6 +225,7 @@ export function StatisticsView() {
     const [selectedExercise, setSelectedExercise] = useState(null);
     const [progressionData, setProgressionData] = useState([]);
     const [progressionLoading, setProgressionLoading] = useState(false);
+    const searchContainerRef = useRef(null);
 
     // ── Actividad ──
     const [heatmapData, setHeatmapData] = useState([]);
@@ -160,10 +242,13 @@ export function StatisticsView() {
                     supabase.from('exercises').select('id, name, routine_id')
                 ]);
                 const exercises = exData || [];
-                setAllLogs(logs);
                 setExercisesData(exercises);
-                computeStats(logs, exercises);
-                computeActivity(logs);
+                const { stats, personalRecords } = computeStats(logs, exercises);
+                setStats(stats);
+                setPersonalRecords(personalRecords);
+                const { heatmapData, weekdayData } = computeActivity(logs);
+                setHeatmapData(heatmapData);
+                setWeekdayData(weekdayData);
             } catch (e) {
                 console.error('Error loading stats:', e);
             } finally {
@@ -172,89 +257,17 @@ export function StatisticsView() {
         })();
     }, [user]);
 
-    // ─── Cálculo de estadísticas resumen ──────────────────
-    function computeStats(logs, exercises) {
-        const idToName = {};
-        exercises.forEach(ex => { idToName[String(ex.id)] = ex.name; });
-
-        let vol = 0;
-        const prMap = {}; // exerciseName → { maxWeight, date }
-
-        const weekMap = {};
-        logs.forEach(session => {
-            // Volumen y PRs
-            if (session.logs) {
-                Object.entries(session.logs).forEach(([exId, exLog]) => {
-                    if (exId === 'cardio') return;
-                    let sessionMax = 0;
-                    Object.values(exLog.setsData || {}).forEach(set => {
-                        const w = parseFloat(String(set.weight || '0').replace(',', '.')) || 0;
-                        const r = parseInt(set.reps) || 0;
-                        vol += w * r;
-                        if (w > sessionMax) sessionMax = w;
-                    });
-                    const name = idToName[exId];
-                    if (name && sessionMax > 0) {
-                        if (!prMap[name] || sessionMax > prMap[name].maxWeight) {
-                            prMap[name] = { maxWeight: sessionMax, date: session.date };
-                        }
-                    }
-                });
+    // ─── Cerrar dropdown al hacer clic fuera ──────────────
+    useEffect(() => {
+        if (!showDropdown) return;
+        const handleClickOutside = (e) => {
+            if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+                setShowDropdown(false);
             }
-            // Semanas
-            const key = getWeekStart(new Date(session.date)).toISOString().split('T')[0];
-            weekMap[key] = (weekMap[key] || 0) + 1;
-        });
-
-        const weekCounts = Object.values(weekMap);
-        const bestWeek = weekCounts.length ? Math.max(...weekCounts) : 0;
-        const thisWeekKey = getWeekStart(new Date()).toISOString().split('T')[0];
-        const currentWeek = weekMap[thisWeekKey] || 0;
-
-        const streak = calculateStreak(logs.map(l => new Date(l.date)));
-
-        setStats({
-            total: logs.length,
-            volume: vol,
-            currentStreak: streak.current,
-            bestStreak: streak.best,
-            currentWeek,
-            bestWeek
-        });
-
-        const prs = Object.entries(prMap)
-            .map(([name, v]) => ({ name, ...v }))
-            .sort((a, b) => b.maxWeight - a.maxWeight)
-            .slice(0, 10);
-        setPersonalRecords(prs);
-    }
-
-    // ─── Cálculo de actividad (heatmap + días de semana) ──
-    function computeActivity(logs) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const days = Array.from({ length: 91 }, (_, i) => {
-            const d = new Date(today);
-            d.setDate(today.getDate() - (90 - i));
-            return { date: d, count: 0 };
-        });
-
-        const dayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const weekdayCounts = dayNames.map(n => ({ name: n, workouts: 0 }));
-
-        logs.forEach(session => {
-            const sd = new Date(session.date);
-            sd.setHours(0, 0, 0, 0);
-            const cell = days.find(d => d.date.getTime() === sd.getTime());
-            if (cell) cell.count++;
-            const dow = sd.getDay();
-            const idx = dow === 0 ? 6 : dow - 1;
-            weekdayCounts[idx].workouts++;
-        });
-
-        setHeatmapData(days);
-        setWeekdayData(weekdayCounts);
-    }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showDropdown]);
 
     // ─── Catálogo de ejercicios (para búsqueda) ───────────
     const exerciseCatalog = useMemo(() => (
@@ -475,7 +488,7 @@ export function StatisticsView() {
             {activeTab === 'progresion' && (
                 <div className="space-y-5 animate-fadeIn">
                     {/* Buscador */}
-                    <div className="relative">
+                    <div className="relative" ref={searchContainerRef}>
                         <Search size={16} className="absolute left-3 top-3.5 text-text-secondary pointer-events-none" />
                         <input
                             type="text"

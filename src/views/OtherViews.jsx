@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
-import { routines } from '../data/routines';
 import { X, Check, History } from 'lucide-react';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
 import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { StatisticsView } from './StatisticsView';
 
 /** Formatea una fecha ISO como "hace N días" o "hoy" */
 function formatRelativeDate(isoDate) {
@@ -528,8 +528,21 @@ const TrainingView = ({ workout, onFinish }) => {
     const { user, profile } = useAuth();
     const userWeight = profile?.weight || null;
 
-    // If no specific workout passed, default to Day 1
-    const activeWorkout = workout && workout.exercises ? workout : routines.find(r => r.id === 'day1');
+    const activeWorkout = workout?.exercises ? workout : null;
+
+    if (!activeWorkout) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full py-24 text-center gap-4">
+                <p className="text-text-secondary text-sm">No se pudo cargar la rutina.</p>
+                <button
+                    onClick={() => onFinish(null)}
+                    className="px-6 py-2 rounded-xl bg-surface-highlight text-text-primary text-sm font-medium"
+                >
+                    Volver
+                </button>
+            </div>
+        );
+    }
     const [activeExercise, setActiveExercise] = useState(null);
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
@@ -684,10 +697,6 @@ const TrainingView = ({ workout, onFinish }) => {
         </div>
     );
 };
-
-import { StatisticsView } from './StatisticsView';
-
-
 
 export { TrainingView, StatisticsView as ProgressView };
 

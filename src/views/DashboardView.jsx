@@ -20,6 +20,8 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const touchStartY = useRef(0);
     const containerRef = useRef(null);
+    const pullDistanceRef = useRef(0);
+    const isRefreshingRef = useRef(false);
 
     const userWeight = profile?.weight || null;
 
@@ -49,6 +51,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             const { data: exercisesData, error: exercisesError } = await supabase
                 .from('exercises')
                 .select('*')
+                .in('routine_id', targetRoutineIds)
                 .order('ui_order');
 
             if (exercisesError) throw exercisesError;
@@ -64,6 +67,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
         } finally {
             setLoading(false);
             setIsRefreshing(false);
+            isRefreshingRef.current = false;
         }
     }, [user]);
 
@@ -72,6 +76,8 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     }, [user, fetchRoutines]);
 
     // Pull-to-refresh touch handlers
+    // Los refs espejean el estado para que los handlers no necesiten estar en deps,
+    // evitando que los listeners se re-registren en cada cambio de pullDistance.
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
@@ -85,15 +91,19 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             if (touchStartY.current === 0) return;
             const delta = e.touches[0].clientY - touchStartY.current;
             if (delta > 0 && el.scrollTop === 0) {
-                setPullDistance(Math.min(delta * 0.4, 70));
+                const dist = Math.min(delta * 0.4, 70);
+                pullDistanceRef.current = dist;
+                setPullDistance(dist);
             }
         };
         const onTouchEnd = () => {
-            if (pullDistance >= 60 && !isRefreshing) {
+            if (pullDistanceRef.current >= 60 && !isRefreshingRef.current) {
+                isRefreshingRef.current = true;
                 setIsRefreshing(true);
                 setLoading(true);
                 fetchRoutines();
             }
+            pullDistanceRef.current = 0;
             setPullDistance(0);
             touchStartY.current = 0;
         };
@@ -106,7 +116,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             el.removeEventListener('touchmove', onTouchMove);
             el.removeEventListener('touchend', onTouchEnd);
         };
-    }, [pullDistance, isRefreshing, fetchRoutines]);
+    }, [fetchRoutines]);
 
     const toggleRoutine = (id) => {
         setExpandedRoutine(expandedRoutine === id ? null : id);

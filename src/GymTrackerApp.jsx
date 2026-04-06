@@ -33,6 +33,7 @@ function useShakeToUndoPrevention() {
         const BLUR_THRESHOLD = 22;   // m/s² sin gravedad — umbral alto para evitar bolsillo
         const COOLDOWN_MS    = 2500; // evita disparos múltiples consecutivos
         let lastBlurTime = 0;
+        let registered = false;
 
         const handleMotion = (event) => {
             const acc = event.acceleration;
@@ -54,20 +55,32 @@ function useShakeToUndoPrevention() {
             }
         };
 
-        // iOS 13+ requiere permiso explícito para DeviceMotionEvent
         if (typeof DeviceMotionEvent.requestPermission === 'function') {
-            DeviceMotionEvent.requestPermission()
-                .then(state => {
-                    if (state === 'granted') {
-                        window.addEventListener('devicemotion', handleMotion);
-                    }
-                })
-                .catch(console.error);
-        } else {
-            window.addEventListener('devicemotion', handleMotion);
-        }
+            // iOS 13+: requestPermission() debe llamarse dentro de un gesto de usuario.
+            // Esperamos el primer touchstart para pedirlo y luego eliminamos el listener.
+            const requestOnGesture = () => {
+                if (registered) return;
+                registered = true;
+                document.removeEventListener('touchstart', requestOnGesture);
 
-        return () => window.removeEventListener('devicemotion', handleMotion);
+                DeviceMotionEvent.requestPermission()
+                    .then(state => {
+                        if (state === 'granted') {
+                            window.addEventListener('devicemotion', handleMotion);
+                        }
+                    })
+                    .catch(console.error);
+            };
+            document.addEventListener('touchstart', requestOnGesture, { once: true });
+            return () => {
+                document.removeEventListener('touchstart', requestOnGesture);
+                window.removeEventListener('devicemotion', handleMotion);
+            };
+        } else {
+            // Android / escritorio: no requiere permiso
+            window.addEventListener('devicemotion', handleMotion);
+            return () => window.removeEventListener('devicemotion', handleMotion);
+        }
     }, []);
 }
 
@@ -125,14 +138,14 @@ const LoginView = () => {
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-black placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
                 />
                 <input
                     type="password"
                     placeholder="Contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-black placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
                 />
 
                 {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
@@ -172,7 +185,7 @@ const AuthenticatedApp = () => {
         } else if (profile && view === 'setup') {
             setView('dashboard');
         }
-    }, [profile]);
+    }, [profile, view]);
 
     useEffect(() => {
         const fetchCompleted = async () => {
@@ -319,7 +332,7 @@ const AuthenticatedApp = () => {
             </main>
 
             {/* Bottom Navigation */}
-            {view !== 'setup' && view !== 'trainer' && (
+            {view !== 'setup' && !view.startsWith('trainer') && (
                 <BottomNavigation currentView={view} onViewChange={handleNavigate} />
             )}
         </div>
