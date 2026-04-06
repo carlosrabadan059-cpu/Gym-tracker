@@ -30,8 +30,8 @@ function useShakeToUndoPrevention() {
     useEffect(() => {
         if (!window.DeviceMotionEvent) return;
 
-        const BLUR_THRESHOLD = 8;   // m/s² sin gravedad — menor que el umbral de iOS
-        const COOLDOWN_MS    = 1500; // evita disparos múltiples consecutivos
+        const BLUR_THRESHOLD = 22;   // m/s² sin gravedad — umbral alto para evitar bolsillo
+        const COOLDOWN_MS    = 2500; // evita disparos múltiples consecutivos
         let lastBlurTime = 0;
 
         const handleMotion = (event) => {

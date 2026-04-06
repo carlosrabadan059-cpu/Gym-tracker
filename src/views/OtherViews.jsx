@@ -49,6 +49,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
     const audioCtxRef = useRef(null);
     // Ref para el setTimeout de la notificación de fondo
     const bgTimeoutRef = useRef(null);
+    // Flag para evitar que el beep se dispare dos veces (setTimeout + visibilitychange)
+    const beepFiredRef = useRef(false);
     // Ref que mantiene siempre el estado actual del timer (evita closures obsoletas)
     const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
     useEffect(() => {
@@ -232,9 +234,12 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
         }
 
         if (timerActive && targetTime) {
+            beepFiredRef.current = false;
             // Timeout exacto: se ejecuta en el momento preciso incluso en background
             const delay = Math.max(0, targetTime - Date.now());
             bgTimeoutRef.current = setTimeout(() => {
+                if (beepFiredRef.current) return;
+                beepFiredRef.current = true;
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
@@ -263,6 +268,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             if (!timerActive || !targetTime) return;
             if (Date.now() >= targetTime) {
                 // El timer expiró mientras estábamos en segundo plano
+                if (beepFiredRef.current) return;
+                beepFiredRef.current = true;
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);

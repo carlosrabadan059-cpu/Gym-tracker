@@ -222,7 +222,7 @@ export function ChatView() {
 
                 const { data: exercisesData } = await supabase
                     .from('exercises')
-                    .select('routine_id, name, series, reps, muscle_group')
+                    .select('routine_id, name, series, reps')
                     .in('routine_id', routineIds)
                     .order('ui_order');
 
@@ -231,7 +231,7 @@ export function ChatView() {
                         name: r.name,
                         exercises: (exercisesData || [])
                             .filter(e => e.routine_id === r.id)
-                            .map(e => ({ name: e.name, series: e.series, reps: e.reps, muscleGroup: e.muscle_group }))
+                            .map(e => ({ name: e.name, series: e.series, reps: e.reps }))
                     }));
                     setUserRoutines(merged);
                 }
@@ -282,14 +282,16 @@ export function ChatView() {
 ${routinesString}
 [FIN RUTINAS]`;
 
+        const fullMessage = `${contextString}\n\nPregunta del usuario: ${text}`;
+
         try {
             const response = await fetch(N8N_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     sessionId: user?.id || "anonymous",
-                    chatInput: text,
-                    message: `${contextString}\n\nPregunta del usuario: ${text}`,
+                    chatInput: fullMessage,
+                    message: fullMessage,
                     userData: {
                         ...profileContext,
                         email: user?.email,
