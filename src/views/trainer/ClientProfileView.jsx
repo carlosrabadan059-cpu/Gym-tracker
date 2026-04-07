@@ -8,6 +8,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     const [loading, setLoading] = useState(true);
     const [historyLoading, setHistoryLoading] = useState(true);
     const [expandedRoutine, setExpandedRoutine] = useState(null);
+    const [historyExpanded, setHistoryExpanded] = useState(false);
 
     useEffect(() => {
         const fetchRoutines = async () => {
@@ -262,49 +263,67 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
                 {/* Workout History */}
                 <div className="pb-6">
-                    <h3 className="font-bold text-lg text-text-primary mb-4">Historial de Entrenamientos</h3>
+                    <button
+                        onClick={() => setHistoryExpanded(prev => !prev)}
+                        className="w-full flex items-center justify-between mb-4"
+                    >
+                        <h3 className="font-bold text-lg text-text-primary">Historial de Entrenamientos</h3>
+                        <div className="flex items-center gap-2">
+                            {!historyLoading && workoutHistory.length > 0 && (
+                                <span className="bg-surface-highlight text-text-secondary text-xs font-bold rounded-full px-2 py-0.5">
+                                    {workoutHistory.length}
+                                </span>
+                            )}
+                            <ChevronRight
+                                size={20}
+                                className={`text-text-secondary transition-transform duration-300 ${historyExpanded ? 'rotate-90' : ''}`}
+                            />
+                        </div>
+                    </button>
 
-                    {historyLoading ? (
-                        <div className="space-y-2">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="bg-surface rounded-2xl p-4 border border-surface-highlight animate-pulse">
-                                    <div className="h-4 bg-surface-highlight rounded w-1/2 mb-2" />
-                                    <div className="h-3 bg-surface-highlight rounded w-1/3" />
-                                </div>
-                            ))}
-                        </div>
-                    ) : workoutHistory.length === 0 ? (
-                        <div className="bg-surface border border-surface-highlight border-dashed rounded-2xl p-6 text-center text-text-secondary">
-                            <p className="text-sm">Aún no ha completado ningún entrenamiento.</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {workoutHistory.map((entry) => (
-                                <div
-                                    key={entry.id}
-                                    className="bg-surface p-4 rounded-2xl border border-surface-highlight flex items-center gap-4"
-                                >
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                        <Dumbbell size={18} className="text-primary" />
+                    {historyExpanded && (
+                        historyLoading ? (
+                            <div className="space-y-2">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="bg-surface rounded-2xl p-4 border border-surface-highlight animate-pulse">
+                                        <div className="h-4 bg-surface-highlight rounded w-1/2 mb-2" />
+                                        <div className="h-3 bg-surface-highlight rounded w-1/3" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-text-primary text-sm truncate">{entry.routineName}</p>
-                                        <div className="flex items-center gap-3 mt-0.5">
-                                            <span className="flex items-center gap-1 text-xs text-text-secondary">
-                                                <Calendar size={11} />
-                                                {new Date(entry.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                            </span>
-                                            {entry.exerciseCount > 0 && (
+                                ))}
+                            </div>
+                        ) : workoutHistory.length === 0 ? (
+                            <div className="bg-surface border border-surface-highlight border-dashed rounded-2xl p-6 text-center text-text-secondary">
+                                <p className="text-sm">Aún no ha completado ningún entrenamiento.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {workoutHistory.map((entry) => (
+                                    <div
+                                        key={entry.id}
+                                        className="bg-surface p-4 rounded-2xl border border-surface-highlight flex items-center gap-4"
+                                    >
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                            <Dumbbell size={18} className="text-primary" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-text-primary text-sm truncate">{entry.routineName}</p>
+                                            <div className="flex items-center gap-3 mt-0.5">
                                                 <span className="flex items-center gap-1 text-xs text-text-secondary">
-                                                    <Clock size={11} />
-                                                    {entry.exerciseCount} ejercicio{entry.exerciseCount !== 1 ? 's' : ''}
+                                                    <Calendar size={11} />
+                                                    {new Date(entry.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </span>
-                                            )}
+                                                {entry.exerciseCount > 0 && (
+                                                    <span className="flex items-center gap-1 text-xs text-text-secondary">
+                                                        <Clock size={11} />
+                                                        {entry.exerciseCount} ejercicio{entry.exerciseCount !== 1 ? 's' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )
                     )}
                 </div>
             </div>

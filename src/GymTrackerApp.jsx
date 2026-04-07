@@ -192,9 +192,13 @@ const AuthenticatedApp = () => {
 
     // Auto-avanzar desde 'setup' una vez que el perfil está cargado
     useEffect(() => {
-        if (profile?.role === 'trainer' && view === 'setup') {
-            setView('trainer');
-        } else if (profile && view === 'setup') {
+        if (!profile) return;
+        if (view === 'setup') {
+            setView(profile.role === 'trainer' ? 'trainer' : 'dashboard');
+            return;
+        }
+        // Seguridad: si un usuario sin rol trainer llega a una vista de trainer, redirigir
+        if (view.startsWith('trainer') && profile.role !== 'trainer') {
             setView('dashboard');
         }
     }, [profile, view]);
@@ -252,6 +256,8 @@ const AuthenticatedApp = () => {
     };
 
     const handleNavigate = (newView) => {
+        // Bloquear acceso a vistas de entrenador para usuarios normales
+        if (newView.startsWith('trainer') && profile?.role !== 'trainer') return;
         setView(newView);
     };
 
@@ -263,17 +269,9 @@ const AuthenticatedApp = () => {
     if (loading) return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
     if (!user) return <LoginView />;
 
-    // Redirección sincrónica: no esperar al efecto para saber a dónde ir
+    // Mientras el perfil carga o se procesa la redirección, mostrar pantalla de carga
     if (view === 'setup') {
-        if (profile?.role === 'trainer') {
-            // Trainer confirmado → ir directamente, sin pasar por SetupView
-            return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
-        }
-        if (!profile) {
-            // Perfil aún cargando → esperar
-            return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
-        }
-        return <SetupView onStart={handleStartSetup} />;
+        return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
     }
 
     return (
@@ -292,10 +290,11 @@ const AuthenticatedApp = () => {
             )}
 
             <main className="flex-1 overflow-y-auto px-4 pb-32 pt-2 scrollbar-hide">
-                {view === 'trainer' && (
+                {/* Vistas exclusivas de entrenador */}
+                {profile?.role === 'trainer' && view === 'trainer' && (
                     <TrainerDashboardView onNavigate={handleNavigate} />
                 )}
-                {view === 'trainer_clients' && (
+                {profile?.role === 'trainer' && view === 'trainer_clients' && (
                     <ClientsListView
                         onBack={() => setView('trainer')}
                         onSelectClient={(client) => {
@@ -304,21 +303,21 @@ const AuthenticatedApp = () => {
                         }}
                     />
                 )}
-                {view === 'trainer_client_profile' && (
+                {profile?.role === 'trainer' && view === 'trainer_client_profile' && (
                     <ClientProfileView
                         client={currentClient}
                         onBack={() => setView('trainer_clients')}
                         onAssignRoutine={() => setView('trainer_assign_routine')}
                     />
                 )}
-                {view === 'trainer_assign_routine' && (
+                {profile?.role === 'trainer' && view === 'trainer_assign_routine' && (
                     <RoutineAssignerView
                         client={currentClient}
                         onBack={() => setView('trainer_client_profile')}
                         onSuccess={() => setView('trainer_client_profile')}
                     />
                 )}
-                {view === 'trainer_library' && (
+                {profile?.role === 'trainer' && view === 'trainer_library' && (
                     <TrainerLibraryView
                         onBack={() => setView('trainer')}
                     />
