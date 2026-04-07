@@ -9,7 +9,7 @@ import { ProfileView } from './views/ProfileView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationsProvider } from './context/NotificationsContext';
-import { Dumbbell } from 'lucide-react';
+import { Dumbbell, Eye, EyeOff } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
 import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
 import { supabase } from './lib/supabase';
@@ -89,6 +89,7 @@ const LoginView = () => {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [isSignUp, setIsSignUp] = useState(false);
     const { signIn, signUp } = useAuth();
     const [error, setError] = useState(null);
@@ -140,13 +141,23 @@ const LoginView = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
                 />
-                <input
-                    type="password"
-                    placeholder="Contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
-                />
+                <div className="relative">
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Contraseña"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 pr-12 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                        tabIndex={-1}
+                    >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                </div>
 
                 {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                 {success && <p className="text-green-400 text-sm font-medium">{success}</p>}
