@@ -47,9 +47,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
     const [inputErrors, setInputErrors] = useState({});
 
     const audioCtxRef = useRef(null);
-    // Ref para el setTimeout de la notificación de fondo
-    const bgTimeoutRef = useRef(null);
-    // Flag para evitar que el beep se dispare dos veces (setTimeout + visibilitychange)
+    // Flag para evitar que el beep se dispare dos veces (SW message + visibilitychange)
     const beepFiredRef = useRef(false);
     // Ref que mantiene siempre el estado actual del timer (evita closures obsoletas)
     const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
@@ -66,41 +64,42 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
         } catch (e) {
             console.error("AudioContext error:", e);
         }
-        
+
         return () => {
             if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
                 audioCtxRef.current.close().catch(() => {});
             }
-            // Limpiar timeout de fondo al desmontar
-            if (bgTimeoutRef.current) clearTimeout(bgTimeoutRef.current);
+            // Cancel any pending SW timer on unmount
+            scheduleSWNotification(null);
         };
     }, []);
 
-    // Pide permiso de notificación del SO (sólo la primera vez)
-    const requestNotificationPermission = () => {
+    // Pide permiso de notificación a través del SW (requerido en iOS y Android)
+    const requestNotificationPermission = async () => {
         if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
+            await Notification.requestPermission();
         }
     };
 
-    // Lanza una notificación nativa del SO (funciona con la pantalla apagada)
-    const showSystemNotification = useCallback(() => {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-                new Notification('¡Recuperación completada! 💪', {
-                    body: '¡Es hora de tu siguiente serie!',
-                    icon: '/favicon.ico',
-                    silent: false,
-                });
-            } catch (e) {
-                console.error('Notification error:', e);
+    // Envía un mensaje al Service Worker para que gestione la notificación de fondo.
+    // targetTime = timestamp en ms → programa la notificación
+    // targetTime = null         → cancela cualquier notificación pendiente
+    const scheduleSWNotification = (targetTime) => {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.ready.then((reg) => {
+            if (reg.active) {
+                reg.active.postMessage(
+                    targetTime !== null
+                        ? { type: 'SCHEDULE_NOTIFICATION', targetTime }
+                        : { type: 'CANCEL_NOTIFICATION' }
+                );
             }
-        }
-    }, []);
+        }).catch(() => {});
+    };
 
     const unlockAudio = () => {
         // Pedir permiso de notificación en el primer gesto del usuario
-        requestNotificationPermission();
+        requestNotificationPermission().catch(() => {});
         try {
             // Unlock Web Audio API
             if (audioCtxRef.current) {
@@ -166,10 +165,9 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
         }
     };
 
-    // Audio context para el sonido de pitido + voz + notificación del SO
+    // Audio context para el sonido de pitido + voz
+    // La notificación nativa la gestiona el Service Worker desde el fondo.
     const playBeep = useCallback(() => {
-        // Notificación nativa del SO (para cuando la app está en segundo plano)
-        showSystemNotification();
         try {
             // Voz (fiable en iOS, interrumpe música de fondo)
             if ('speechSynthesis' in window) {
@@ -220,76 +218,94 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
         } catch (error) {
             console.error('No se pudo reproducir el sonido del temporizador', error);
         }
-    }, [showSystemNotification]);
+    }, []);
 
     // Capa 1: setInterval para actualizar el contador visual
-    // Capa 2: setTimeout exacto que dispara el beep aunque el intervalo esté throttled
+    // Capa 2: Service Worker programa la notificación nativa en background (sw.js)
     useEffect(() => {
         let interval = null;
 
-        // Cancelar cualquier timeout de fondo previo
-        if (bgTimeoutRef.current) {
-            clearTimeout(bgTimeoutRef.current);
-            bgTimeoutRef.current = null;
-        }
-
         if (timerActive && targetTime) {
             beepFiredRef.current = false;
-            // Timeout exacto: se ejecuta en el momento preciso incluso en background
-            const delay = Math.max(0, targetTime - Date.now());
-            bgTimeoutRef.current = setTimeout(() => {
-                if (beepFiredRef.current) return;
-                beepFiredRef.current = true;
-                setTimerActive(false);
-                setTargetTime(null);
-                setTimeLeft(0);
-                playBeep();
-                setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
-            }, delay);
+
+            // Delegar la notificación de fondo al Service Worker
+            scheduleSWNotification(targetTime);
 
             // Intervalo solo para actualizar el display visual
             interval = setInterval(() => {
                 const remaining = Math.max(0, Math.ceil((targetTime - Date.now()) / 1000));
                 setTimeLeft(remaining);
+                // Safety net: si la app sigue visible y el tiempo expiró, disparar aquí
+                if (remaining === 0 && !beepFiredRef.current) {
+                    beepFiredRef.current = true;
+                    setTimerActive(false);
+                    setTargetTime(null);
+                    scheduleSWNotification(null);
+                    playBeep();
+                    setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
+                }
             }, 500);
+        } else {
+            // Timer parado: cancelar cualquier notificación pendiente en el SW
+            scheduleSWNotification(null);
         }
 
         return () => {
             clearInterval(interval);
-            // No cancelamos bgTimeoutRef aquí porque perderíamos la notificación de fondo
         };
     }, [timerActive, targetTime, playBeep]);
 
-    // Capa 3: visibilitychange — cuando el usuario vuelve a la app, disparar si el timer ya expiró
+    // Capa 3: Mensaje del SW → el timer expiró mientras la app estaba en segundo plano
+    // En este momento la app puede estar visible (usuario volvió) y hay que reproducir audio.
+    useEffect(() => {
+        const handleSWMessage = (event) => {
+            if (event.data?.type !== 'TIMER_FIRED') return;
+            if (beepFiredRef.current) return;
+            beepFiredRef.current = true;
+            const { selectedDuration } = timerStateRef.current;
+            setTimerActive(false);
+            setTargetTime(null);
+            setTimeLeft(0);
+            playBeep();
+            setTimeout(() => setTimeLeft(selectedDuration), 2000);
+        };
+        navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+        return () => navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+    }, [playBeep]);
+
+    // Capa 4: visibilitychange — cuando el usuario vuelve a la app, disparar si el timer ya expiró
+    // (Fallback por si el SW fue terminado por el SO antes de disparar)
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState !== 'visible') return;
             const { timerActive, targetTime, selectedDuration } = timerStateRef.current;
             if (!timerActive || !targetTime) return;
             if (Date.now() >= targetTime) {
-                // El timer expiró mientras estábamos en segundo plano
                 if (beepFiredRef.current) return;
                 beepFiredRef.current = true;
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
+                scheduleSWNotification(null);
                 playBeep();
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [playBeep]); // solo se registra una vez, usa ref para el estado
+    }, [playBeep]);
 
     const toggleTimer = () => {
         unlockAudio();
         if (!timerActive) {
-            setTargetTime(Date.now() + selectedDuration * 1000);
+            const t = Date.now() + selectedDuration * 1000;
+            setTargetTime(t);
             setTimeLeft(selectedDuration);
             setTimerActive(true);
         } else {
             setTimerActive(false);
             setTargetTime(null);
+            // El effect se encargará de enviar CANCEL_NOTIFICATION al SW
         }
     };
 
