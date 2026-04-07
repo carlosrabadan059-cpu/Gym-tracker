@@ -190,6 +190,7 @@ const AuthenticatedApp = () => {
     const [completedRoutines, setCompletedRoutines] = useState([]);
     const [currentClient, setCurrentClient] = useState(null); // Added for trainer views
 
+    // Auto-avanzar desde 'setup' una vez que el perfil está cargado
     useEffect(() => {
         if (profile?.role === 'trainer' && view === 'setup') {
             setView('trainer');
@@ -262,8 +263,16 @@ const AuthenticatedApp = () => {
     if (loading) return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
     if (!user) return <LoginView />;
 
-    // Render Logic
+    // Redirección sincrónica: no esperar al efecto para saber a dónde ir
     if (view === 'setup') {
+        if (profile?.role === 'trainer') {
+            // Trainer confirmado → ir directamente, sin pasar por SetupView
+            return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
+        }
+        if (!profile) {
+            // Perfil aún cargando → esperar
+            return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
+        }
         return <SetupView onStart={handleStartSetup} />;
     }
 
