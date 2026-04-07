@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { X, Check, History } from 'lucide-react';
-import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
+import { getRoutineIcon, calculateCaloriesByVolume, calculateRealCalories } from '../lib/routineUtils';
 import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { StatisticsView } from './StatisticsView';
@@ -530,62 +530,60 @@ const TrainingView = ({ workout, onFinish }) => {
 
     const activeWorkout = workout?.exercises ? workout : null;
 
-    if (!activeWorkout) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full py-24 text-center gap-4">
-                <p className="text-text-secondary text-sm">No se pudo cargar la rutina.</p>
-                <button
-                    onClick={() => onFinish(null)}
-                    className="px-6 py-2 rounded-xl bg-surface-highlight text-text-primary text-sm font-medium"
-                >
-                    Volver
-                </button>
-            </div>
-        );
-    }
     const [activeExercise, setActiveExercise] = useState(null);
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
-    // lastExerciseLogs: { [exerciseId]: { setsData, date } | null }
     const [lastExerciseLogs, setLastExerciseLogs] = useState({});
+    const [workoutStartTime] = useState(() => Date.now());
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+    // Cronómetro del entreno: actualiza cada segundo
+    useEffect(() => {
+        if (!activeWorkout) return;
+        const interval = setInterval(() => {
+            setElapsedSeconds(Math.floor((Date.now() - workoutStartTime) / 1000));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [workoutStartTime, activeWorkout]);
+
+    const elapsedMinutes = elapsedSeconds / 60;
+    const liveCalories = activeWorkout
+        ? calculateRealCalories(activeWorkout.exercises, userWeight, elapsedMinutes)
+        : 0;
+    const displayTime = `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}`;
 
     useEffect(() => {
         const fetchExistingLogs = async () => {
-            if (activeWorkout && user?.id) {
-                try {
-                    // Cargar logs de hoy
-                    const allLogs = await loadWorkoutLogs(user.id);
-                    const todayStr = new Date().toDateString();
-                    const todaysLog = allLogs.find(l =>
-                        l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
-                    );
+            if (!activeWorkout || !user?.id) return;
+            try {
+                // Cargar logs de hoy
+                const allLogs = await loadWorkoutLogs(user.id);
+                const todayStr = new Date().toDateString();
+                const todaysLog = allLogs.find(l =>
+                    l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
+                );
 
-                    if (todaysLog && todaysLog.logs) {
-                        setExerciseLogs(todaysLog.logs);
-                        const completed = {};
-                        Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
-                        setCompletedExercises(completed);
-                    }
-
-                    // Cargar último log histórico por ejercicio (para mostrar como referencia)
-                    // Intentamos primero dentro de la misma rutina (mismo ID de ejercicio),
-                    // y si no hay historial, buscamos globalmente por nombre de ejercicio.
-                    if (activeWorkout.exercises?.length) {
-                        const lastLogsEntries = await Promise.all(
-                            activeWorkout.exercises.map(async (ex) => {
-                                let last = await loadLastExerciseLog(user.id, activeWorkout.id, ex.id);
-                                if (!last && ex.name) {
-                                    // Fallback: rutina nueva o ejercicio sin historial en esta rutina
-                                    last = await loadLastExerciseLogGlobal(user.id, ex.name, activeWorkout.id);
-                                }
-                                return [ex.id, last];
-                            })
-                        );
-                        setLastExerciseLogs(Object.fromEntries(lastLogsEntries));
-                    }
-                } catch (error) {
-                    console.error("Failed to fetch logs:", error);
+                if (todaysLog && todaysLog.logs) {
+                    setExerciseLogs(todaysLog.logs);
+                    const completed = {};
+                    Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
+                    setCompletedExercises(completed);
                 }
+
+                if (activeWorkout.exercises?.length) {
+                    const lastLogsEntries = await Promise.all(
+                        activeWorkout.exercises.map(async (ex) => {
+                            let last = await loadLastExerciseLog(user.id, activeWorkout.id, ex.id);
+                            if (!last && ex.name) {
+                                last = await loadLastExerciseLogGlobal(user.id, ex.name, activeWorkout.id);
+                            }
+                            return [ex.id, last];
+                        })
+                    );
+                    setLastExerciseLogs(Object.fromEntries(lastLogsEntries));
+                }
+            } catch (error) {
+                console.error("Failed to fetch logs:", error);
             }
         };
         fetchExistingLogs();
@@ -609,8 +607,21 @@ const TrainingView = ({ workout, onFinish }) => {
         }
     };
 
-    const routineIcon = getRoutineIcon(activeWorkout?.name);
-    const totalRoutineCalories = activeWorkout?.exercises?.reduce((sum, ex) => sum + calculateCaloriesByVolume(ex, userWeight), 0) || 0;
+    if (!activeWorkout) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full py-24 text-center gap-4">
+                <p className="text-text-secondary text-sm">No se pudo cargar la rutina.</p>
+                <button
+                    onClick={() => onFinish(null)}
+                    className="px-6 py-2 rounded-xl bg-surface-highlight text-text-primary text-sm font-medium"
+                >
+                    Volver
+                </button>
+            </div>
+        );
+    }
+
+    const routineIcon = getRoutineIcon(activeWorkout.name);
 
     return (
         <div className="flex h-full flex-col items-center p-6 text-center space-y-6 relative">
@@ -626,7 +637,12 @@ const TrainingView = ({ workout, onFinish }) => {
                 )}
                 <div className="text-left flex-1">
                     <h2 className="text-2xl font-bold text-black dark:text-white leading-tight">{activeWorkout?.name || 'Entrenamiento'}</h2>
-                    <p className="text-text-secondary">{activeWorkout?.exercises?.length || 0} Ejercicios • {totalRoutineCalories} kcal</p>
+                    <p className="text-text-secondary">{activeWorkout?.exercises?.length || 0} Ejercicios</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <span className="text-xs font-mono font-bold text-primary">{displayTime}</span>
+                        <span className="text-xs text-text-secondary">•</span>
+                        <span className="text-xs font-bold text-primary">{liveCalories} kcal</span>
+                    </div>
                 </div>
             </Card>
 
@@ -667,7 +683,18 @@ const TrainingView = ({ workout, onFinish }) => {
 
             <button
                 onClick={() => {
-                    const finalLogs = { ...exerciseLogs };
+                    const endTime = Date.now();
+                    const durationMinutes = Math.round((endTime - workoutStartTime) / 60000);
+                    const realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
+                    const finalLogs = {
+                        ...exerciseLogs,
+                        workoutDuration: {
+                            startTime: workoutStartTime,
+                            endTime,
+                            durationMinutes,
+                            realCalories
+                        }
+                    };
                     if (activeWorkout?.cardio) {
                         finalLogs.cardio = activeWorkout.cardio;
                     }

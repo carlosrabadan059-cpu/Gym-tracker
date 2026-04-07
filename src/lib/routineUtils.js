@@ -40,50 +40,62 @@ export const calculateCaloriesByTime = (metValue, userWeightKg, durationMinutes)
 };
 
 /**
+ * Devuelve el MET asignado a un ejercicio por nombre.
+ */
+const getExerciseMET = (exerciseName) => {
+    const name = (exerciseName || '').toLowerCase();
+    if (
+        name.includes('sentadilla') ||
+        name.includes('peso muerto') ||
+        name.includes('press') ||
+        name.includes('prensa') ||
+        name.includes('remo')
+    ) return MET_VALUES.STRENGTH_HEAVY;
+    if (
+        name.includes('flexiones') ||
+        name.includes('dominadas') ||
+        name.includes('fondos')
+    ) return MET_VALUES.BODYWEIGHT;
+    if (
+        name.includes('cinta') ||
+        name.includes('correr') ||
+        name.includes('bici') ||
+        name.includes('elíptica')
+    ) return MET_VALUES.CARDIO;
+    return MET_VALUES.STRENGTH_LIGHT;
+};
+
+/**
  * Calcula calorías estimadas basadas en volumen (series x repeticiones)
  * Asume ~1 minuto de esfuerzo activo por cada serie.
  */
 export const calculateCaloriesByVolume = (exercise, userWeightKg) => {
-    const weight = userWeightKg || 75; // Peso por defecto si no hay perfil
-
-    // Extraer el número de series
+    const weight = userWeightKg || 75;
     const numSets = parseInt(exercise.series, 10) || 0;
     if (numSets === 0) return 0;
 
-    const nameToLower = (exercise.name || '').toLowerCase();
-    let met = MET_VALUES.DEFAULT;
-
-    // Asignación simple de METs basada en el nombre
-    if (
-        nameToLower.includes('sentadilla') ||
-        nameToLower.includes('peso muerto') ||
-        nameToLower.includes('press') ||
-        nameToLower.includes('prensa') ||
-        nameToLower.includes('remo')
-    ) {
-        met = MET_VALUES.STRENGTH_HEAVY;
-    } else if (
-        nameToLower.includes('flexiones') ||
-        nameToLower.includes('dominadas') ||
-        nameToLower.includes('fondos')
-    ) {
-        met = MET_VALUES.BODYWEIGHT;
-    } else if (
-        nameToLower.includes('cinta') ||
-        nameToLower.includes('correr') ||
-        nameToLower.includes('bici') ||
-        nameToLower.includes('elíptica')
-    ) {
-        met = MET_VALUES.CARDIO;
-    } else {
-        // Ejercicios accesorios típicos
-        met = MET_VALUES.STRENGTH_LIGHT;
-    }
-
-    // Estimar duración basada en el número de series (aprox 1 minuto de esfuerzo activo por serie)
+    const met = getExerciseMET(exercise.name);
     const estimatedActiveMinutes = numSets * 1;
-
     return Math.round(calculateCaloriesByTime(met, weight, estimatedActiveMinutes));
+};
+
+/**
+ * Calcula el MET promedio de un conjunto de ejercicios.
+ */
+export const getAverageWorkoutMET = (exercises) => {
+    if (!exercises || exercises.length === 0) return MET_VALUES.DEFAULT;
+    const total = exercises.reduce((sum, ex) => sum + getExerciseMET(ex.name), 0);
+    return total / exercises.length;
+};
+
+/**
+ * Calcula calorías reales basadas en la duración del entreno y el MET promedio
+ * de los ejercicios que lo componen.
+ */
+export const calculateRealCalories = (exercises, userWeightKg, durationMinutes) => {
+    const weight = userWeightKg || 75;
+    const met = getAverageWorkoutMET(exercises);
+    return Math.round(calculateCaloriesByTime(met, weight, durationMinutes));
 };
 
 export const CARDIO_TYPES = {
