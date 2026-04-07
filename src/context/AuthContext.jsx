@@ -10,8 +10,9 @@ export const AuthProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchProfile = async (userId) => {
+    const fetchProfile = async (userId, userEmail) => {
         try {
+            // Búsqueda primaria por user_id
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -20,9 +21,29 @@ export const AuthProvider = ({ children }) => {
 
             if (!error && data) {
                 setProfile(data);
+                return;
+            }
+
+            // Fallback: buscar por username (prefijo del email) y reparar el user_id
+            if (userEmail) {
+                const username = userEmail.split('@')[0];
+                const { data: fallback } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', username)
+                    .single();
+
+                if (fallback) {
+                    // Actualizar el user_id para que futuras sesiones funcionen directamente
+                    await supabase
+                        .from('profiles')
+                        .update({ user_id: userId })
+                        .eq('id', fallback.id);
+                    setProfile({ ...fallback, user_id: userId });
+                }
             }
         } catch (err) {
-            console.error('Error fetching global profile:', err);
+            console.error('Error fetching profile:', err);
         }
     };
 
@@ -32,7 +53,7 @@ export const AuthProvider = ({ children }) => {
             const activeUser = session?.user ?? null;
             setUser(activeUser);
             if (activeUser) {
-                fetchProfile(activeUser.id).finally(() => setLoading(false));
+                fetchProfile(activeUser.id, activeUser.email).finally(() => setLoading(false));
             } else {
                 setLoading(false);
             }
@@ -43,7 +64,7 @@ export const AuthProvider = ({ children }) => {
             const activeUser = session?.user ?? null;
             setUser(activeUser);
             if (activeUser) {
-                fetchProfile(activeUser.id).finally(() => setLoading(false));
+                fetchProfile(activeUser.id, activeUser.email).finally(() => setLoading(false));
             } else {
                 setProfile(null);
                 setLoading(false);
@@ -60,7 +81,7 @@ export const AuthProvider = ({ children }) => {
         user,
         profile,
         // Helper to manually refresh profile if updated in ProfileView
-        refreshProfile: () => user && fetchProfile(user.id),
+        refreshProfile: () => user && fetchProfile(user.id, user.email),
         loading
     };
 
