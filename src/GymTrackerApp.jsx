@@ -181,6 +181,10 @@ const LoginView = () => {
     );
 };
 
+// Roles que tienen acceso a la sección de entrenador
+const TRAINER_ROLES = ['trainer', 'admin'];
+const isTrainer = (p) => TRAINER_ROLES.includes(p?.role);
+
 const AuthenticatedApp = () => {
     useShakeToUndoPrevention(); // Prevenir "Shake to Undo" globalmente
 
@@ -194,11 +198,11 @@ const AuthenticatedApp = () => {
     useEffect(() => {
         if (!profile) return;
         if (view === 'setup') {
-            setView(profile.role === 'trainer' ? 'trainer' : 'dashboard');
+            setView(isTrainer(profile) ? 'trainer' : 'dashboard');
             return;
         }
-        // Seguridad: si un usuario sin rol trainer llega a una vista de trainer, redirigir
-        if (view.startsWith('trainer') && profile.role !== 'trainer') {
+        // Seguridad: si un usuario sin rol entrenador llega a una vista de trainer, redirigir
+        if (view.startsWith('trainer') && !isTrainer(profile)) {
             setView('dashboard');
         }
     }, [profile, view]);
@@ -257,7 +261,7 @@ const AuthenticatedApp = () => {
 
     const handleNavigate = (newView) => {
         // Bloquear acceso a vistas de entrenador para usuarios normales
-        if (newView.startsWith('trainer') && profile?.role !== 'trainer') return;
+        if (newView.startsWith('trainer') && !isTrainer(profile)) return;
         setView(newView);
     };
 
@@ -291,10 +295,10 @@ const AuthenticatedApp = () => {
 
             <main className="flex-1 overflow-y-auto px-4 pb-32 pt-2 scrollbar-hide">
                 {/* Vistas exclusivas de entrenador */}
-                {profile?.role === 'trainer' && view === 'trainer' && (
+                {isTrainer(profile) && view === 'trainer' && (
                     <TrainerDashboardView onNavigate={handleNavigate} />
                 )}
-                {profile?.role === 'trainer' && view === 'trainer_clients' && (
+                {isTrainer(profile) && view === 'trainer_clients' && (
                     <ClientsListView
                         onBack={() => setView('trainer')}
                         onSelectClient={(client) => {
@@ -303,21 +307,21 @@ const AuthenticatedApp = () => {
                         }}
                     />
                 )}
-                {profile?.role === 'trainer' && view === 'trainer_client_profile' && (
+                {isTrainer(profile) && view === 'trainer_client_profile' && (
                     <ClientProfileView
                         client={currentClient}
                         onBack={() => setView('trainer_clients')}
                         onAssignRoutine={() => setView('trainer_assign_routine')}
                     />
                 )}
-                {profile?.role === 'trainer' && view === 'trainer_assign_routine' && (
+                {isTrainer(profile) && view === 'trainer_assign_routine' && (
                     <RoutineAssignerView
                         client={currentClient}
                         onBack={() => setView('trainer_client_profile')}
                         onSuccess={() => setView('trainer_client_profile')}
                     />
                 )}
-                {profile?.role === 'trainer' && view === 'trainer_library' && (
+                {isTrainer(profile) && view === 'trainer_library' && (
                     <TrainerLibraryView
                         onBack={() => setView('trainer')}
                     />
