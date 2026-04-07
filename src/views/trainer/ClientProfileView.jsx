@@ -12,17 +12,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
-                if (!client?.user_id) {
-                    // No user_id means we can't look up assignments — show empty state
-                    setAssignedRoutines([]);
-                    return;
-                }
-
-                // 1. Get assignments for this specific client
+                // 1. Get assignments for this specific client (using profile.id — always set)
                 const { data: assigned, error: assignError } = await supabase
                     .from('assigned_routines')
                     .select('*')
-                    .eq('client_id', client.user_id);
+                    .eq('client_id', client.id);
 
                 if (assignError) throw assignError;
 
@@ -202,9 +196,6 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                         ) : assignedRoutines.length === 0 ? (
                             <div className="bg-surface border border-surface-highlight border-dashed rounded-2xl p-6 text-center text-text-secondary">
                                 <p className="text-sm">No tiene rutinas asignadas actualmente.</p>
-                                {!client.user_id && (
-                                    <p className="text-xs mt-1 text-orange-400">El cliente debe iniciar sesión al menos una vez para poder asignarle rutinas.</p>
-                                )}
                             </div>
                         ) : (
                             assignedRoutines.map((assignment) => {

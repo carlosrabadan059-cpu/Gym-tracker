@@ -26,12 +26,12 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const userWeight = profile?.weight || null;
 
     const fetchRoutines = useCallback(async () => {
-        if (!user) return;
+        if (!user || !profile) return;
         try {
             const { data: assigned, error: assignedErr } = await supabase
                 .from('assigned_routines')
                 .select('routine_id')
-                .eq('client_id', user.id);
+                .eq('client_id', profile.id);
 
             let targetRoutineIds = [];
             if (!assignedErr && assigned && assigned.length > 0) {
@@ -72,8 +72,8 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     }, [user]);
 
     useEffect(() => {
-        if (user) fetchRoutines();
-    }, [user, fetchRoutines]);
+        if (user && profile) fetchRoutines();
+    }, [user, profile, fetchRoutines]);
 
     // Pull-to-refresh touch handlers
     // Los refs espejean el estado para que los handlers no necesiten estar en deps,

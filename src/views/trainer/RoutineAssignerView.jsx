@@ -174,7 +174,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
         if (!canSave || !client) return;
         setSaving(true);
         try {
-            const routineId = `custom_${Date.now()}_${client.user_id.substring(0, 5)}`;
+            const routineId = `custom_${Date.now()}_${client.id.substring(0, 5)}`;
 
             const { error: routineError } = await supabase.from('routines').insert([{
                 id: routineId,
@@ -198,18 +198,20 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
             if (exError) throw exError;
 
             const { error: assignError } = await supabase.from('assigned_routines').insert([{
-                client_id: client.user_id,
+                client_id: client.id,
                 routine_id: routineId,
                 assigned_by: user.id,
             }]);
             if (assignError) throw assignError;
 
-            await supabase.from('notifications').insert([{
-                user_id: client.user_id,
-                title: '¡Nueva Rutina Personalizada!',
-                message: `Tu entrenador te ha asignado: ${routineName.trim()}. ¡A darle duro!`,
-                read: false,
-            }]);
+            if (client.user_id) {
+                await supabase.from('notifications').insert([{
+                    user_id: client.user_id,
+                    title: '¡Nueva Rutina Personalizada!',
+                    message: `Tu entrenador te ha asignado: ${routineName.trim()}. ¡A darle duro!`,
+                    read: false,
+                }]);
+            }
 
             onSuccess();
         } catch (err) {
