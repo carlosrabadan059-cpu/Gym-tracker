@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Suprimir el botón nativo de mostrar contraseña de iOS/Safari y Edge */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-strong-password-auto-fill-button,
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
 @layer base {
   :root {
     /* Light Theme Defaults (iOS System Colors) */
