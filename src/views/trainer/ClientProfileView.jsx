@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, User, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2 } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2, Calendar, Clock } from 'lucide-react';
 
 export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     const [assignedRoutines, setAssignedRoutines] = useState([]);
+    const [workoutHistory, setWorkoutHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-
+    const [historyLoading, setHistoryLoading] = useState(true);
     const [expandedRoutine, setExpandedRoutine] = useState(null);
 
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
+                // If no user_id, skip DB lookup and go straight to defaults
+                if (!client?.user_id) {
+                    await loadDefaultRoutines();
+                    return;
+                }
+
                 // 1. Get assignments
                 const { data: assigned, error: assignError } = await supabase
                     .from('assigned_routines')
@@ -20,14 +27,12 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                 if (assignError) throw assignError;
 
                 // Mirror DashboardView logic: fall back to default day1-4 if no assignments
-                let routineIds;
-                let isDefaultRoutines = false;
                 if (!assigned || assigned.length === 0) {
-                    routineIds = ['day1', 'day2', 'day3', 'day4'];
-                    isDefaultRoutines = true;
-                } else {
-                    routineIds = assigned.map(a => a.routine_id);
+                    await loadDefaultRoutines();
+                    return;
                 }
+
+                const routineIds = assigned.map(a => a.routine_id);
 
                 // 2. Get routines
                 const { data: routinesData, error: routinesError } = await supabase
@@ -49,40 +54,88 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
                 // 4. Merge
                 const mergedMap = {};
-                routinesData.forEach(r => {
-                    mergedMap[r.id] = { ...r, exercises: [] };
-                });
+                routinesData.forEach(r => { mergedMap[r.id] = { ...r, exercises: [] }; });
                 exercisesData.forEach(ex => {
-                    if (mergedMap[ex.routine_id]) {
-                        mergedMap[ex.routine_id].exercises.push(ex);
-                    }
+                    if (mergedMap[ex.routine_id]) mergedMap[ex.routine_id].exercises.push(ex);
                 });
 
-                if (isDefaultRoutines) {
-                    // Wrap default routines in a shape compatible with the assignment format
-                    const finalRoutines = routinesData.map(r => ({
-                        id: `default_${r.id}`,
-                        routine_id: r.id,
-                        created_at: null,
-                        isDefault: true,
-                        routine: { ...r, exercises: mergedMap[r.id]?.exercises || [] }
-                    }));
-                    setAssignedRoutines(finalRoutines);
-                } else {
-                    const finalRoutines = assigned.map(a => ({
-                        ...a,
-                        routine: mergedMap[a.routine_id] || { id: a.routine_id, name: a.routine_id, exercises: [] }
-                    })).filter(a => a.routine);
-                    setAssignedRoutines(finalRoutines);
-                }
+                const finalRoutines = assigned.map(a => ({
+                    ...a,
+                    routine: mergedMap[a.routine_id] || { id: a.routine_id, name: a.routine_id, exercises: [] }
+                })).filter(a => a.routine);
+
+                setAssignedRoutines(finalRoutines);
             } catch (error) {
                 console.error('Error fetching assigned routines:', error);
+                await loadDefaultRoutines();
             } finally {
                 setLoading(false);
             }
         };
 
-        if (client?.user_id) fetchRoutines();
+        const loadDefaultRoutines = async () => {
+            try {
+                const defaultIds = ['day1', 'day2', 'day3', 'day4'];
+                const { data: routinesData } = await supabase
+                    .from('routines').select('*').in('id', defaultIds).order('id');
+                const { data: exercisesData } = await supabase
+                    .from('exercises').select('*').in('routine_id', defaultIds).order('ui_order');
+
+                const mergedMap = {};
+                (routinesData || []).forEach(r => { mergedMap[r.id] = { ...r, exercises: [] }; });
+                (exercisesData || []).forEach(ex => {
+                    if (mergedMap[ex.routine_id]) mergedMap[ex.routine_id].exercises.push(ex);
+                });
+
+                const finalRoutines = (routinesData || []).map(r => ({
+                    id: `default_${r.id}`,
+                    routine_id: r.id,
+                    created_at: null,
+                    isDefault: true,
+                    routine: mergedMap[r.id] || { ...r, exercises: [] }
+                }));
+                setAssignedRoutines(finalRoutines);
+            } catch (e) {
+                console.error('Error loading default routines:', e);
+            }
+        };
+
+        const fetchHistory = async () => {
+            if (!client?.user_id) { setHistoryLoading(false); return; }
+            try {
+                // Get last 20 workout logs
+                const { data: logs, error } = await supabase
+                    .from('workout_logs')
+                    .select('id, routine_id, date, logs')
+                    .eq('user_id', client.user_id)
+                    .order('date', { ascending: false })
+                    .limit(20);
+
+                if (error) throw error;
+                if (!logs || logs.length === 0) { setWorkoutHistory([]); return; }
+
+                // Fetch routine names for the log entries
+                const routineIds = [...new Set(logs.map(l => l.routine_id))];
+                const { data: routines } = await supabase
+                    .from('routines').select('id, name').in('id', routineIds);
+
+                const routineNameMap = {};
+                (routines || []).forEach(r => { routineNameMap[r.id] = r.name; });
+
+                setWorkoutHistory(logs.map(log => ({
+                    ...log,
+                    routineName: routineNameMap[log.routine_id] || log.routine_id,
+                    exerciseCount: log.logs ? Object.keys(log.logs).length : 0,
+                })));
+            } catch (e) {
+                console.error('Error fetching workout history:', e);
+            } finally {
+                setHistoryLoading(false);
+            }
+        };
+
+        fetchRoutines();
+        fetchHistory();
     }, [client]);
 
     const toggleRoutine = (id) => {
@@ -94,10 +147,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         if (!confirm('¿Seguro que quieres eliminar esta asignación?')) return;
 
         try {
-            // Delete from assigned_routines
             await supabase.from('assigned_routines').delete().eq('id', assignmentId);
 
-            // If it's a custom routine (starts with custom_), we delete the routine (cascades to exercises)
             if (routineId.startsWith('custom_')) {
                 await supabase.from('routines').delete().eq('id', routineId);
                 await supabase.from('exercises').delete().eq('routine_id', routineId);
@@ -111,6 +162,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     };
 
     if (!client) return null;
+
+    const isDefaultView = assignedRoutines.length > 0 && assignedRoutines[0].isDefault;
 
     return (
         <div className="flex flex-col h-full bg-background pb-20">
@@ -138,21 +191,23 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
             <div className="flex-1 overflow-y-auto px-4 space-y-6">
 
-                {/* Stats Summary - Optional for deeper iteration */}
+                {/* Stats Summary */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
                         <div className="flex items-center gap-2 text-primary">
                             <Activity size={18} />
-                            <span className="font-bold text-xs uppercase tracking-wider">Actividad</span>
+                            <span className="font-bold text-xs uppercase tracking-wider">Sesiones</span>
                         </div>
-                        <p className="text-2xl font-black text-text-primary">Activo</p>
+                        <p className="text-2xl font-black text-text-primary">{workoutHistory.length}</p>
+                        <p className="text-xs text-text-secondary">últimas 20</p>
                     </div>
                     <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
                         <div className="flex items-center gap-2 text-orange-500">
                             <Dumbbell size={18} />
                             <span className="font-bold text-xs uppercase tracking-wider">Rutinas</span>
                         </div>
-                        <p className="text-2xl font-black text-text-primary">{assignedRoutines.length}</p>
+                        <p className="text-2xl font-black text-text-primary">{loading ? '—' : assignedRoutines.length}</p>
+                        <p className="text-xs text-text-secondary">{isDefaultView ? 'por defecto' : 'asignadas'}</p>
                     </div>
                 </div>
 
@@ -160,9 +215,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                 <div>
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-lg text-text-primary">
-                            {assignedRoutines.length > 0 && assignedRoutines[0].isDefault
-                                ? 'Rutinas por defecto'
-                                : 'Rutinas Asignadas'}
+                            {isDefaultView ? 'Rutinas por defecto' : 'Rutinas Asignadas'}
                         </h3>
                         <button
                             onClick={() => onAssignRoutine(client)}
@@ -218,7 +271,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                         </div>
 
                                         {isExpanded && (
-                                            <div className="mt-4 space-y-3 pt-4 border-t border-surface-highlight animate-fadeIn">
+                                            <div className="mt-4 space-y-3 pt-4 border-t border-surface-highlight">
                                                 {routine.exercises.length === 0 ? (
                                                     <p className="text-xs text-text-secondary">Sin ejercicios.</p>
                                                 ) : (
@@ -247,6 +300,53 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                     </div>
                 </div>
 
+                {/* Workout History */}
+                <div className="pb-6">
+                    <h3 className="font-bold text-lg text-text-primary mb-4">Historial de Entrenamientos</h3>
+
+                    {historyLoading ? (
+                        <div className="space-y-2">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="bg-surface rounded-2xl p-4 border border-surface-highlight animate-pulse">
+                                    <div className="h-4 bg-surface-highlight rounded w-1/2 mb-2" />
+                                    <div className="h-3 bg-surface-highlight rounded w-1/3" />
+                                </div>
+                            ))}
+                        </div>
+                    ) : workoutHistory.length === 0 ? (
+                        <div className="bg-surface border border-surface-highlight border-dashed rounded-2xl p-6 text-center text-text-secondary">
+                            <p className="text-sm">Aún no ha completado ningún entrenamiento.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {workoutHistory.map((entry) => (
+                                <div
+                                    key={entry.id}
+                                    className="bg-surface p-4 rounded-2xl border border-surface-highlight flex items-center gap-4"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <Dumbbell size={18} className="text-primary" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-text-primary text-sm truncate">{entry.routineName}</p>
+                                        <div className="flex items-center gap-3 mt-0.5">
+                                            <span className="flex items-center gap-1 text-xs text-text-secondary">
+                                                <Calendar size={11} />
+                                                {new Date(entry.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
+                                            {entry.exerciseCount > 0 && (
+                                                <span className="flex items-center gap-1 text-xs text-text-secondary">
+                                                    <Clock size={11} />
+                                                    {entry.exerciseCount} ejercicio{entry.exerciseCount !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
