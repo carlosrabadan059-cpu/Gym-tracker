@@ -12,13 +12,13 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
-                // If no user_id, skip DB lookup and go straight to defaults
                 if (!client?.user_id) {
-                    await loadDefaultRoutines();
+                    // No user_id means we can't look up assignments — show empty state
+                    setAssignedRoutines([]);
                     return;
                 }
 
-                // 1. Get assignments
+                // 1. Get assignments for this specific client
                 const { data: assigned, error: assignError } = await supabase
                     .from('assigned_routines')
                     .select('*')
@@ -26,9 +26,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
                 if (assignError) throw assignError;
 
-                // Mirror DashboardView logic: fall back to default day1-4 if no assignments
                 if (!assigned || assigned.length === 0) {
-                    await loadDefaultRoutines();
+                    setAssignedRoutines([]);
                     return;
                 }
 
@@ -54,8 +53,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
                 // 4. Merge
                 const mergedMap = {};
-                routinesData.forEach(r => { mergedMap[r.id] = { ...r, exercises: [] }; });
-                exercisesData.forEach(ex => {
+                (routinesData || []).forEach(r => { mergedMap[r.id] = { ...r, exercises: [] }; });
+                (exercisesData || []).forEach(ex => {
                     if (mergedMap[ex.routine_id]) mergedMap[ex.routine_id].exercises.push(ex);
                 });
 
@@ -67,43 +66,15 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                 setAssignedRoutines(finalRoutines);
             } catch (error) {
                 console.error('Error fetching assigned routines:', error);
-                await loadDefaultRoutines();
+                setAssignedRoutines([]);
             } finally {
                 setLoading(false);
-            }
-        };
-
-        const loadDefaultRoutines = async () => {
-            try {
-                const defaultIds = ['day1', 'day2', 'day3', 'day4'];
-                const { data: routinesData } = await supabase
-                    .from('routines').select('*').in('id', defaultIds).order('id');
-                const { data: exercisesData } = await supabase
-                    .from('exercises').select('*').in('routine_id', defaultIds).order('ui_order');
-
-                const mergedMap = {};
-                (routinesData || []).forEach(r => { mergedMap[r.id] = { ...r, exercises: [] }; });
-                (exercisesData || []).forEach(ex => {
-                    if (mergedMap[ex.routine_id]) mergedMap[ex.routine_id].exercises.push(ex);
-                });
-
-                const finalRoutines = (routinesData || []).map(r => ({
-                    id: `default_${r.id}`,
-                    routine_id: r.id,
-                    created_at: null,
-                    isDefault: true,
-                    routine: mergedMap[r.id] || { ...r, exercises: [] }
-                }));
-                setAssignedRoutines(finalRoutines);
-            } catch (e) {
-                console.error('Error loading default routines:', e);
             }
         };
 
         const fetchHistory = async () => {
             if (!client?.user_id) { setHistoryLoading(false); return; }
             try {
-                // Get last 20 workout logs
                 const { data: logs, error } = await supabase
                     .from('workout_logs')
                     .select('id, routine_id, date, logs')
@@ -114,7 +85,6 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                 if (error) throw error;
                 if (!logs || logs.length === 0) { setWorkoutHistory([]); return; }
 
-                // Fetch routine names for the log entries
                 const routineIds = [...new Set(logs.map(l => l.routine_id))];
                 const { data: routines } = await supabase
                     .from('routines').select('id, name').in('id', routineIds);
@@ -163,8 +133,6 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
     if (!client) return null;
 
-    const isDefaultView = assignedRoutines.length > 0 && assignedRoutines[0].isDefault;
-
     return (
         <div className="flex flex-col h-full bg-background pb-20">
             <header className="mb-6 flex items-center gap-4 p-4 border-b border-surface-highlight">
@@ -191,14 +159,16 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
             <div className="flex-1 overflow-y-auto px-4 space-y-6">
 
-                {/* Stats Summary */}
+                {/* Stats */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
                         <div className="flex items-center gap-2 text-primary">
                             <Activity size={18} />
                             <span className="font-bold text-xs uppercase tracking-wider">Sesiones</span>
                         </div>
-                        <p className="text-2xl font-black text-text-primary">{workoutHistory.length}</p>
+                        <p className="text-2xl font-black text-text-primary">
+                            {historyLoading ? '—' : workoutHistory.length}
+                        </p>
                         <p className="text-xs text-text-secondary">últimas 20</p>
                     </div>
                     <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
@@ -206,17 +176,17 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                             <Dumbbell size={18} />
                             <span className="font-bold text-xs uppercase tracking-wider">Rutinas</span>
                         </div>
-                        <p className="text-2xl font-black text-text-primary">{loading ? '—' : assignedRoutines.length}</p>
-                        <p className="text-xs text-text-secondary">{isDefaultView ? 'por defecto' : 'asignadas'}</p>
+                        <p className="text-2xl font-black text-text-primary">
+                            {loading ? '—' : assignedRoutines.length}
+                        </p>
+                        <p className="text-xs text-text-secondary">asignadas</p>
                     </div>
                 </div>
 
-                {/* Routines List */}
+                {/* Routines */}
                 <div>
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-lg text-text-primary">
-                            {isDefaultView ? 'Rutinas por defecto' : 'Rutinas Asignadas'}
-                        </h3>
+                        <h3 className="font-bold text-lg text-text-primary">Rutinas Asignadas</h3>
                         <button
                             onClick={() => onAssignRoutine(client)}
                             className="bg-primary text-black px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-primary-hover transition-colors"
@@ -232,6 +202,9 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                         ) : assignedRoutines.length === 0 ? (
                             <div className="bg-surface border border-surface-highlight border-dashed rounded-2xl p-6 text-center text-text-secondary">
                                 <p className="text-sm">No tiene rutinas asignadas actualmente.</p>
+                                {!client.user_id && (
+                                    <p className="text-xs mt-1 text-orange-400">El cliente debe iniciar sesión al menos una vez para poder asignarle rutinas.</p>
+                                )}
                             </div>
                         ) : (
                             assignedRoutines.map((assignment) => {
@@ -249,20 +222,16 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                     {routine.name}
                                                 </h4>
                                                 <p className="text-xs text-text-secondary mt-1">
-                                                    {assignment.isDefault
-                                                        ? 'Rutina por defecto'
-                                                        : `Asignado el ${new Date(assignment.created_at).toLocaleDateString()}`}
+                                                    Asignado el {new Date(assignment.created_at).toLocaleDateString()}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {!assignment.isDefault && (
-                                                    <button
-                                                        onClick={(e) => handleDeleteRoutine(e, assignment.id, routine.id)}
-                                                        className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={(e) => handleDeleteRoutine(e, assignment.id, routine.id)}
+                                                    className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                                 <ChevronRight
                                                     size={20}
                                                     className={`text-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
