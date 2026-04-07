@@ -13,11 +13,12 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
-                // 1. Get assignments for this specific client (using profile.id — always set)
+                if (!client?.user_id) { setLoading(false); return; }
+                // 1. Get assignments for this specific client (using profile.user_id)
                 const { data: assigned, error: assignError } = await supabase
                     .from('assigned_routines')
                     .select('*')
-                    .eq('client_id', client.id);
+                    .eq('client_id', client.user_id);
 
                 if (assignError) throw assignError;
 
@@ -214,7 +215,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                     {routine.name}
                                                 </h4>
                                                 <p className="text-xs text-text-secondary mt-1">
-                                                    Asignado el {new Date(assignment.created_at).toLocaleDateString()}
+                                                    Asignado el {new Date(assignment.assigned_at || assignment.created_at || Date.now()).toLocaleDateString()}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2">

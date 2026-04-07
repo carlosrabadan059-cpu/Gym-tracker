@@ -31,7 +31,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             const { data: assigned, error: assignedErr } = await supabase
                 .from('assigned_routines')
                 .select('routine_id')
-                .eq('client_id', profile.id);
+                .eq('client_id', user.id);
 
             let targetRoutineIds = [];
             if (!assignedErr && assigned && assigned.length > 0) {
@@ -69,7 +69,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             setIsRefreshing(false);
             isRefreshingRef.current = false;
         }
-    }, [user]);
+    }, [user, profile]);
 
     useEffect(() => {
         if (user && profile) fetchRoutines();

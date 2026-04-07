@@ -46,6 +46,7 @@ export function NotificationsProvider({ children }) {
             .subscribe();
 
         return () => {
+            channel.unsubscribe();
             supabase.removeChannel(channel);
         };
     }, [user]);
