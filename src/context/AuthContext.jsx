@@ -64,6 +64,7 @@ export const AuthProvider = ({ children }) => {
             const activeUser = session?.user ?? null;
             setUser(activeUser);
             if (activeUser) {
+                setProfile(null); // Resetear perfil antes de cargar el nuevo para evitar datos obsoletos
                 fetchProfile(activeUser.id, activeUser.email).finally(() => setLoading(false));
             } else {
                 setProfile(null);

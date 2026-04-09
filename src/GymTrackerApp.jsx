@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
-import { SetupView } from './views/SetupView';
 import { DashboardView } from './views/DashboardView';
 import { TrainingView, ProgressView } from './views/OtherViews';
 import { ChatView } from './views/ChatView';
@@ -193,6 +192,17 @@ const AuthenticatedApp = () => {
     const [currentWorkout, setCurrentWorkout] = useState(null);
     const [completedRoutines, setCompletedRoutines] = useState([]);
     const [currentClient, setCurrentClient] = useState(null); // Added for trainer views
+    const prevUserIdRef = useRef(null);
+
+    // Resetear a 'setup' cuando cambia el usuario (nuevo login)
+    useEffect(() => {
+        if (user?.id && user.id !== prevUserIdRef.current) {
+            prevUserIdRef.current = user.id;
+            setView('setup');
+        } else if (!user) {
+            prevUserIdRef.current = null;
+        }
+    }, [user?.id]);
 
     // Auto-avanzar desde 'setup' una vez que el perfil está cargado
     useEffect(() => {
@@ -254,10 +264,6 @@ const AuthenticatedApp = () => {
         };
         migrateData();
     }, [user]);
-
-    const handleStartSetup = () => {
-        setView('dashboard');
-    };
 
     const handleNavigate = (newView) => {
         // Bloquear acceso a vistas de entrenador para usuarios normales

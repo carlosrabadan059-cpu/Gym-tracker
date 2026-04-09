@@ -34,19 +34,22 @@ export function NotificationsProvider({ children }) {
 
         if (!user) return;
 
-        // Subscribe to real-time changes
-        const channel = supabase.channel('realtime:notifications')
+        // Subscribe to real-time changes (channel name único por usuario)
+        const channel = supabase.channel(`notifications:${user.id}`)
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
-                (payload) => {
+                () => {
                     fetchNotifications();
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'CHANNEL_ERROR') {
+                    console.error('Error en suscripción de notificaciones en tiempo real');
+                }
+            });
 
         return () => {
-            channel.unsubscribe();
             supabase.removeChannel(channel);
         };
     }, [user]);
