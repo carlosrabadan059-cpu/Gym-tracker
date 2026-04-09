@@ -572,17 +572,26 @@ const TrainingView = ({ workout, onFinish }) => {
         const fetchExistingLogs = async () => {
             if (!activeWorkout || !user?.id) return;
             try {
-                // Cargar logs de hoy
+                // Cargar logs de hoy o, en modo revisión, el más reciente de la semana
                 const allLogs = await loadWorkoutLogs(user.id);
                 const todayStr = new Date().toDateString();
                 const todaysLog = allLogs.find(l =>
                     l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
                 );
 
-                if (todaysLog && todaysLog.logs) {
-                    setExerciseLogs(todaysLog.logs);
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                weekStart.setHours(0, 0, 0, 0);
+                const recentLog = todaysLog || allLogs
+                    .filter(l => l.routineId === activeWorkout.id && new Date(l.date) >= weekStart)
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+                if (recentLog && recentLog.logs) {
+                    setExerciseLogs(recentLog.logs);
                     const completed = {};
-                    Object.keys(todaysLog.logs).forEach(exId => completed[exId] = true);
+                    activeWorkout.exercises?.forEach(ex => {
+                        if (recentLog.logs[ex.id]) completed[ex.id] = true;
+                    });
                     setCompletedExercises(completed);
                 }
 
