@@ -347,8 +347,10 @@ const AuthenticatedApp = () => {
                                 // Update local state for immediate UI feedback
                                 setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
 
-                                // Unconditionally save to Supabase so it marks the routine as completed in the cloud
+                                // Save to Supabase, then refresh completed list so state matches DB
                                 await saveWorkoutLog(user?.id, currentWorkout.id, logs || {});
+                                const refreshed = await loadCompletedRoutines(user?.id);
+                                setCompletedRoutines(refreshed);
                             }
                             setView('dashboard');
                         }}

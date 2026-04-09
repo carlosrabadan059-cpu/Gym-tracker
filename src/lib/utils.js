@@ -82,7 +82,8 @@ export async function saveWorkoutLog(userId, routineId, logs) {
                 .insert([{
                     user_id: userId,
                     routine_id: routineId,
-                    logs: logs
+                    logs: logs,
+                    date: new Date().toISOString()
                 }]);
 
             if (insertError) throw insertError;

@@ -550,6 +550,7 @@ const TrainingView = ({ workout, onFinish }) => {
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
     const [lastExerciseLogs, setLastExerciseLogs] = useState({});
+    const [logsLoading, setLogsLoading] = useState(true);
     const [workoutStartTime] = useState(() => Date.now());
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -571,6 +572,7 @@ const TrainingView = ({ workout, onFinish }) => {
     useEffect(() => {
         const fetchExistingLogs = async () => {
             if (!activeWorkout || !user?.id) return;
+            setLogsLoading(true);
             try {
                 // Cargar logs de hoy o, en modo revisión, el más reciente de la semana
                 const allLogs = await loadWorkoutLogs(user.id);
@@ -609,6 +611,8 @@ const TrainingView = ({ workout, onFinish }) => {
                 }
             } catch (error) {
                 console.error("Failed to fetch logs:", error);
+            } finally {
+                setLogsLoading(false);
             }
         };
         fetchExistingLogs();
@@ -672,7 +676,12 @@ const TrainingView = ({ workout, onFinish }) => {
             </Card>
 
             <div className="w-full space-y-4 flex-1 overflow-y-auto pb-20">
-                {activeWorkout?.exercises?.map((ex, idx) => (
+                {logsLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                        <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    </div>
+                ) : null}
+                {!logsLoading && activeWorkout?.exercises?.map((ex, idx) => (
                     <Card
                         key={ex.id || idx}
                         className="p-4 flex items-center gap-4 bg-surface active:bg-surface-highlight transition-colors cursor-pointer"
