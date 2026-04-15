@@ -61,6 +61,18 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 exercises: exercisesData.filter(ex => ex.routine_id === routine.id)
             }));
 
+            // Ordenar por número de día extraído del nombre (Día 1, Dia 2, Day 1, etc.)
+            const extractDayNumber = (name = '') => {
+                const match = name.match(/\b(\d+)\b/);
+                return match ? parseInt(match[1], 10) : Infinity;
+            };
+            mergedRoutines.sort((a, b) => {
+                const dayA = extractDayNumber(a.name);
+                const dayB = extractDayNumber(b.name);
+                if (dayA !== dayB) return dayA - dayB;
+                return a.name.localeCompare(b.name, 'es');
+            });
+
             setRoutines(mergedRoutines);
         } catch (error) {
             console.error('Error fetching data:', error);
