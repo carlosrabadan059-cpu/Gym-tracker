@@ -542,8 +542,18 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         const newName = editingRoutineNameValue.trim();
         if (!newName) { setEditingRoutineNameId(null); return; }
         try {
-            const { error } = await supabase.from('routines').update({ name: newName }).eq('id', routineId);
+            console.log('[rename] routineId:', routineId, '→', newName);
+            const { data, error, count, status } = await supabase
+                .from('routines')
+                .update({ name: newName })
+                .eq('id', routineId)
+                .select();
+            console.log('[rename] response:', { data, error, count, status });
             if (error) throw error;
+            if (!data || data.length === 0) {
+                alert(`El rename no afectó ninguna fila. ID: ${routineId}`);
+                return;
+            }
             setAssignedRoutines(prev => prev.map(a =>
                 a.routine_id === routineId
                     ? { ...a, routine: { ...a.routine, name: newName } }
@@ -551,7 +561,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
             ));
         } catch (err) {
             console.error('Error renaming routine:', err);
-            alert('Error al renombrar. Verifica permisos en Supabase.');
+            alert(`Error al renombrar: ${err.message}`);
         } finally {
             setEditingRoutineNameId(null);
         }
