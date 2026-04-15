@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2, Calendar, Clock, Edit2, Check, X, Search, Minus, Plus, Timer } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2, Calendar, Clock, Edit2, Check, X, Search, Minus, Plus, Timer, Pencil } from 'lucide-react';
 import { routines as staticRoutines } from '../../data/routines';
 
 // ─── Stepper inline ─────────────────────────────────────────────────────────
@@ -408,6 +408,10 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
     const [editingExercise, setEditingExercise] = useState(null); // { id, assignmentId, series, reps }
     const [savingEdit, setSavingEdit] = useState(false);
 
+    // Rename routine inline
+    const [editingRoutineNameId, setEditingRoutineNameId] = useState(null);
+    const [editingRoutineNameValue, setEditingRoutineNameValue] = useState('');
+
     // Add exercise panel
     const [addingToAssignment, setAddingToAssignment] = useState(null);
 
@@ -531,6 +535,25 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
             console.error('Error unassigning routine:', error);
         } finally {
             setConfirmDeleteId(null);
+        }
+    };
+
+    const handleRenameRoutine = async (routineId) => {
+        const newName = editingRoutineNameValue.trim();
+        if (!newName) { setEditingRoutineNameId(null); return; }
+        try {
+            const { error } = await supabase.from('routines').update({ name: newName }).eq('id', routineId);
+            if (error) throw error;
+            setAssignedRoutines(prev => prev.map(a =>
+                a.routine_id === routineId
+                    ? { ...a, routine: { ...a.routine, name: newName } }
+                    : a
+            ));
+        } catch (err) {
+            console.error('Error renaming routine:', err);
+            alert('Error al renombrar. Verifica permisos en Supabase.');
+        } finally {
+            setEditingRoutineNameId(null);
         }
     };
 
@@ -690,45 +713,79 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                             className={`bg-surface p-4 rounded-2xl border transition-all cursor-pointer border-l-4 ${routine.border_color || 'border-surface-highlight'} ${isExpanded ? 'border-primary shadow-lg' : 'hover:border-gray-500'}`}
                                             onClick={() => toggleRoutine(assignment.id)}
                                         >
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h4 className={`font-bold ${routine.text_color || 'text-text-primary'}`}>
-                                                        {routine.name}
-                                                    </h4>
-                                                    <p className="text-xs text-text-secondary mt-1">
-                                                        Asignado el {new Date(assignment.assigned_at || assignment.created_at || Date.now()).toLocaleDateString()}
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {confirmDeleteId === assignment.id ? (
-                                                        <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                                            <button
-                                                                onClick={() => handleDeleteRoutine(assignment.id)}
-                                                                className="text-xs font-bold px-2 py-1 rounded-lg bg-orange-500 text-white"
-                                                            >
-                                                                Desasignar
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setConfirmDeleteId(null)}
-                                                                className="text-xs px-2 py-1 rounded-lg bg-surface-highlight text-text-secondary"
-                                                            >
-                                                                Cancelar
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(assignment.id); }}
-                                                            className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    )}
-                                                    <ChevronRight
-                                                        size={20}
-                                                        className={`text-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
+                                            {editingRoutineNameId === assignment.id ? (
+                                                <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                                    <input
+                                                        autoFocus
+                                                        type="text"
+                                                        value={editingRoutineNameValue}
+                                                        onChange={e => setEditingRoutineNameValue(e.target.value)}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter') handleRenameRoutine(routine.id);
+                                                            if (e.key === 'Escape') setEditingRoutineNameId(null);
+                                                        }}
+                                                        className="flex-1 bg-background border border-primary rounded-lg px-3 py-2 text-sm font-bold text-text-primary focus:outline-none"
                                                     />
+                                                    <button
+                                                        onClick={() => handleRenameRoutine(routine.id)}
+                                                        className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0"
+                                                    >
+                                                        <Check size={14} className="text-black" strokeWidth={3} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingRoutineNameId(null)}
+                                                        className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center flex-shrink-0"
+                                                    >
+                                                        <X size={14} className="text-text-secondary" />
+                                                    </button>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div className="flex justify-between items-center">
+                                                    <div className="flex-1 min-w-0 mr-2">
+                                                        <h4 className={`font-bold ${routine.text_color || 'text-text-primary'}`}>
+                                                            {routine.name}
+                                                        </h4>
+                                                        <p className="text-xs text-text-secondary mt-1">
+                                                            Asignado el {new Date(assignment.assigned_at || assignment.created_at || Date.now()).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={() => { setEditingRoutineNameId(assignment.id); setEditingRoutineNameValue(routine.name); }}
+                                                            className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                        >
+                                                            <Pencil size={15} />
+                                                        </button>
+                                                        {confirmDeleteId === assignment.id ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    onClick={() => handleDeleteRoutine(assignment.id)}
+                                                                    className="text-xs font-bold px-2 py-1 rounded-lg bg-orange-500 text-white"
+                                                                >
+                                                                    Desasignar
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => setConfirmDeleteId(null)}
+                                                                    className="text-xs px-2 py-1 rounded-lg bg-surface-highlight text-text-secondary"
+                                                                >
+                                                                    Cancelar
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(assignment.id); }}
+                                                                className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                        <ChevronRight
+                                                            size={20}
+                                                            className={`text-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {isExpanded && (
                                                 <div className="mt-4 space-y-2 pt-4 border-t border-surface-highlight">
