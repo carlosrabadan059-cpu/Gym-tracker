@@ -110,8 +110,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
             try {
                 const { data: routinesData, error } = await supabase
                     .from('routines')
-                    .select('*')
-                    .order('id');
+                    .select('*');
                 if (error) throw error;
 
                 const ids = (routinesData || []).map(r => r.id);
@@ -127,7 +126,22 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                     if (map[ex.routine_id]) map[ex.routine_id].exercises.push(ex);
                 });
 
-                setRoutines(Object.values(map));
+                // Fallback sort para rutinas legacy sin sort_order
+                const extractDayNumber = (name = '') => {
+                    const match = name.match(/\b(\d+)\b/);
+                    return match ? parseInt(match[1], 10) : null;
+                };
+                const sorted = Object.values(map).sort((a, b) => {
+                    const orderA = a.sort_order ?? extractDayNumber(a.name);
+                    const orderB = b.sort_order ?? extractDayNumber(b.name);
+                    if (orderA !== null && orderB === null) return -1;
+                    if (orderA === null && orderB !== null) return 1;
+                    if (orderA !== null && orderB !== null && orderA !== orderB) return orderA - orderB;
+                    const nameComp = a.name.localeCompare(b.name, 'es');
+                    if (nameComp !== 0) return nameComp;
+                    return String(a.id).localeCompare(String(b.id));
+                });
+                setRoutines(sorted);
             } catch (err) {
                 console.error('Error fetching routines:', err);
             } finally {

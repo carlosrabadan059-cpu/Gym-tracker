@@ -40,13 +40,18 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 targetRoutineIds = ['day1', 'day2', 'day3', 'day4'];
             }
 
+            // Nota: el sort_order se aplica en cliente (ver más abajo).
+            // No se usa .order('sort_order') aquí para evitar error 42703
+            // si la migración aún no se ha ejecutado en Supabase.
             const { data: routinesData, error: routinesError } = await supabase
                 .from('routines')
                 .select('*')
-                .in('id', targetRoutineIds)
-                .order('id');
+                .in('id', targetRoutineIds);
 
-            if (routinesError) throw routinesError;
+            if (routinesError) {
+                console.error('Error fetching routines:', routinesError);
+                return;
+            }
 
             const { data: exercisesData, error: exercisesError } = await supabase
                 .from('exercises')
@@ -61,16 +66,31 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 exercises: exercisesData.filter(ex => ex.routine_id === routine.id)
             }));
 
-            // Ordenar por número de día extraído del nombre (Día 1, Dia 2, Day 1, etc.)
+            // Ordenar: primero por sort_order (columna de BD), luego por número
+            // extraído del nombre como fallback para rutinas legacy sin sort_order.
+            // Tiebreaker final por id para evitar NaN cuando Infinity - Infinity
+            // (dos rutinas sin número en el nombre) rompe silenciosamente el sort.
             const extractDayNumber = (name = '') => {
                 const match = name.match(/\b(\d+)\b/);
-                return match ? parseInt(match[1], 10) : Infinity;
+                return match ? parseInt(match[1], 10) : null;
             };
             mergedRoutines.sort((a, b) => {
-                const dayA = extractDayNumber(a.name);
-                const dayB = extractDayNumber(b.name);
-                if (dayA !== dayB) return dayA - dayB;
-                return a.name.localeCompare(b.name, 'es');
+                const orderA = a.sort_order ?? extractDayNumber(a.name);
+                const orderB = b.sort_order ?? extractDayNumber(b.name);
+
+                // Nulls al final
+                if (orderA !== null && orderB === null) return -1;
+                if (orderA === null && orderB !== null) return 1;
+                if (orderA !== null && orderB !== null && orderA !== orderB) {
+                    return orderA - orderB;
+                }
+
+                // Mismo número o ambos null → desempate por nombre
+                const nameComp = a.name.localeCompare(b.name, 'es');
+                if (nameComp !== 0) return nameComp;
+
+                // Último recurso: id como desempate estable
+                return String(a.id).localeCompare(String(b.id));
             });
 
             setRoutines(mergedRoutines);
