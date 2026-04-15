@@ -75,8 +75,8 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 return match ? parseInt(match[1], 10) : null;
             };
             mergedRoutines.sort((a, b) => {
-                const orderA = a.sort_order ?? extractDayNumber(a.name);
-                const orderB = b.sort_order ?? extractDayNumber(b.name);
+                const orderA = extractDayNumber(a.name);
+                const orderB = extractDayNumber(b.name);
 
                 // Nulls al final
                 if (orderA !== null && orderB === null) return -1;
