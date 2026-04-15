@@ -129,8 +129,8 @@ const LoginView = () => {
             <div className="mb-8 p-4 bg-primary/10 rounded-full">
                 <Dumbbell className="h-12 w-12 text-primary" />
             </div>
-            <h1 className="text-3xl font-black text-white mb-2">Gym Tracker</h1>
-            <p className="text-gray-400 mb-8">Entrena inteligente, vive mejor.</p>
+            <h1 className="text-3xl font-black text-text-primary mb-2">Gym Tracker</h1>
+            <p className="text-text-secondary mb-8">Entrena inteligente, vive mejor.</p>
 
             <form onSubmit={handleAuth} className="w-full max-w-sm space-y-4">
                 <input
@@ -138,7 +138,7 @@ const LoginView = () => {
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
+                    className="w-full bg-surface border border-surface-highlight rounded-xl px-4 py-3 text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary transition-colors"
                 />
                 <div className="relative">
                     <input
@@ -146,12 +146,12 @@ const LoginView = () => {
                         placeholder="Contraseña"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 pr-12 text-text-primary placeholder:text-gray-500 focus:outline-none focus:border-primary transition-colors"
+                        className="w-full bg-surface border border-surface-highlight rounded-xl px-4 py-3 pr-12 text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary transition-colors"
                     />
                     <button
                         type="button"
                         onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
                         tabIndex={-1}
                     >
                         {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -172,7 +172,7 @@ const LoginView = () => {
 
             <button
                 onClick={() => setIsSignUp(!isSignUp)}
-                className="mt-6 text-sm text-gray-400 hover:text-white transition-colors"
+                className="mt-6 text-sm text-text-secondary hover:text-text-primary transition-colors"
             >
                 {isSignUp ? '¿Ya tienes cuenta? Inicia Sesión' : '¿No tienes cuenta? Regístrate'}
             </button>

@@ -11,11 +11,12 @@ export function ClientsListView({ onBack, onSelectClient }) {
             try {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('*')
-                    .eq('role', 'client');
+                    .select('*');
 
                 if (error) throw error;
-                setClients(data || []);
+
+                const TRAINER_ROLES = ['trainer', 'admin'];
+                setClients((data || []).filter(p => !TRAINER_ROLES.includes(p.role)));
             } catch (error) {
                 console.error('Error fetching clients:', error);
             } finally {

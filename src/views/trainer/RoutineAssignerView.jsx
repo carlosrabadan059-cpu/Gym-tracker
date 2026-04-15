@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -103,6 +103,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
     const [saving, setSaving] = useState(false);
     const [selectedRoutineId, setSelectedRoutineId] = useState(null);
     const [expandedRoutineId, setExpandedRoutineId] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     useEffect(() => {
         const fetchRoutines = async () => {
@@ -135,6 +136,20 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
         };
         fetchRoutines();
     }, []);
+
+    const handleDeleteRoutine = async (routineId) => {
+        try {
+            await supabase.from('exercises').delete().eq('routine_id', routineId);
+            await supabase.from('assigned_routines').delete().eq('routine_id', routineId);
+            await supabase.from('routines').delete().eq('id', routineId);
+            setRoutines(prev => prev.filter(r => r.id !== routineId));
+            if (selectedRoutineId === routineId) setSelectedRoutineId(null);
+        } catch (err) {
+            console.error('Error deleting routine:', err);
+        } finally {
+            setConfirmDeleteId(null);
+        }
+    };
 
     const handleAssign = async () => {
         if (!selectedRoutineId || !client) return;
@@ -211,6 +226,29 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                                         <p className="text-xs text-text-secondary">{routine.exercises.length} ejercicios</p>
                                     </div>
                                 </div>
+                                    {confirmDeleteId === routine.id ? (
+                                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => handleDeleteRoutine(routine.id)}
+                                            className="text-xs font-bold px-2 py-1 rounded-lg bg-red-500 text-white"
+                                        >
+                                            Eliminar
+                                        </button>
+                                        <button
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="text-xs px-2 py-1 rounded-lg bg-surface-highlight text-text-secondary"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(routine.id); }}
+                                        className="p-1.5 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors flex-shrink-0"
+                                    >
+                                        <Trash2 size={15} />
+                                    </button>
+                                )}
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setExpandedRoutineId(isExpanded ? null : routine.id); }}
                                     className="p-1 text-text-secondary hover:text-text-primary transition-colors flex-shrink-0"
@@ -272,6 +310,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
     const [selectedExercises, setSelectedExercises] = useState([]);
     const [collapsedGroups, setCollapsedGroups] = useState({});
     const [showSelected, setShowSelected] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -338,19 +377,23 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
         if (!canSave || !client) return;
         setSaving(true);
         try {
-            const routineId = `custom_${Date.now()}_${client.id.substring(0, 5)}`;
+            const routineId = `custom_${crypto.randomUUID()}`;
 
-            const { error: routineError } = await supabase.from('routines').insert([{
-                id: routineId,
-                name: routineName.trim(),
-                color: routineColor.value,
-                border_color: routineColor.border,
-                text_color: routineColor.text,
-            }]);
+            const { error: routineError } = await supabase
+                .from('routines')
+                .insert([{
+                    id: routineId,
+                    name: routineName.trim(),
+                    color: routineColor.value,
+                    border_color: routineColor.border,
+                    text_color: routineColor.text,
+                }]);
             if (routineError) throw routineError;
 
+            const baseId = Math.floor(Math.random() * 800_000) + 100_000;
             const { error: exError } = await supabase.from('exercises').insert(
                 selectedExercises.map((ex, i) => ({
+                    id: baseId + i,
                     routine_id: routineId,
                     name: ex.name,
                     series: String(ex.series),
@@ -384,7 +427,8 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
             onSuccess();
         } catch (err) {
             console.error('Error saving routine:', err);
-            alert('Error al guardar. Revisa los permisos RLS en Supabase.');
+            setSaveError(err.message || 'Error al guardar. Inténtalo de nuevo.');
+            setTimeout(() => setSaveError(null), 4000);
         } finally {
             setSaving(false);
         }
@@ -411,6 +455,12 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     </button>
                 )}
             </header>
+
+            {saveError && (
+                <div className="bg-red-500/10 border-b border-red-500/30 px-4 py-2 text-red-400 text-xs font-medium">
+                    {saveError}
+                </div>
+            )}
 
             {/* Mode tabs */}
             <div className="flex gap-1 p-3 border-b border-surface-highlight bg-background">
