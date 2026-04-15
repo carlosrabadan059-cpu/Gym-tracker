@@ -157,10 +157,12 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
         const newName = editingNameValue.trim();
         if (!newName) { setEditingNameId(null); return; }
         try {
-            await supabase.from('routines').update({ name: newName }).eq('id', routineId);
+            const { error } = await supabase.from('routines').update({ name: newName }).eq('id', routineId);
+            if (error) throw error;
             setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, name: newName } : r));
         } catch (err) {
             console.error('Error renaming routine:', err);
+            alert('Error al renombrar. Verifica permisos en Supabase.');
         } finally {
             setEditingNameId(null);
         }
