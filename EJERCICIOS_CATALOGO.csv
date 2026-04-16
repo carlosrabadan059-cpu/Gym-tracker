@@ -1,97 +1,97 @@
-ID;Nombre;Categoria;Imagen
-1;Press de banca plano (Mancuernas);Pecho;/exercises/futures_pecho_press_superior_mancuernas_alt_final.png
-2;Press de banca inclinado (Mancuernas);Pecho;/exercises/futures_pecho_press_inclinado_mancuernas_final.png
-3;Aperturas laterales (Mancuernas);Pecho;/exercises/futures-pecho-aperturas-laterales.png
-4;Press superior con mancuernas;Pecho;/exercises/futures-pecho-press-superior-mancuernas.png
-5;Aperturas en banco plano;Pecho;/exercises/futures-pecho-aperturas-banco-plano.png
-6;Press de banca plano (Barra);Pecho;/exercises/futures-pecho-press-banca-plano-barra.png
-7;Press de banca inclinado (Barra);Pecho;/exercises/futures-pecho-press-inclinado-barra.png
-8;Cruce de poleas (Superior);Pecho;/exercises/futures-pecho-cruce-superior.png
-9;Cruce de poleas (Inferior);Pecho;/exercises/futures-pecho-cruce-inferior.png
-10;Contractora (Machine Fly);Pecho;/exercises/futures-pecho-contractora.png
-11;Flexiones (Push ups);Pecho;/exercises/futures-pecho-flexiones.png
-12;Pull over con mancuerna;Pecho;/exercises/futures-pecho-pullover.png
-13;Fondos en paralelas (Dips);Pecho;/exercises/futures_pecho_fondos_paralelas_final.png
-14;Press declinado;Pecho;/exercises/futures_pecho_press_declinado_final.png
-15;Dominadas (Pull ups);Dorsal;/exercises/lat-pulldown.png
-16;Jalón al pecho (Neutral);Dorsal;/exercises/futures_dorsal_jalon_neutral_final.png
-17;Jalón al pecho (Ancho);Dorsal;/exercises/futures-dorsal-jalon-ancho.png
-18;Remo en polea baja (Gironde);Dorsal;/exercises/futures-dorsal-remo-polea-baja.png
-19;Jalón tras nuca);Dorsal;/exercises/futures-dorsal-jalon-tras-nuca.png
-20;Remo horizontal con mancuerna (Serrucho);Dorsal;/exercises/futures_dorsal_remo_mancuerna_horizontal_final.png
-21;Remo en máquina;Dorsal;/exercises/seated-cable-row.png
-22;Remo con barra;Dorsal;/exercises/futures-dorsal-remo-barra.png
-23;Remo vertical con mancuernas;Dorsal;/exercises/futures-dorsal-remo-vertical.png
-24;Remo con Mancuerna;Dorsal;/exercises/futures_dorsal_remo_mancuerna_horizontal_final.png
-25;Curl con barra Z;Bíceps;/exercises/futures-biceps-curl-barra-recta.png
-26;Curl con barra recta;Bíceps;/exercises/futures_biceps_curl_barra_recta_alt_final.png
-27;Curl martillo (Hammer);Bíceps;/exercises/futures-biceps-curl-martillo.png
-28;Curl concentrado;Bíceps;/exercises/futures-biceps-curl-concentrado.png
-29;Curl en banco Scott (Predicador);Bíceps;/exercises/futures-biceps-curl-predicador.png
-30;Curl con polea baja;Bíceps;/exercises/futures-biceps-curl-polea-baja.png
-31;Curl alterno con mancuernas (Sentado);Bíceps;/exercises/futures-biceps-curl-alterno-sentado.png
-32;Curl de bíceps en polea alta (Doble bíceps);Bíceps;/exercises/futures-biceps-curl-polea-alta.png
-33;Curl con polea (Reverse grip);Bíceps;/exercises/futures-biceps-curl-reverse.png
-34;Curl tumbado en polea gironda;Bíceps;/exercises/futures-biceps-curl-tumbado.png
-35;Curl Zottman;Bíceps;/exercises/futures-biceps-curl-zottman.png
-36;Curl de antebrazo (Supinación);Bíceps;/exercises/futures-biceps-antebrazo-supinacion.png
-37;Curl de antebrazo (Pronación);Bíceps;/exercises/futures-biceps-antebrazo-pronacion.png
-38;Giros de muñeca;Bíceps;/exercises/futures-biceps-giros-muneca.png
-39;Jalón de tríceps en polea (Cuerda);Tríceps;/exercises/futures-triceps-jalon-cuerda.png
-40;Extensiones de tríceps tras nuca (Polea);Tríceps;/exercises/futures-triceps-extension-tras-nuca.png
-41;Jalón de tríceps (Barra recta);Tríceps;/exercises/futures-triceps-jalon-barra.png
-42;Press francés con barra Z;Tríceps;/exercises/futures-triceps-press-frances.png
-43;Press francés con mancuernas;Tríceps;/exercises/futures_triceps_press_frances_sentado_final.png
-44;Extensiones de tríceps con mancuerna (Una mano);Tríceps;/exercises/futures-triceps-extension-una-mano.png
-45;Press de banca agarre cerrado;Tríceps;/exercises/futures-triceps-press-cerrado.png
-46;Patada de tríceps (Mancuerna);Tríceps;/exercises/futures-triceps-patada.png
-47;Press francés (Sentado);Tríceps;/exercises/ez-bar-skullcrusher.png
-48;Fondos en máquina;Tríceps;/exercises/futures-triceps-fondos-maquina.png
-49;Fondos entre bancos;Tríceps;/exercises/futures-triceps-fondos-bancos.png
-50;Press militar en máquina;Hombro;/exercises/futures_hombro_press_maquina_final.png
-51;Press militar con barra (Sentado);Hombro;/exercises/futures-hombro-press-militar-mancuernas.png
-52;Press militar con barra (De pie);Hombro;/exercises/futures-hombro-press-barra-de-pie.png
-53;Press Arnold;Hombro;/exercises/futures-hombro-press-arnold.png
-54;Elevaciones laterales (Mancuernas);Hombro;/exercises/futures_hombro_elevacion_lateral_mancuernas_final.png
-55;Elevaciones frontales (Mancuernas);Hombro;/exercises/futures_hombro_elevacion_frontal_mancuernas_final.png
-56;Vuelos (Pájaros) para deltoide posterior;Hombro;/exercises/futures-dorsal-face-pull.png
-57;Elevaciones frontales (Disco o Barra);Hombro;/exercises/futures-hombro-front-raise-weight.png
-58;Remo al mentón (Polea);Hombro;/exercises/upright-row.png
-59;Elevaciones frontales (Polea);Hombro;/exercises/futures_hombro_elevacion_frontal_polea_final.png
-60;Encogimientos de hombros (Shrugs) con barra;Hombro;/exercises/futures-hombro-shrugs-barra.png
-61;Elevación de hombros en máquina o polea baja;Hombro;/exercises/futures_hombro_encogimiento_maquina_final.png
-62;Encogimientos con mancuernas;Hombro;/exercises/futures-hombro-shrugs-mancuernas.png
-63;Sentadilla con barra;Pierna;/exercises/futures_pierna_sentadilla_barra_final.png
-64;Prensa de piernas (45°);Pierna;/exercises/futures-pierna-prensa-45.png
-65;Sentadilla Hack;Pierna;/exercises/futures-pierna-sentadilla-hack.png
-66;Extensiones de cuádriceps;Pierna;/exercises/futures-pierna-extension.png
-67;Sentadilla en multipower;Pierna;/exercises/futures-pierna-sentadilla-smith.png
-68;Curl femoral sentado;Pierna;/exercises/lying-leg-curl.png
-69;Femoral (Curl femoral tumbado);Pierna;/exercises/futures-pierna-femoral-tumbado.png
-70;Peso muerto rumano (Mancuernas);Pierna;/exercises/futures-pierna-peso-muerto-rumano.png
-71;Zancadas (Lunges);Pierna;/exercises/futures-pierna-zancadas.png
-72;Prensa vertical o Jaca;Pierna;/exercises/futures-pierna-prensa-vertical.png
-73;Extensiones de gemelos (Sentado);Pierna;/exercises/futures_pierna_gemelo_sentado_final.png
-74;Prensa de gemelos;Pierna;/exercises/futures-pierna-prensa-gemelos.png
-75;Gemelos de pie (Máquina);Pierna;/exercises/futures-pierna-gemelos-maquina.png
-76;Patada de glúteo (Máquina o Polea);Glúteo;/exercises/futures_gluteo_patada_polea_final.png
-77;Abducción de cadera (Máquina);Glúteo;/exercises/futures-gluteo-abduccion-maquina.png
-78;Abductor;Glúteo;/exercises/futures-gluteo-abductor.png
-79;Aductor;Glúteo;/exercises/futures_gluteo_aductor_final.png
-80;Patada lateral de glúteo;Glúteo;/exercises/futures-gluteo-patada-lateral.png
-81;Puentes de glúteo (Hip Thrust);Glúteo;/exercises/futures-gluteo-hip-thrust.png
-82;Step ups;Glúteo;/exercises/futures-gluteo-step-ups.png
-83;Crunch abdominal (Suelo);Abdomen;/exercises/futures-abdomen-crunch-suelo.png
-84;Crunch en banco declinado;Abdomen;/exercises/futures_abdomen_crunch_declinado_final.png
-85;Elevación de piernas suspendido;Abdomen;/exercises/futures_abdomen_elevacion_suspendido_final.png
-86;Crunch en máquina;Abdomen;/exercises/futures_abdomen_crunch_maquina_final.png
-87;Elevación de piernas en banco plano;Abdomen;/exercises/leg-raise.png
-88;Tijeras abdominales;Abdomen;/exercises/futures_abdomen_tijeras_final.png
-89;Crunch con pies en alto;Abdomen;/exercises/futures-abdomen-crunch-pies-alto.png
-90;Rueda abdominal;Abdomen;/exercises/futures-abdomen-wheel.png
-91;Lumbares (Hiperextensiones);Abdomen;/exercises/futures-abdomen-lumbares.png
-92;Giros rusos (Russian Twists);Abdomen;/exercises/futures-abdomen-russian-twists.png
-93;Crunch lateral (Oblicuos);Abdomen;/exercises/futures_abdomen_crunch_lateral_final.png
-94;Plancha abdominal (Plank);Abdomen;/exercises/futures-abdomen-plank.png
-95;Elevación de rodillas al pecho;Abdomen;/exercises/futures-abdomen-knee-raises.png
-96;Crunch con polea alta;Abdomen;/exercises/futures-abdomen-cable-crunch.png
+ID;Nombre;Categoria;Series Sugeridas;Musculos Secundarios;Imagen
+1;Press de banca plano (Mancuernas);Pecho;4;Tríceps, Hombro anterior;/exercises/futures_pecho_press_superior_mancuernas_alt_final.png
+2;Press de banca inclinado (Mancuernas);Pecho;3-4;Hombro anterior, Tríceps;/exercises/futures_pecho_press_inclinado_mancuernas_final.png
+3;Aperturas laterales (Mancuernas);Pecho;3;Hombro anterior;/exercises/futures-pecho-aperturas-laterales.png
+4;Press superior con mancuernas;Pecho;3-4;Hombro anterior, Tríceps;/exercises/futures-pecho-press-superior-mancuernas.png
+5;Aperturas en banco plano;Pecho;3;Hombro anterior;/exercises/futures-pecho-aperturas-banco-plano.png
+6;Press de banca plano (Barra);Pecho;4;Tríceps, Hombro anterior;/exercises/futures-pecho-press-banca-plano-barra.png
+7;Press de banca inclinado (Barra);Pecho;3-4;Hombro anterior, Tríceps;/exercises/futures-pecho-press-inclinado-barra.png
+8;Cruce de poleas (Superior);Pecho;3;Hombro anterior, Serrato;/exercises/futures-pecho-cruce-superior.png
+9;Cruce de poleas (Inferior);Pecho;3;Hombro anterior, Serrato;/exercises/futures-pecho-cruce-inferior.png
+10;Contractora (Machine Fly);Pecho;3;Serrato;/exercises/futures-pecho-contractora.png
+11;Flexiones (Push ups);Pecho;3;Tríceps, Núcleo;/exercises/futures-pecho-flexiones.png
+12;Pull over con mancuerna;Pecho;3;Dorsal, Serrato;/exercises/futures-pecho-pullover.png
+13;Fondos en paralelas (Dips);Pecho;3-4;Tríceps, Hombro anterior;/exercises/futures_pecho_fondos_paralelas_final.png
+14;Press declinado;Pecho;3-4;Tríceps;/exercises/futures_pecho_press_declinado_final.png
+15;Dominadas (Pull ups);Dorsal;3-4;Bíceps, Antebrazo;/exercises/lat-pulldown.png
+16;Jalón al pecho (Neutral);Dorsal;3-4;Bíceps, Braquial;/exercises/futures_dorsal_jalon_neutral_final.png
+17;Jalón al pecho (Ancho);Dorsal;4;Bíceps, Redondo mayor;/exercises/futures-dorsal-jalon-ancho.png
+18;Remo en polea baja (Gironde);Dorsal;4;Bíceps, Trapecio;/exercises/futures-dorsal-remo-polea-baja.png
+19;Jalón tras nuca);Dorsal;3;Bíceps, Trapecio superior;/exercises/futures-dorsal-jalon-tras-nuca.png
+20;Remo horizontal con mancuerna (Serrucho);Dorsal;3-4;Bíceps, Núcleo;/exercises/futures_dorsal_remo_mancuerna_horizontal_final.png
+21;Remo en máquina;Dorsal;3-4;Bíceps;/exercises/seated-cable-row.png
+22;Remo con barra;Dorsal;4;Lumbares, Bíceps;/exercises/futures-dorsal-remo-barra.png
+23;Remo vertical con mancuernas;Dorsal;3;Trapecio;/exercises/futures-dorsal-remo-vertical.png
+24;Remo con Mancuerna;Dorsal;3-4;Bíceps;/exercises/futures_dorsal_remo_mancuerna_horizontal_final.png
+25;Curl con barra Z;Bíceps;3-4;Antebrazo, Braquial;/exercises/futures-biceps-curl-barra-recta.png
+26;Curl con barra recta;Bíceps;3-4;Antebrazo;/exercises/futures_biceps_curl_barra_recta_alt_final.png
+27;Curl martillo (Hammer);Bíceps;3;Braquiorradial, Antebrazo;/exercises/futures-biceps-curl-martillo.png
+28;Curl concentrado;Bíceps;3;Braquial;/exercises/futures-biceps-curl-concentrado.png
+29;Curl en banco Scott (Predicador);Bíceps;3;Braquial;/exercises/futures-biceps-curl-predicador.png
+30;Curl con polea baja;Bíceps;3;Antebrazo;/exercises/futures-biceps-curl-polea-baja.png
+31;Curl alterno con mancuernas (Sentado);Bíceps;3;Antebrazo;/exercises/futures-biceps-curl-alterno-sentado.png
+32;Curl de bíceps en polea alta (Doble bíceps);Bíceps;3;Deltoide posterior;/exercises/futures-biceps-curl-polea-alta.png
+33;Curl con polea (Reverse grip);Bíceps;3;Braquiorradial;/exercises/futures-biceps-curl-reverse.png
+34;Curl tumbado en polea gironda;Bíceps;3;Redondo mayor;/exercises/futures-biceps-curl-tumbado.png
+35;Curl Zottman;Bíceps;3;Braquiorradial, Extensores de muñeca;/exercises/futures-biceps-curl-zottman.png
+36;Curl de antebrazo (Supinación);Bíceps;3;Flexores de muñeca;/exercises/futures-biceps-antebrazo-supinacion.png
+37;Curl de antebrazo (Pronación);Bíceps;3;Extensores de muñeca;/exercises/futures-biceps-antebrazo-pronacion.png
+38;Giros de muñeca;Bíceps;3;Antebrazo total;/exercises/futures-biceps-giros-muneca.png
+39;Jalón de tríceps en polea (Cuerda);Tríceps;3-4;Cabeza lateral tríceps;/exercises/futures-triceps-jalon-cuerda.png
+40;Extensiones de tríceps tras nuca (Polea);Tríceps;3;Cabeza larga tríceps;/exercises/futures-triceps-extension-tras-nuca.png
+41;Jalón de tríceps (Barra recta);Tríceps;3;Ancóneo;/exercises/futures-triceps-jalon-barra.png
+42;Press francés con barra Z;Tríceps;3-4;Codos, Antebrazo;/exercises/futures-triceps-press-frances.png
+43;Press francés con mancuernas;Tríceps;3;Cabeza larga tríceps;/exercises/futures_triceps_press_frances_sentado_final.png
+44;Extensiones de tríceps con mancuerna (Una mano);Tríceps;3;Ancóneo;/exercises/futures-triceps-extension-una-mano.png
+45;Press de banca agarre cerrado;Tríceps;4;Pecho, Hombro anterior;/exercises/futures-triceps-press-cerrado.png
+46;Patada de tríceps (Mancuerna);Tríceps;3;Deltoide posterior;/exercises/futures-triceps-patada.png
+47;Press francés (Sentado);Tríceps;3;Cabeza larga tríceps;/exercises/ez-bar-skullcrusher.png
+48;Fondos en máquina;Tríceps;3;Pecho inferior;/exercises/futures-triceps-fondos-maquina.png
+49;Fondos entre bancos;Tríceps;3;Hombro anterior;/exercises/futures-triceps-fondos-bancos.png
+50;Press militar en máquina;Hombro;4;Tríceps, Trapecio superior;/exercises/futures_hombro_press_maquina_final.png
+51;Press militar con barra (Sentado);Hombro;3-4;Tríceps;/exercises/futures-hombro-press-militar-mancuernas.png
+52;Press militar con barra (De pie);Hombro;4;Núcleo, Tríceps, Piernas;/exercises/futures-hombro-press-barra-de-pie.png
+53;Press Arnold;Hombro;3;Deltoide lateral, Tríceps;/exercises/futures-hombro-press-arnold.png
+54;Elevaciones laterales (Mancuernas);Hombro;3-4;Trapecio superior;/exercises/futures_hombro_elevacion_lateral_mancuernas_final.png
+55;Elevaciones frontales (Mancuernas);Hombro;3;Pecho superior;/exercises/futures_hombro_elevacion_frontal_mancuernas_final.png
+56;Vuelos (Pájaros) para deltoide posterior;Hombro;3;Trapecio medio, Romboides;/exercises/futures-dorsal-face-pull.png
+57;Elevaciones frontales (Disco o Barra);Hombro;3;Pecho superior;/exercises/futures-hombro-front-raise-weight.png
+58;Remo al mentón (Polea);Hombro;3;Trapecio, Bíceps;/exercises/upright-row.png
+59;Elevaciones frontales (Polea);Hombro;3;Serrato;/exercises/futures_hombro_elevacion_frontal_polea_final.png
+60;Encogimientos de hombros (Shrugs) con barra;Hombro;4;Trapecio superior, Antebrazos;/exercises/futures-hombro-shrugs-barra.png
+61;Elevación de hombros en máquina o polea baja;Hombro;3;Trapecio;/exercises/futures_hombro_encogimiento_maquina_final.png
+62;Encogimientos con mancuernas;Hombro;3-4;Trapecio superior;/exercises/futures-hombro-shrugs-mancuernas.png
+63;Sentadilla con barra;Pierna;4;Glúteos, Isquiotibiales, Lumbares;/exercises/futures_pierna_sentadilla_barra_final.png
+64;Prensa de piernas (45°);Pierna;4;Glúteos, Isquiotibiales;/exercises/futures-pierna-prensa-45.png
+65;Sentadilla Hack;Pierna;3-4;Cuádriceps énfasis;/exercises/futures-pierna-sentadilla-hack.png
+66;Extensiones de cuádriceps;Pierna;3;Sartorio;/exercises/futures-pierna-extension.png
+67;Sentadilla en multipower;Pierna;3;Glúteos;/exercises/futures-pierna-sentadilla-smith.png
+68;Curl femoral sentado;Pierna;3;Gastrocnemio;/exercises/lying-leg-curl.png
+69;Femoral (Curl femoral tumbado);Pierna;3;Gastrocnemio;/exercises/futures-pierna-femoral-tumbado.png
+70;Peso muerto rumano (Mancuernas);Pierna;4;Glúteos, Lumbares;/exercises/futures-pierna-peso-muerto-rumano.png
+71;Zancadas (Lunges);Pierna;3;Glúteos, Equilibrio;/exercises/futures-pierna-zancadas.png
+72;Prensa vertical o Jaca;Pierna;3-4;Cuádriceps, Glúteos;/exercises/futures-pierna-prensa-vertical.png
+73;Extensiones de gemelos (Sentado);Pierna;4;Sóleo;/exercises/futures_pierna_gemelo_sentado_final.png
+74;Prensa de gemelos;Pierna;3-4;Gastrocnemio;/exercises/futures-pierna-prensa-gemelos.png
+75;Gemelos de pie (Máquina);Pierna;4;Gastrocnemio;/exercises/futures-pierna-gemelos-maquina.png
+76;Patada de glúteo (Máquina o Polea);Glúteo;3;Isquiotibiales;/exercises/futures_gluteo_patada_polea_final.png
+77;Abducción de cadera (Máquina);Glúteo;3;Tensor de la fascia lata;/exercises/futures-gluteo-abduccion-maquina.png
+78;Abductor;Glúteo;3;Glúteo medio;/exercises/futures-gluteo-abductor.png
+79;Aductor;Glúteo;3;Grácil;/exercises/futures_gluteo_aductor_final.png
+80;Patada lateral de glúteo;Glúteo;3;Tensor de la fascia lata;/exercises/futures-gluteo-patada-lateral.png
+81;Puentes de glúteo (Hip Thrust);Glúteo;4;Isquiotibiales;/exercises/futures-gluteo-hip-thrust.png
+82;Step ups;Glúteo;3;Piernas total;/exercises/futures-gluteo-step-ups.png
+83;Crunch abdominal (Suelo);Abdomen;4;Oblicuos;/exercises/futures-abdomen-crunch-suelo.png
+84;Crunch en banco declinado;Abdomen;3-4;Flexores de cadera;/exercises/futures_abdomen_crunch_declinado_final.png
+85;Elevación de piernas suspendido;Abdomen;3;Flexores de cadera;/exercises/futures_abdomen_elevacion_suspendido_final.png
+86;Crunch en máquina;Abdomen;3-4;Serrato;/exercises/futures_abdomen_crunch_maquina_final.png
+87;Elevación de piernas en banco plano;Abdomen;3;Flexores de cadera;/exercises/leg-raise.png
+88;Tijeras abdominales;Abdomen;3;Transverso abdominal;/exercises/futures_abdomen_tijeras_final.png
+89;Crunch con pies en alto;Abdomen;3-4;Oblicuos;/exercises/futures-abdomen-crunch-pies-alto.png
+90;Rueda abdominal;Abdomen;3;Hombros, Tríceps, Lumbares;/exercises/futures-abdomen-wheel.png
+91;Lumbares (Hiperextensiones);Abdomen;4;Glúteos, Isquiotibiales;/exercises/futures-abdomen-lumbares.png
+92;Giros rusos (Russian Twists);Abdomen;3;Oblicuos, Transverso;/exercises/futures-abdomen-russian-twists.png
+93;Crunch lateral (Oblicuos);Abdomen;3;Serrato;/exercises/futures_abdomen_crunch_lateral_final.png
+94;Plancha abdominal (Plank);Abdomen;3 (tiempo);Hombros, Glúteos;/exercises/futures-abdomen-plank.png
+95;Elevación de rodillas al pecho;Abdomen;3;Flexores de cadera;/exercises/futures-abdomen-knee-raises.png
+96;Crunch con polea alta;Abdomen;3;Serrato anterior;/exercises/futures-abdomen-cable-crunch.png
