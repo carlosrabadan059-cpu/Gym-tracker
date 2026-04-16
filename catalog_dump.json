@@ -290,14 +290,14 @@
     "id": 42,
     "name": "Press francés con barra Z",
     "category": "Tríceps",
-    "image_url": "/categories/triceps.png",
+    "image_url": "/exercises/futures-triceps-press-frances.png",
     "description": null
   },
   {
     "id": 43,
     "name": "Press francés con mancuernas",
     "category": "Tríceps",
-    "image_url": "/categories/triceps.png",
+    "image_url": "/exercises/futures_triceps_press_frances_sentado_final.png",
     "description": null
   },
   {
@@ -325,7 +325,7 @@
     "id": 47,
     "name": "Press francés (Sentado)",
     "category": "Tríceps",
-    "image_url": "/categories/triceps.png",
+    "image_url": "/exercises/ez-bar-skullcrusher.png",
     "description": null
   },
   {
