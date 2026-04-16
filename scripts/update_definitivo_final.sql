@@ -117,7 +117,7 @@ UPDATE exercise_catalog SET image_url = '/exercises/futures-gluteo-step-ups.png'
 -- ============================================================
 -- ABDOMEN (id 83-96)
 -- ============================================================
-UPDATE exercise_catalog SET image_url = '/exercises/futures-abdomen-crunch-suelo.png'                      WHERE id = 83; -- Crunch abdominal (Suelo)
+UPDATE exercise_catalog SET image_url = '/exercises/futures-abdomen-crunch-espaldera.png'                      WHERE id = 83; -- Crunch abdominal en espaldera
 UPDATE exercise_catalog SET image_url = '/exercises/futures_abdomen_crunch_declinado_final.png'            WHERE id = 84; -- Crunch en banco declinado
 UPDATE exercise_catalog SET image_url = '/exercises/futures_abdomen_elevacion_suspendido_final.png'        WHERE id = 85; -- Elevación de piernas suspendido
 UPDATE exercise_catalog SET image_url = '/exercises/futures_abdomen_crunch_maquina_final.png'              WHERE id = 86; -- Crunch en máquina
