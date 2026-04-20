@@ -386,6 +386,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 const { data, error } = await supabase
                     .from('exercise_catalog')
                     .select('*')
+                    .order('id', { ascending: true })
                     .order('name');
                 if (error) throw error;
                 setCatalog((data || []).map(ex => ({
