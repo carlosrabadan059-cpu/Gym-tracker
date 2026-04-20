@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Maestro de Ejercicios - Futures Gym</title>
+    <style>
+        :root {
+            --primary: #c0ff00; /* Lime green neon */
+            --secondary: #9d00ff; /* Purple neon */
+            --bg: #050505;
+            --card-bg: #111;
+            --text: #eee;
+            --border: #333;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        th {
+            background: #1a1a1a;
+            color: var(--primary);
+            text-align: left;
+            padding: 15px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background: #181818;
+        }
+
+        .exercise-img {
+            width: 120px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            transition: transform 0.2s;
+            cursor: zoom-in;
+        }
+
+        .exercise-img:hover {
+            transform: scale(2.5);
+            z-index: 100;
+            position: relative;
+            border-color: var(--primary);
+        }
+
+        .category-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            background: rgba(157, 0, 255, 0.2);
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+        }
+
+        .id-cell {
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .series-cell {
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .secondary-muscles {
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .actions {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            filter: brightness(1.1);
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Catálogo de Ejercicios - GymTracker</h1>
+    <div class="stats">
+        <span>96 Ejercicios Registrados</span> • 
+        <span>Sincronizado con Supabase</span> • 
+        <span>Revisión de Medios</span>
+    </div>
+</header>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Imagen</th>
+            <th>Nombre del Ejercicio</th>
+            <th>Categoría</th>
+            <th>Sugerencia</th>
+            <th>Músculos Secundarios</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- PECHO -->
+        <tr>
+            <td class="id-cell">01</td>
+            <td><img src="public/exercises/v2_pecho_1.png" alt="ID 1" class="exercise-img"></td>
+            <td>Press de banca plano con barra</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Tríceps, Hombro anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">02</td>
+            <td><img src="public/exercises/v2_pecho_2.png" alt="ID 2" class="exercise-img"></td>
+            <td>Press de banca inclinado con barra</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Hombro anterior, Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">03</td>
+            <td><img src="public/exercises/v2_pecho_3.png" alt="ID 3" class="exercise-img"></td>
+            <td>Press de banca declinado con barra</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Hombro anterior, Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">04</td>
+            <td><img src="public/exercises/v2_pecho_4.png" alt="ID 4" class="exercise-img"></td>
+            <td>Press de banca plano con mancuernas</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Hombro anterior, Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">05</td>
+            <td><img src="public/exercises/v2_pecho_5.png" alt="ID 5" class="exercise-img"></td>
+            <td>Press de banca declinado con mancuernas</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Hombro anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">06</td>
+            <td><img src="public/exercises/v2_pecho_6.png" alt="ID 6" class="exercise-img"></td>
+            <td>Aperturas planas con mancuernas</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Deltoide anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">07</td>
+            <td><img src="public/exercises/v2_pecho_7.png" alt="ID 7" class="exercise-img"></td>
+            <td>Aperturas inclinadas con mancuernas</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Hombro anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">08</td>
+            <td><img src="public/exercises/v2_pecho_8.png" alt="ID 8" class="exercise-img"></td>
+            <td>Press de pecho en máquina sentado</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Hombro anterior, Serrato</td>
+        </tr>
+        <tr>
+            <td class="id-cell">09</td>
+            <td><img src="public/exercises/v2_pecho_9.png" alt="ID 9" class="exercise-img"></td>
+            <td>Press de banca</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">10</td>
+            <td><img src="public/exercises/v2_pecho_10.png" alt="ID 10" class="exercise-img"></td>
+            <td>Pull-over con mancuerna Inclinado</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Serrato, Dorsal</td>
+        </tr>
+        <tr>
+            <td class="id-cell">11</td>
+            <td><img src="public/exercises/v2_pecho_11.png" alt="ID 11" class="exercise-img"></td>
+            <td>Press banca declinado</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">12</td>
+            <td><img src="public/exercises/v2_pecho_12.png" alt="ID 12" class="exercise-img"></td>
+            <td>Flexiones de brazos</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Core, Hombros</td>
+        </tr>
+        <tr>
+            <td class="id-cell">13</td>
+            <td><img src="public/exercises/v2_pecho_13.png" alt="ID 13" class="exercise-img"></td>
+            <td>Aperturas de Pecho maquina</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Hombro anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">14</td>
+            <td><img src="public/exercises/v2_pecho_14.png" alt="ID 14" class="exercise-img"></td>
+            <td>Fondos de pecho</td>
+            <td><span class="category-badge">Pecho</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Tríceps</td>
+        </tr>
+
+        <!-- DORSAL -->
+        <tr>
+            <td class="id-cell">15</td>
+            <td><img src="public/exercises/v2_dorsal_15.png" alt="ID 15" class="exercise-img"></td>
+            <td>Dominadas asistidas</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Bíceps, Antebrazo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">16</td>
+            <td><img src="public/exercises/v2_dorsal_16.png" alt="ID 16" class="exercise-img"></td>
+            <td>Jalon al pecho agarre estrecho</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Bíceps, Braquial</td>
+        </tr>
+        <tr>
+            <td class="id-cell">17</td>
+            <td><img src="public/exercises/v2_dorsal_17.png" alt="ID 17" class="exercise-img"></td>
+            <td>Jalon al pecho agarre ancho</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Bíceps, Redondo mayor</td>
+        </tr>
+        <tr>
+            <td class="id-cell">18</td>
+            <td><img src="public/exercises/v2_dorsal_18.png" alt="ID 18" class="exercise-img"></td>
+            <td>Jalon al pecho con brazos rectos</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Tríceps (cabeza larga)</td>
+        </tr>
+        <tr>
+            <td class="id-cell">19</td>
+            <td><img src="public/exercises/v2_dorsal_19.png" alt="ID 19" class="exercise-img"></td>
+            <td>Jalon al pecho agarre neutro</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Bíceps, Trapecio medio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">20</td>
+            <td><img src="public/exercises/v2_dorsal_20.png" alt="ID 20" class="exercise-img"></td>
+            <td>Remo en polea baja (Gironda)</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Bíceps, Infraespinoso</td>
+        </tr>
+        <tr>
+            <td class="id-cell">21</td>
+            <td><img src="public/exercises/v2_dorsal_21.png" alt="ID 21" class="exercise-img"></td>
+            <td>Remo en maquina</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Bíceps, Trapecio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">22</td>
+            <td><img src="public/exercises/v2_dorsal_22.png" alt="ID 22" class="exercise-img"></td>
+            <td>Remo con mancuerna</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3 Series por brazo</td>
+            <td class="secondary-muscles">Bíceps, Núcleo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">23</td>
+            <td><img src="public/exercises/v2_dorsal_23.png" alt="ID 23" class="exercise-img"></td>
+            <td>Remo con barra</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Bíceps, Lumbares</td>
+        </tr>
+        <tr>
+            <td class="id-cell">24</td>
+            <td><img src="public/exercises/v2_dorsal_24.png" alt="ID 24" class="exercise-img"></td>
+            <td>Remo en banco con mancuernas una mano</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Bíceps, Trapecio medio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">99</td>
+            <td><img src="public/exercises/v2_dorsal_99.png" alt="ID 99" class="exercise-img"></td>
+            <td>Pullover tumbado en banco con mancuerna</td>
+            <td><span class="category-badge">Dorsal</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Serrato, Tríceps (cabeza larga)</td>
+        </tr>
+        <tr>
+            <td class="id-cell">25</td>
+            <td><img src="public/exercises/v2_biceps_25.png" alt="ID 25" class="exercise-img"></td>
+            <td>Curl con barra</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Braquial anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">26</td>
+            <td><img src="public/exercises/v2_biceps_26.png" alt="ID 26" class="exercise-img"></td>
+            <td>Curl predicador (Banco Scott)</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Braquial anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">27</td>
+            <td><img src="public/exercises/v2_biceps_27.png" alt="ID 27" class="exercise-img"></td>
+            <td>Curl con mancuernas alterno</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Braquiorradial</td>
+        </tr>
+        <tr>
+            <td class="id-cell">28</td>
+            <td><img src="public/exercises/v2_biceps_28.png" alt="ID 28" class="exercise-img"></td>
+            <td>Curl con mancuernas sentado</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Bíceps cabeza corta</td>
+        </tr>
+        <tr>
+            <td class="id-cell">29</td>
+            <td><img src="public/exercises/v2_biceps_29.png" alt="ID 29" class="exercise-img"></td>
+            <td>Curl con mancuernas banco inclinado</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Bíceps cabeza larga</td>
+        </tr>
+        <tr>
+            <td class="id-cell">30</td>
+            <td><img src="public/exercises/v2_biceps_30.png" alt="ID 30" class="exercise-img"></td>
+            <td>Curl en polea baja</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Flexores de muñeca</td>
+        </tr>
+        <tr>
+            <td class="id-cell">31</td>
+            <td><img src="public/exercises/v2_biceps_31.png" alt="ID 31" class="exercise-img"></td>
+            <td>Curl de bíceps martillo con polea baja</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Braquial anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">32</td>
+            <td><img src="public/exercises/v2_biceps_32.png" alt="ID 32" class="exercise-img"></td>
+            <td>Curl concentrado</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Bíceps cabeza corta</td>
+        </tr>
+        <tr>
+            <td class="id-cell">33</td>
+            <td><img src="public/exercises/v2_biceps_33.png" alt="ID 33" class="exercise-img"></td>
+            <td>Dominadas asistidas</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Dorsal ancho, Redondo mayor</td>
+        </tr>
+        <tr>
+            <td class="id-cell">34</td>
+            <td><img src="public/exercises/v2_biceps_34.png" alt="ID 34" class="exercise-img"></td>
+            <td>Curl tumbado barra z en polea gironda</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Braquial</td>
+        </tr>
+        <tr>
+            <td class="id-cell">35</td>
+            <td><img src="public/exercises/v2_biceps_35.png" alt="ID 35" class="exercise-img"></td>
+            <td>Curl de antebrazo supinación</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Flexores de muñeca</td>
+        </tr>
+        <tr>
+            <td class="id-cell">36</td>
+            <td><img src="public/exercises/v2_biceps_36.png" alt="ID 36" class="exercise-img"></td>
+            <td>Curl de antebrazo pronación</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Extensores de muñeca</td>
+        </tr>
+        <tr>
+            <td class="id-cell">37</td>
+            <td><img src="public/exercises/v2_biceps_37.png" alt="ID 37" class="exercise-img"></td>
+            <td>Enrollamiento de muñeca</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Flexores y extensores muñeca</td>
+        </tr>
+        <tr>
+            <td class="id-cell">38</td>
+            <td><img src="public/exercises/v2_triceps_38.png" alt="ID 38" class="exercise-img"></td>
+            <td>Curl invertido con barra</td>
+            <td><span class="category-badge">Bíceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Braquiorradial</td>
+        </tr>
+
+        <!-- TRICEPS -->
+        <tr>
+            <td class="id-cell">39</td>
+            <td><img src="public/exercises/v2_triceps_39.png" alt="ID 39" class="exercise-img"></td>
+            <td>Curl triceps polea alta</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Cabeza lateral</td>
+        </tr>
+        <tr>
+            <td class="id-cell">40</td>
+            <td><img src="public/exercises/v2_triceps_40.png" alt="ID 40" class="exercise-img"></td>
+            <td>Extensión tras nuca con polea alta</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Cabeza larga</td>
+        </tr>
+        <tr>
+            <td class="id-cell">41</td>
+            <td><img src="public/exercises/v2_triceps_41.png" alt="ID 41" class="exercise-img"></td>
+            <td>Extensión en polea alta</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Ancóneo, Cabeza medial</td>
+        </tr>
+        <tr>
+            <td class="id-cell">42</td>
+            <td><img src="public/exercises/v2_triceps_42.png" alt="ID 42" class="exercise-img"></td>
+            <td>Press francés con barra</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Antebrazo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">43</td>
+            <td><img src="public/exercises/v2_triceps_43.png" alt="ID 43" class="exercise-img"></td>
+            <td>Press francés con barra z</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Muñecas, Antebrazo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">44</td>
+            <td><img src="public/exercises/v2_triceps_44.png" alt="ID 44" class="exercise-img"></td>
+            <td>Extensión de tríceps a una mano</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Estabilizadores del hombro</td>
+        </tr>
+        <tr>
+            <td class="id-cell">45</td>
+            <td><img src="public/exercises/v2_triceps_45.png" alt="ID 45" class="exercise-img"></td>
+            <td>Press de banca agarre cerrado una mano</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Pecho, Hombro anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">46</td>
+            <td><img src="public/exercises/v2_triceps_46.png" alt="ID 46" class="exercise-img"></td>
+            <td>Patada de tríceps con mancuerna</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Cabeza lateral</td>
+        </tr>
+        <tr>
+            <td class="id-cell">47</td>
+            <td><img src="public/exercises/v2_triceps_47.png" alt="ID 47" class="exercise-img"></td>
+            <td>Press francés de pie</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Core, Cabeza larga</td>
+        </tr>
+        <tr>
+            <td class="id-cell">48</td>
+            <td><img src="public/exercises/v2_triceps_48.png" alt="ID 48" class="exercise-img"></td>
+            <td>Fondos en paralelas / máquina</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Pecho inferior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">49</td>
+            <td><img src="public/exercises/v2_triceps_49.png" alt="ID 49" class="exercise-img"></td>
+            <td>Fondos entre bancos</td>
+            <td><span class="category-badge">Tríceps</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide anterior</td>
+        </tr>
+
+        <!-- HOMBRO -->
+        <tr>
+            <td class="id-cell">50</td>
+            <td><img src="public/exercises/v2_hombro_50.png" alt="ID 50" class="exercise-img"></td>
+            <td>Press militar en máquina</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">51</td>
+            <td><img src="public/exercises/v2_hombro_51.png" alt="ID 51" class="exercise-img"></td>
+            <td>Press militar con barra sentado</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Deltoide anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">52</td>
+            <td><img src="public/exercises/v2_hombro_52.png" alt="ID 52" class="exercise-img"></td>
+            <td>Press de hombro con barra</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Core, Tríceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">53</td>
+            <td><img src="public/exercises/v2_hombro_53.png" alt="ID 53" class="exercise-img"></td>
+            <td>Press con mancuernas sentado</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Deltoide medio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">54</td>
+            <td><img src="public/exercises/v2_hombro_54.png" alt="ID 54" class="exercise-img"></td>
+            <td>Elevaciones laterales con mancuernas</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Supraespinoso</td>
+        </tr>
+        <tr>
+            <td class="id-cell">55</td>
+            <td><img src="public/exercises/v2_hombro_55.png" alt="ID 55" class="exercise-img"></td>
+            <td>Elevación lateral en polea baja</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide lateral</td>
+        </tr>
+        <tr>
+            <td class="id-cell">56</td>
+            <td><img src="public/exercises/v2_hombro_56.png" alt="ID 56" class="exercise-img"></td>
+            <td>Elevación frontal con mancuernas</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">57</td>
+            <td><img src="public/exercises/v2_hombro_57.png" alt="ID 57" class="exercise-img"></td>
+            <td>Pajaros sentado con mancuerna</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide posterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">58</td>
+            <td><img src="public/exercises/v2_hombro_58.png" alt="ID 58" class="exercise-img"></td>
+            <td>Elevación lateral polea baja</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide medio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">59</td>
+            <td><img src="public/exercises/v2_hombro_59.png" alt="ID 59" class="exercise-img"></td>
+            <td>Elevación frontal en polea</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide anterior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">60</td>
+            <td><img src="public/exercises/v2_hombro_60.png" alt="ID 60" class="exercise-img"></td>
+            <td>Remo menton con barra</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Trapecio, Bíceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">61</td>
+            <td><img src="public/exercises/v2_hombro_61.png" alt="ID 61" class="exercise-img"></td>
+            <td>Elevación de hombros en polea baja</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Trapecio superior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">62</td>
+            <td><img src="public/exercises/v2_hombro_62.png" alt="ID 62" class="exercise-img"></td>
+            <td>Encogimiento de hombros con mancuernas</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Trapecio medio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">98</td>
+            <td><img src="public/exercises/v2_hombro_98.png" alt="ID 98" class="exercise-img"></td>
+            <td>Hombro posterior polea alta a una mano</td>
+            <td><span class="category-badge">Hombro</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Deltoide posterior, Trapecio</td>
+        </tr>
+
+        <!-- PIERNA -->
+        <tr>
+            <td class="id-cell">63</td>
+            <td><img src="public/exercises/v2_pierna_63.png" alt="ID 63" class="exercise-img"></td>
+            <td>Extensión de cuádriceps</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Recto femoral</td>
+        </tr>
+        <tr>
+            <td class="id-cell">64</td>
+            <td><img src="public/exercises/v2_pierna_64.png" alt="ID 64" class="exercise-img"></td>
+            <td>Prensa de piernas inclinada</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Glúteos, Isquiotibiales</td>
+        </tr>
+        <tr>
+            <td class="id-cell">65</td>
+            <td><img src="public/exercises/v2_pierna_65.png" alt="ID 65" class="exercise-img"></td>
+            <td>Sentadilla en máquina (Hack)</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Glúteo mayor, Aductores</td>
+        </tr>
+        <tr>
+            <td class="id-cell">66</td>
+            <td><img src="public/exercises/v2_pierna_66.png" alt="ID 66" class="exercise-img"></td>
+            <td>Sentadilla con barra</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Core, Estabilizadores</td>
+        </tr>
+        <tr>
+            <td class="id-cell">67</td>
+            <td><img src="public/exercises/v2_pierna_67.png" alt="ID 67" class="exercise-img"></td>
+            <td>Prensa de piernas horizontal</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Cuádriceps, Glúteos</td>
+        </tr>
+        <tr>
+            <td class="id-cell">68</td>
+            <td><img src="public/exercises/v2_pierna_68.png" alt="ID 68" class="exercise-img"></td>
+            <td>Curl femoral tumbado</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Gastrocnemio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">69</td>
+            <td><img src="public/exercises/v2_pierna_69.png" alt="ID 69" class="exercise-img"></td>
+            <td>Curl femoral sentado</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Sartorio</td>
+        </tr>
+        <tr>
+            <td class="id-cell">70</td>
+            <td><img src="public/exercises/v2_pierna_70.png" alt="ID 70" class="exercise-img"></td>
+            <td>Peso muerto rumano</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Glúteo, Lumbares</td>
+        </tr>
+        <tr>
+            <td class="id-cell">71</td>
+            <td><img src="public/exercises/v2_pierna_71.png" alt="ID 71" class="exercise-img"></td>
+            <td>Zancadas / Estocadas</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Cuádriceps, Glúteos</td>
+        </tr>
+        <tr>
+            <td class="id-cell">72</td>
+            <td><img src="public/exercises/v2_pierna_72.png" alt="ID 72" class="exercise-img"></td>
+            <td>Elevación de gemelos de pie</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Sóleo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">73</td>
+            <td><img src="public/exercises/v2_pierna_73.png" alt="ID 73" class="exercise-img"></td>
+            <td>Elevación de gemelos sentado</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Sóleo profundo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">74</td>
+            <td><img src="public/exercises/v2_pierna_74.png" alt="ID 74" class="exercise-img"></td>
+            <td>Gemelos en prensa</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Gastrocnemio lateral</td>
+        </tr>
+        <tr>
+            <td class="id-cell">75</td>
+            <td><img src="public/exercises/v2_pierna_75.png" alt="ID 75" class="exercise-img"></td>
+            <td>Abducción de cadera de pie (polea)</td>
+            <td><span class="category-badge">Pierna</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Glúteo medio</td>
+        </tr>
+
+        <!-- GLUTEO -->
+        <tr>
+            <td class="id-cell">76</td>
+            <td><img src="public/exercises/v2_gluteo_76.png" alt="ID 76" class="exercise-img"></td>
+            <td>Extensión de pierna en máquina (Kickback)</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Glúteo mayor</td>
+        </tr>
+        <tr>
+            <td class="id-cell">77</td>
+            <td><img src="public/exercises/v2_gluteo_77.png" alt="ID 77" class="exercise-img"></td>
+            <td>Extensión de pierna en polea baja</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Glúteo, Isquios</td>
+        </tr>
+        <tr>
+            <td class="id-cell">78</td>
+            <td><img src="public/exercises/v2_gluteo_78.png" alt="ID 78" class="exercise-img"></td>
+            <td>Abductor (Máquina o Polea)</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Tensor de la fascia lata</td>
+        </tr>
+        <tr>
+            <td class="id-cell">79</td>
+            <td><img src="public/exercises/v2_gluteo_79.png" alt="ID 79" class="exercise-img"></td>
+            <td>Aductor (Máquina o Polea)</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Grácil, Pectíneo</td>
+        </tr>
+        <tr>
+            <td class="id-cell">80</td>
+            <td><img src="public/exercises/v2_gluteo_80.png" alt="ID 80" class="exercise-img"></td>
+            <td>Patada lateral de glúteo</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Glúteo medio y menor</td>
+        </tr>
+        <tr>
+            <td class="id-cell">81</td>
+            <td><img src="public/exercises/v2_gluteo_81.png" alt="ID 81" class="exercise-img"></td>
+            <td>Puentes de glúteo (Hip Thrust)</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">4 Series</td>
+            <td class="secondary-muscles">Isquiotibiales</td>
+        </tr>
+        <tr>
+            <td class="id-cell">82</td>
+            <td><img src="public/exercises/v2_gluteo_82.png" alt="ID 82" class="exercise-img"></td>
+            <td>Abducción de cadera con banda elástica</td>
+            <td><span class="category-badge">Glúteo</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Glúteo medio y menor</td>
+        </tr>
+
+        <!-- ABDOMEN -->
+        <tr>
+            <td class="id-cell">83</td>
+            <td><img src="public/exercises/v2_abdomen_83.png" alt="ID 83" class="exercise-img"></td>
+            <td>Crunch en máquina</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Oblicuos</td>
+        </tr>
+        <tr>
+            <td class="id-cell">84</td>
+            <td><img src="public/exercises/v2_abdomen_84.png" alt="ID 84" class="exercise-img"></td>
+            <td>Crunch en banco declinado</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Intercostales</td>
+        </tr>
+        <tr>
+            <td class="id-cell">85</td>
+            <td><img src="public/exercises/v2_abdomen_85.png" alt="ID 85" class="exercise-img"></td>
+            <td>Elevación de piernas (Silla romana)</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Flexores de cadera</td>
+        </tr>
+        <tr>
+            <td class="id-cell">86</td>
+            <td><img src="public/exercises/v2_abdomen_86.png" alt="ID 86" class="exercise-img"></td>
+            <td>Crunch abdominal banco declinado</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Recto inferior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">87</td>
+            <td><img src="public/exercises/v2_abdomen_87.png" alt="ID 87" class="exercise-img"></td>
+            <td>Crunch de rodillas en banco</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Serrato</td>
+        </tr>
+        <tr>
+            <td class="id-cell">88</td>
+            <td><img src="public/exercises/v2_abdomen_88.png" alt="ID 88" class="exercise-img"></td>
+            <td>Elevación de piernas en banco</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Flexores de cadera</td>
+        </tr>
+        <tr>
+            <td class="id-cell">89</td>
+            <td><img src="public/exercises/v2_abdomen_89.png" alt="ID 89" class="exercise-img"></td>
+            <td>Crunch abdominal piernas elevadas banco</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Core superior</td>
+        </tr>
+        <tr>
+            <td class="id-cell">90</td>
+            <td><img src="public/exercises/v2_abdomen_90.png" alt="ID 90" class="exercise-img"></td>
+            <td>Encogimiento de piernas</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Transverso</td>
+        </tr>
+        <tr>
+            <td class="id-cell">91</td>
+            <td><img src="public/exercises/v2_abdomen_91.png" alt="ID 91" class="exercise-img"></td>
+            <td>Giro de tronco (Oblicuos)</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Oblicuos, Recto abdominal</td>
+        </tr>
+        <tr>
+            <td class="id-cell">92</td>
+            <td><img src="public/exercises/v2_abdomen_92.png" alt="ID 92" class="exercise-img"></td>
+            <td>Abdominal oblicuo con mancuerna de pie</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Oblicuos, Cuadrado lumbar</td>
+        </tr>
+        <tr>
+            <td class="id-cell">93</td>
+            <td><img src="public/exercises/v2_abdomen_93.png" alt="ID 93" class="exercise-img"></td>
+            <td>Giro de tronco con pica</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Oblicuos, Erectores espinales</td>
+        </tr>
+        <tr>
+            <td class="id-cell">94</td>
+            <td><img src="public/exercises/v2_abdomen_94.png" alt="ID 94" class="exercise-img"></td>
+            <td>Extensiones de tronco en banco</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Glúteos, Isquiotibiales, Erectores espinales</td>
+        </tr>
+        <tr>
+            <td class="id-cell">95</td>
+            <td><img src="public/exercises/v2_abdomen_95.png" alt="ID 95" class="exercise-img"></td>
+            <td>Flexiones con barra (Good Mornings)</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3-4 Series</td>
+            <td class="secondary-muscles">Glúteos, Isquiotibiales, Lumbares</td>
+        </tr>
+        <tr>
+            <td class="id-cell">96</td>
+            <td><img src="public/exercises/v2_abdomen_96.png" alt="ID 96" class="exercise-img"></td>
+            <td>Flexiones de pie con barra trasnuca</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Lumbares, Cuádriceps</td>
+        </tr>
+        <tr>
+            <td class="id-cell">97</td>
+            <td><img src="public/exercises/v2_abdomen_97.png" alt="ID 97" class="exercise-img"></td>
+            <td>Plancha abdominal (Plank)</td>
+            <td><span class="category-badge">Abdomen</span></td>
+            <td class="series-cell">3 Series</td>
+            <td class="secondary-muscles">Core total, Hombros</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="actions">
+    <button onclick="window.print()" class="btn">Imprimir / Guardar como PDF</button>
+</div>
+
+</body>
+</html>

@@ -22,7 +22,7 @@ UPDATE exercise_catalog SET image_url = '/exercises/seated-cable-row.png' WHERE 
 UPDATE exercise_catalog SET image_url = '/exercises/seated-cable-row.png' WHERE id = 21;
 UPDATE exercise_catalog SET image_url = '/exercises/seated-cable-row.png' WHERE id = 22;
 UPDATE exercise_catalog SET image_url = '/exercises/seated-cable-row.png' WHERE id = 23;
-UPDATE exercise_catalog SET image_url = '/exercises/back-extension.png' WHERE id = 24;
+UPDATE exercise_catalog SET image_url = '/exercises/seated-cable-row.png' WHERE id = 24;
 UPDATE exercise_catalog SET image_url = '/exercises/barbell-curl.png' WHERE id = 25;
 UPDATE exercise_catalog SET image_url = '/exercises/barbell-curl.png' WHERE id = 26;
 UPDATE exercise_catalog SET image_url = '/exercises/hammer-curl.png' WHERE id = 27;
