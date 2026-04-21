@@ -342,7 +342,7 @@ function AddExercisePanel({ assignment, onClose, onAdded }) {
                                                     }`}
                                                 >
                                                     {ex.image_url ? (
-                                                        <img src={ex.image_url} alt={ex.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                                        <img src={ex.image_url} alt={ex.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                                                     ) : (
                                                         <div className="w-full h-full bg-surface-highlight flex items-center justify-center">
                                                             <Dumbbell size={24} className="text-text-secondary opacity-50" />

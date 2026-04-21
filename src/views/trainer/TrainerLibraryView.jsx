@@ -207,7 +207,7 @@ function ImagePickerPanel({ selected, onSelect, onClose }) {
                                 <img
                                     src={path}
                                     alt={filename}
-                                    className="w-full h-full object-cover bg-surface-highlight"
+                                    className="w-full h-full object-contain bg-surface-highlight"
                                 />
                                 {isSelected && (
                                     <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
@@ -371,7 +371,7 @@ function AddExerciseModal({ onClose, onAdded }) {
                                     <img
                                         src={imageUrl}
                                         alt="seleccionada"
-                                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                        className="w-10 h-10 rounded-lg object-contain flex-shrink-0"
                                     />
                                     <span className="text-sm text-text-primary flex-1 text-left truncate">
                                         {imageUrl.replace('/exercises/', '')}
@@ -581,7 +581,7 @@ export function TrainerLibraryView({ onBack }) {
                                                                 <img
                                                                     src={ex.image_url}
                                                                     alt={ex.name}
-                                                                    className="w-full h-full object-cover"
+                                                                    className="w-full h-full object-contain"
                                                                     referrerPolicy="no-referrer"
                                                                 />
                                                             ) : (
