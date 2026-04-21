@@ -468,6 +468,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     series: String(ex.series),
                     reps: String(ex.reps),
                     image_url: ex.image_url,
+                    catalog_id: ex.catalog_id ?? null,
                     ui_order: i + 1,
                 }))
             );

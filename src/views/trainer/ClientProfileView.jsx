@@ -241,6 +241,7 @@ function AddExercisePanel({ assignment, onClose, onAdded }) {
                 series: String(ex.series),
                 reps: String(ex.reps),
                 image_url: ex.image_url,
+                catalog_id: ex.catalog_id ?? null,
                 ui_order: maxOrder + i + 1,
             }));
 
@@ -813,7 +814,9 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                         )}
                                                                     </div>
 
-                                                                    <span className="flex-shrink-0 text-[9px] font-mono font-bold text-text-secondary bg-surface-highlight px-1.5 py-0.5 rounded-md">#{ex.id}</span>
+                                                                    {(ex.catalog_id && ex.catalog_id <= 9999) && (
+                                                                        <span className="flex-shrink-0 text-[9px] font-mono font-bold text-text-secondary bg-surface-highlight px-1.5 py-0.5 rounded-md">#{ex.catalog_id}</span>
+                                                                    )}
                                                                     <span className="flex-1 font-medium text-text-primary text-xs truncate">{ex.name}</span>
 
                                                                     {isEditing ? (
