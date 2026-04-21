@@ -180,8 +180,9 @@ function AddExercisePanel({ assignment, onClose, onAdded }) {
     }, []);
 
     const groups = useMemo(() => {
+        const q = search.toLowerCase().replace(/^#/, '').trim();
         const filtered = catalog.filter(ex =>
-            ex.name.toLowerCase().includes(search.toLowerCase())
+            ex.name.toLowerCase().includes(q) || String(ex.id).includes(q)
         );
         const map = {};
         for (const ex of filtered) {

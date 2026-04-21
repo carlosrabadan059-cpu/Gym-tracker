@@ -403,8 +403,9 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
     }, []);
 
     const groups = useMemo(() => {
+        const q = searchQuery.toLowerCase().replace(/^#/, '').trim();
         const filtered = catalog.filter(ex =>
-            ex.name.toLowerCase().includes(searchQuery.toLowerCase())
+            ex.name.toLowerCase().includes(q) || String(ex.id).includes(q)
         );
         const map = {};
         for (const ex of filtered) {
