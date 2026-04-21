@@ -1,0 +1,100 @@
+ID;Nombre;Categoria;Imagen
+1;Press de banca plano con barra;Pecho;/exercises/v2_pecho_1.png
+2;Press de banca inclinado con barra;Pecho;/exercises/v2_pecho_2.png
+3;Press de banca declinado con barra;Pecho;/exercises/v2_pecho_3.png
+4;Press de banca plano con mancuernas;Pecho;/exercises/v2_pecho_4.png
+5;Press de banca declinado con mancuernas;Pecho;/exercises/v2_pecho_5.png
+6;Aperturas planas con mancuernas;Pecho;/exercises/v2_pecho_6.png
+7;Aperturas inclinadas con mancuernas;Pecho;/exercises/v2_pecho_7.png
+8;Press de pecho en máquina sentado;Pecho;/exercises/v2_pecho_8.png
+9;Press de banca;Pecho;/exercises/v2_pecho_9.png
+10;Pull-over con mancuerna Inclinado;Pecho;/exercises/v2_pecho_10.png
+11;Press banca declinado;Pecho;/exercises/v2_pecho_11.png
+12;Flexiones de brazos;Pecho;/exercises/v2_pecho_12.png
+13;Aperturas de Pecho maquina;Pecho;/exercises/v2_pecho_13.png
+14;Fondos de pecho;Pecho;/exercises/v2_pecho_14.png
+15;Dominadas asistidas;Dorsal;/exercises/v2_dorsal_15.png
+16;Jalón al pecho agarre estrecho;Dorsal;/exercises/v2_dorsal_16.png
+17;Jalón al pecho agarre ancho;Dorsal;/exercises/v2_dorsal_17.png
+18;Jalón al pecho con brazos rectos;Dorsal;/exercises/v2_dorsal_18.png
+19;Jalón al pecho agarre neutro;Dorsal;/exercises/v2_dorsal_19.png
+20;Remo en polea baja (Gironda);Dorsal;/exercises/v2_dorsal_20.png
+21;Remo en máquina;Dorsal;/exercises/v2_dorsal_21.png
+22;Remo con mancuerna;Dorsal;/exercises/v2_dorsal_22.png
+23;Remo con barra;Dorsal;/exercises/v2_dorsal_23.png
+24;Remo en banco con mancuernas una mano;Dorsal;/exercises/v2_dorsal_24.png
+99;Pullover tumbado en banco con mancuerna;Dorsal;/exercises/v2_dorsal_99.png
+25;Curl con barra;Bíceps;/exercises/v2_biceps_25.png
+26;Curl predicador (Banco Scott);Bíceps;/exercises/v2_biceps_26.png
+27;Curl con mancuernas alterno;Bíceps;/exercises/v2_biceps_27.png
+28;Curl con mancuernas sentado;Bíceps;/exercises/v2_biceps_28.png
+29;Curl con mancuernas banco inclinado;Bíceps;/exercises/v2_biceps_29.png
+30;Curl en polea baja;Bíceps;/exercises/v2_biceps_30.png
+31;Curl de bíceps martillo con polea baja;Bíceps;/exercises/v2_biceps_31.png
+32;Curl concentrado;Bíceps;/exercises/v2_biceps_32.png
+33;Dominadas asistidas (Bíceps);Bíceps;/exercises/v2_biceps_33.png
+34;Curl tumbado barra z en polea gironda;Bíceps;/exercises/v2_biceps_34.png
+35;Curl de antebrazo supinación;Bíceps;/exercises/v2_biceps_35.png
+36;Curl de antebrazo pronación;Bíceps;/exercises/v2_biceps_36.png
+37;Enrollamiento de muñeca;Bíceps;/exercises/v2_biceps_37.png
+38;Curl invertido con barra;Bíceps;/exercises/v2_biceps_38.png
+39;Curl tríceps polea alta;Tríceps;/exercises/v2_triceps_39.png
+40;Extensión tras nuca con polea alta;Tríceps;/exercises/v2_triceps_40.png
+41;Extensión en polea alta;Tríceps;/exercises/v2_triceps_41.png
+42;Press francés con barra;Tríceps;/exercises/v2_triceps_42.png
+43;Press francés con barra z;Tríceps;/exercises/v2_triceps_43.png
+44;Extensión de tríceps a una mano;Tríceps;/exercises/v2_triceps_44.png
+45;Press de banca agarre cerrado una mano;Tríceps;/exercises/v2_triceps_45.png
+46;Patada de tríceps con mancuerna;Tríceps;/exercises/v2_triceps_46.png
+47;Press francés de pie;Tríceps;/exercises/v2_triceps_47.png
+48;Fondos en paralelas / máquina;Tríceps;/exercises/v2_triceps_48.png
+49;Fondos entre bancos;Tríceps;/exercises/v2_triceps_49.png
+50;Press militar en máquina;Hombro;/exercises/v2_hombro_50.png
+51;Press militar con barra sentado;Hombro;/exercises/v2_hombro_51.png
+52;Press de hombro con barra;Hombro;/exercises/v2_hombro_52.png
+53;Press con mancuernas sentado;Hombro;/exercises/v2_hombro_53.png
+54;Elevaciones laterales con mancuernas;Hombro;/exercises/v2_hombro_54.png
+55;Elevación lateral en polea baja;Hombro;/exercises/v2_hombro_55.png
+56;Elevación frontal con mancuernas;Hombro;/exercises/v2_hombro_56.png
+57;Pájaros sentado con mancuerna;Hombro;/exercises/v2_hombro_57.png
+58;Elevación lateral polea baja (V2);Hombro;/exercises/v2_hombro_58.png
+59;Elevación frontal en polea;Hombro;/exercises/v2_hombro_59.png
+60;Remo mentón con barra;Hombro;/exercises/v2_hombro_60.png
+61;Elevación de hombros en polea baja;Hombro;/exercises/v2_hombro_61.png
+62;Encogimiento de hombros con mancuernas;Hombro;/exercises/v2_hombro_62.png
+98;Hombro posterior polea alta a una mano;Hombro;/exercises/v2_hombro_98.png
+63;Extensión de cuádriceps;Pierna;/exercises/v2_pierna_63.png
+64;Prensa de piernas inclinada;Pierna;/exercises/v2_pierna_64.png
+65;Sentadilla en máquina (Hack);Pierna;/exercises/v2_pierna_65.png
+66;Sentadilla con barra;Pierna;/exercises/v2_pierna_66.png
+67;Prensa de piernas horizontal;Pierna;/exercises/v2_pierna_67.png
+68;Curl femoral tumbado;Pierna;/exercises/v2_pierna_68.png
+69;Curl femoral sentado;Pierna;/exercises/v2_pierna_69.png
+70;Peso muerto rumano;Pierna;/exercises/v2_pierna_70.png
+71;Zancadas / Estocadas;Pierna;/exercises/v2_pierna_71.png
+72;Elevación de gemelos de pie;Pierna;/exercises/v2_pierna_72.png
+73;Elevación de gemelos sentado;Pierna;/exercises/v2_pierna_73.png
+74;Gemelos en prensa;Pierna;/exercises/v2_pierna_74.png
+75;Abducción de cadera de pie (polea);Pierna;/exercises/v2_pierna_75.png
+76;Extensión de pierna en máquina (Kickback);Glúteo;/exercises/v2_gluteo_76.png
+77;Extensión de pierna en polea baja;Glúteo;/exercises/v2_gluteo_77.png
+78;Abductor (Máquina o Polea);Glúteo;/exercises/v2_gluteo_78.png
+79;Aductor (Máquina o Polea);Glúteo;/exercises/v2_gluteo_79.png
+80;Patada lateral de glúteo;Glúteo;/exercises/v2_gluteo_80.png
+81;Puentes de glúteo (Hip Thrust);Glúteo;/exercises/v2_gluteo_81.png
+82;Abducción de cadera con banda elástica;Glúteo;/exercises/v2_gluteo_82.png
+83;Crunch en máquina;Abdomen;/exercises/v2_abdomen_83.png
+84;Crunch en banco declinado;Abdomen;/exercises/v2_abdomen_84.png
+85;Elevación de piernas (Silla romana);Abdomen;/exercises/v2_abdomen_85.png
+86;Crunch abdominal banco declinado;Abdomen;/exercises/v2_abdomen_86.png
+87;Crunch de rodillas en banco;Abdomen;/exercises/v2_abdomen_87.png
+88;Elevación de piernas en banco;Abdomen;/exercises/v2_abdomen_88.png
+89;Crunch abdominal piernas elevadas banco;Abdomen;/exercises/v2_abdomen_89.png
+90;Encogimiento de piernas;Abdomen;/exercises/v2_abdomen_90.png
+91;Giro de tronco (Oblicuos);Abdomen;/exercises/v2_abdomen_91.png
+92;Abdominal oblicuo con mancuerna de pie;Abdomen;/exercises/v2_abdomen_92.png
+93;Giro de tronco con pica;Abdomen;/exercises/v2_abdomen_93.png
+94;Extensiones de tronco en banco;Abdomen;/exercises/v2_abdomen_94.png
+95;Flexiones con barra (Good Mornings);Abdomen;/exercises/v2_abdomen_95.png
+96;Flexiones de pie con barra trasnuca;Abdomen;/exercises/v2_abdomen_96.png
+97;Plancha abdominal (Plank);Abdomen;/exercises/v2_abdomen_97.png
