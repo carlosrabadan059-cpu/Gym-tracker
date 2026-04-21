@@ -813,6 +813,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                         )}
                                                                     </div>
 
+                                                                    <span className="flex-shrink-0 text-[9px] font-mono font-bold text-text-secondary bg-surface-highlight px-1.5 py-0.5 rounded-md">#{ex.id}</span>
                                                                     <span className="flex-1 font-medium text-text-primary text-xs truncate">{ex.name}</span>
 
                                                                     {isEditing ? (
