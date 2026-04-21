@@ -143,6 +143,40 @@
             text-decoration: none;
         }
 
+        .search-bar {
+            max-width: 500px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 18px;
+            gap: 10px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .search-bar input::placeholder { color: #555; }
+
+        .section-row { display: table-row; }
+
+        .hidden { display: none; }
+
+        mark {
+            background: rgba(192, 255, 0, 0.25);
+            color: var(--primary);
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+
     </style>
 </head>
 <body>
@@ -150,11 +184,17 @@
 <header>
     <h1>Catálogo Maestro Futures Gym v2</h1>
     <div class="stats">
-        <span>99 Ejercicios Sincronizados</span> • 
-        <span>Ordenado por ID y Grupo</span> • 
+        <span id="count-label">99 Ejercicios</span> •
+        <span>Ordenado por ID y Grupo</span> •
         <span>Activos Premium v2</span>
     </div>
 </header>
+
+<div class="search-bar">
+    <span style="color:#555;font-size:1.2rem">🔍</span>
+    <input id="searchInput" type="text" placeholder="Buscar por nombre o ID (ej: 66 o press)..." oninput="filterTable()">
+    <span id="clear-btn" style="cursor:pointer;color:#555;display:none" onclick="clearSearch()">✕</span>
+</div>
 
 <table>
     <thead>
@@ -294,6 +334,36 @@
 <div class="actions">
     <button onclick="window.print()" class="btn">Imprimir / Guardar como PDF</button>
 </div>
+
+<script>
+function filterTable() {
+    const q = document.getElementById('searchInput').value.toLowerCase().replace(/^#/, '').trim();
+    document.getElementById('clear-btn').style.display = q ? 'inline' : 'none';
+    const rows = document.querySelectorAll('tbody tr');
+    let visible = 0;
+    let lastSection = null;
+    rows.forEach(row => {
+        if (row.querySelector('.section-header')) {
+            lastSection = row;
+            row.classList.add('hidden');
+            return;
+        }
+        const id = row.querySelector('.id-cell')?.textContent.trim() || '';
+        const name = row.querySelector('td:nth-child(3)')?.textContent.trim() || '';
+        const match = !q || id.includes(q) || name.toLowerCase().includes(q);
+        row.classList.toggle('hidden', !match);
+        if (match) {
+            visible++;
+            if (lastSection) { lastSection.classList.remove('hidden'); lastSection = null; }
+        }
+    });
+    document.getElementById('count-label').textContent = q ? `${visible} resultado${visible !== 1 ? 's' : ''}` : '99 Ejercicios';
+}
+function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    filterTable();
+}
+</script>
 
 </body>
 </html>
