@@ -330,7 +330,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                                         <div key={ex.id} className="flex items-center gap-3 text-sm">
                                             <div className="w-8 h-8 rounded-lg bg-surface-highlight overflow-hidden flex-shrink-0 flex items-center justify-center">
                                                 {ex.image_url ? (
-                                                    <img src={ex.image_url} alt={ex.name} className="w-full h-full object-cover" />
+                                                    <img src={ex.image_url} alt={ex.name} className="w-full h-full object-contain" />
                                                 ) : (
                                                     <Dumbbell size={12} className="text-text-secondary" />
                                                 )}

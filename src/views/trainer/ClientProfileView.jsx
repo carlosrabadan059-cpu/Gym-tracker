@@ -808,7 +808,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                 >
                                                                     <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-surface-highlight flex items-center justify-center">
                                                                         {ex.image_url ? (
-                                                                            <img src={ex.image_url} alt={ex.name} className="h-full w-full object-cover" />
+                                                                            <img src={ex.image_url} alt={ex.name} className="h-full w-full object-contain" />
                                                                         ) : (
                                                                             <Dumbbell size={14} className="text-gray-500" />
                                                                         )}
