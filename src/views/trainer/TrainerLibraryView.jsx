@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, Search, Dumbbell, ChevronDown, ChevronRight, Plus, X, Trash2, Check, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, ChevronDown, ChevronRight, Plus, X, Trash2, Check, ImageIcon, Pencil } from 'lucide-react';
 
 const MUSCLE_GROUPS = [
     'Pecho', 'Espalda', 'Hombros', 'Bíceps', 'Tríceps',
@@ -419,6 +419,13 @@ export function TrainerLibraryView({ onBack }) {
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
 
+    // Inline edit state
+    const [editingExId, setEditingExId] = useState(null);
+    const [editingName, setEditingName] = useState('');
+    const [editingImageUrl, setEditingImageUrl] = useState('');
+    const [showEditImagePicker, setShowEditImagePicker] = useState(false);
+    const [savingEdit, setSavingEdit] = useState(false);
+
     useEffect(() => {
         const fetchCatalog = async () => {
             try {
@@ -477,12 +484,52 @@ export function TrainerLibraryView({ onBack }) {
         }
     };
 
+    const startEdit = (ex) => {
+        setEditingExId(ex.id);
+        setEditingName(ex.name);
+        setEditingImageUrl(ex.image_url || '');
+        setConfirmDeleteId(null);
+    };
+
+    const cancelEdit = () => setEditingExId(null);
+
+    const handleSaveEdit = async () => {
+        if (!editingName.trim()) return;
+        setSavingEdit(true);
+        try {
+            const { error } = await supabase
+                .from('exercise_catalog')
+                .update({ name: editingName.trim(), image_url: editingImageUrl || null })
+                .eq('id', editingExId);
+            if (error) throw error;
+            setCatalog(prev => prev.map(ex =>
+                ex.id === editingExId
+                    ? { ...ex, name: editingName.trim(), image_url: editingImageUrl || null }
+                    : ex
+            ));
+            setEditingExId(null);
+        } catch (err) {
+            console.error('Error updating exercise:', err);
+        } finally {
+            setSavingEdit(false);
+        }
+    };
+
     return (
         <>
             {showAddModal && (
                 <AddExerciseModal
                     onClose={() => setShowAddModal(false)}
                     onAdded={handleExerciseAdded}
+                />
+            )}
+
+            {/* Image picker for editing existing exercise */}
+            {showEditImagePicker && (
+                <ImagePickerPanel
+                    selected={editingImageUrl}
+                    onSelect={(path) => { setEditingImageUrl(path); }}
+                    onClose={() => setShowEditImagePicker(false)}
                 />
             )}
 
@@ -575,48 +622,95 @@ export function TrainerLibraryView({ onBack }) {
                                         {!isCollapsed && (
                                             <div className="divide-y divide-surface-highlight border-t border-surface-highlight">
                                                 {exercises.map(ex => (
-                                                    <div key={ex.id} className="flex items-center gap-3 px-4 py-2.5">
-                                                        <div className="w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center">
-                                                            {ex.image_url ? (
-                                                                <img
-                                                                    src={ex.image_url}
-                                                                    alt={ex.name}
-                                                                    className="w-full h-full object-contain"
-                                                                    referrerPolicy="no-referrer"
-                                                                />
-                                                            ) : (
-                                                                <Dumbbell size={14} className="text-text-secondary" />
+                                                    editingExId === ex.id ? (
+                                                        // ── Inline edit row ──
+                                                        <div key={ex.id} className="flex items-center gap-2 px-4 py-2.5 bg-surface-highlight/10">
+                                                            <button
+                                                                onClick={() => setShowEditImagePicker(true)}
+                                                                className="w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center border-2 border-primary/50 hover:border-primary transition-colors"
+                                                                title="Cambiar imagen"
+                                                            >
+                                                                {editingImageUrl ? (
+                                                                    <img src={editingImageUrl} alt="preview" className="w-full h-full object-contain" />
+                                                                ) : (
+                                                                    <ImageIcon size={14} className="text-text-secondary" />
+                                                                )}
+                                                            </button>
+                                                            <input
+                                                                autoFocus
+                                                                type="text"
+                                                                value={editingName}
+                                                                onChange={e => setEditingName(e.target.value)}
+                                                                onKeyDown={e => { if (e.key === 'Enter') handleSaveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                                                                className="flex-1 bg-background border border-primary rounded-lg px-3 py-1.5 text-sm text-text-primary focus:outline-none min-w-0"
+                                                            />
+                                                            <button
+                                                                onClick={handleSaveEdit}
+                                                                disabled={savingEdit || !editingName.trim()}
+                                                                className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 disabled:opacity-40"
+                                                            >
+                                                                {savingEdit ? <span className="text-[8px] text-black font-bold">...</span> : <Check size={13} className="text-black" strokeWidth={3} />}
+                                                            </button>
+                                                            <button
+                                                                onClick={cancelEdit}
+                                                                className="w-7 h-7 rounded-full bg-surface-highlight flex items-center justify-center flex-shrink-0"
+                                                            >
+                                                                <X size={13} className="text-text-secondary" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        // ── Normal row ──
+                                                        <div key={ex.id} className="flex items-center gap-3 px-4 py-2.5">
+                                                            <div className="w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                                                {ex.image_url ? (
+                                                                    <img
+                                                                        src={ex.image_url}
+                                                                        alt={ex.name}
+                                                                        className="w-full h-full object-contain"
+                                                                        referrerPolicy="no-referrer"
+                                                                    />
+                                                                ) : (
+                                                                    <Dumbbell size={14} className="text-text-secondary" />
+                                                                )}
+                                                            </div>
+                                                            <span className="text-sm text-text-primary flex-1">{ex.name}</span>
+
+                                                            {editMode && (
+                                                                confirmDeleteId === ex.id ? (
+                                                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                                                        <button
+                                                                            onClick={() => handleDeleteExercise(ex.id)}
+                                                                            disabled={deletingId === ex.id}
+                                                                            className="text-xs font-bold px-2 py-1 rounded-lg bg-red-500 text-white disabled:opacity-50"
+                                                                        >
+                                                                            {deletingId === ex.id ? '...' : 'Eliminar'}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setConfirmDeleteId(null)}
+                                                                            className="text-xs px-2 py-1 rounded-lg bg-surface-highlight text-text-secondary"
+                                                                        >
+                                                                            Cancelar
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                                                                        <button
+                                                                            onClick={() => startEdit(ex)}
+                                                                            className="w-7 h-7 rounded-full hover:bg-primary/10 flex items-center justify-center transition-colors"
+                                                                        >
+                                                                            <Pencil size={13} className="text-text-secondary" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => setConfirmDeleteId(ex.id)}
+                                                                            className="w-7 h-7 rounded-full hover:bg-red-500/10 flex items-center justify-center transition-colors"
+                                                                        >
+                                                                            <Trash2 size={14} className="text-text-secondary" />
+                                                                        </button>
+                                                                    </div>
+                                                                )
                                                             )}
                                                         </div>
-                                                        <span className="text-sm text-text-primary flex-1">{ex.name}</span>
-
-                                                        {editMode && (
-                                                            confirmDeleteId === ex.id ? (
-                                                                <div className="flex items-center gap-1 flex-shrink-0">
-                                                                    <button
-                                                                        onClick={() => handleDeleteExercise(ex.id)}
-                                                                        disabled={deletingId === ex.id}
-                                                                        className="text-xs font-bold px-2 py-1 rounded-lg bg-red-500 text-white disabled:opacity-50"
-                                                                    >
-                                                                        {deletingId === ex.id ? '...' : 'Eliminar'}
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => setConfirmDeleteId(null)}
-                                                                        className="text-xs px-2 py-1 rounded-lg bg-surface-highlight text-text-secondary"
-                                                                    >
-                                                                        Cancelar
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={() => setConfirmDeleteId(ex.id)}
-                                                                    className="w-7 h-7 rounded-full hover:bg-red-500/10 flex items-center justify-center transition-colors flex-shrink-0"
-                                                                >
-                                                                    <Trash2 size={14} className="text-text-secondary" />
-                                                                </button>
-                                                            )
-                                                        )}
-                                                    </div>
+                                                    )
                                                 ))}
                                             </div>
                                         )}
