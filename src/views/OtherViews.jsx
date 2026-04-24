@@ -86,15 +86,20 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
     // targetTime = null         → cancela cualquier notificación pendiente
     const scheduleSWNotification = (targetTime) => {
         if (!('serviceWorker' in navigator)) return;
-        navigator.serviceWorker.ready.then((reg) => {
-            if (reg.active) {
-                reg.active.postMessage(
-                    targetTime !== null
-                        ? { type: 'SCHEDULE_NOTIFICATION', targetTime }
-                        : { type: 'CANCEL_NOTIFICATION' }
-                );
-            }
-        }).catch(() => {});
+        const msg = targetTime !== null
+            ? { type: 'SCHEDULE_NOTIFICATION', targetTime }
+            : { type: 'CANCEL_NOTIFICATION' };
+
+        // Prefer the controller (SW actively serving this page).
+        // Falls back to reg.active for the case where the page was just loaded
+        // and controller isn't set yet (first registration before clients.claim()).
+        if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage(msg);
+        } else {
+            navigator.serviceWorker.ready.then((reg) => {
+                if (reg.active) reg.active.postMessage(msg);
+            }).catch(() => {});
+        }
     };
 
     const unlockAudio = () => {
