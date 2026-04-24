@@ -22,7 +22,13 @@ const StepSelectRoutine = ({ routines, selectedRoutine, selectedDate, onRoutine,
                 max={todayInput()}
                 value={selectedDate}
                 onChange={e => onDate(e.target.value)}
-                className="w-full bg-background border border-surface-highlight rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-primary transition-colors text-base"
+                onClick={e => {
+                    try {
+                        if (e.target.showPicker) e.target.showPicker();
+                    } catch (err) {}
+                }}
+                className="w-full bg-background border border-surface-highlight rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-primary transition-colors text-base block"
+                style={{ colorScheme: 'dark', WebkitAppearance: 'none', appearance: 'none', minHeight: '3rem' }}
             />
         </div>
 
