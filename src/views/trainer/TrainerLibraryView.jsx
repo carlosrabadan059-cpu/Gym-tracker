@@ -673,7 +673,12 @@ export function TrainerLibraryView({ onBack }) {
                                                                     <Dumbbell size={14} className="text-text-secondary" />
                                                                 )}
                                                             </div>
-                                                            <span className="text-sm text-text-primary flex-1">{ex.name}</span>
+                                                            <div className="flex-1 flex items-center gap-2">
+                                                                <span className="text-sm text-text-primary">{ex.name}</span>
+                                                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-surface-highlight text-text-secondary font-mono border border-surface-highlight/50">
+                                                                    ID: {ex.id}
+                                                                </span>
+                                                            </div>
 
                                                             {editMode && (
                                                                 confirmDeleteId === ex.id ? (
