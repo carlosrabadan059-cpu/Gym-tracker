@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, TrendingUp, ChevronRight, Check } from 'lucide-react';
+import { Play, TrendingUp, ChevronRight, Check, ClockArrowUp } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -7,12 +7,14 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
 import { useAuth } from '../context/AuthContext';
+import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 
 const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const { profile, user } = useAuth();
     const [expandedRoutine, setExpandedRoutine] = useState(null);
     const [routines, setRoutines] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showRetroModal, setShowRetroModal] = useState(false);
 
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
@@ -196,6 +198,13 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             <div>
                 <div className="mb-4 flex items-center justify-between">
                     <h3 className="text-xl font-bold text-text-primary">Tus Rutinas Diarias</h3>
+                    <button
+                        onClick={() => setShowRetroModal(true)}
+                        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-primary transition-colors font-medium px-2 py-1 rounded-lg hover:bg-primary/10"
+                    >
+                        <ClockArrowUp size={13} />
+                        Entreno pasado
+                    </button>
                 </div>
 
                 {routines.length === 0 ? (
@@ -422,6 +431,14 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Retroactive workout modal */}
+            {showRetroModal && routines.length > 0 && (
+                <RetroactiveWorkoutModal
+                    routines={routines}
+                    onClose={() => setShowRetroModal(false)}
+                    onSaved={() => setShowRetroModal(false)}
+                />
             )}
         </div>
     );
