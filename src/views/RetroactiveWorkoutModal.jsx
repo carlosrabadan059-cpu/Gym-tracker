@@ -232,8 +232,8 @@ export function RetroactiveWorkoutModal({ routines, onClose, onSaved }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn">
-            <div className="w-full max-w-md bg-surface border border-surface-highlight rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn pb-safe">
+            <div className="w-full max-w-md bg-surface border border-surface-highlight rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden mb-0 sm:mb-8">
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -290,7 +290,7 @@ export function RetroactiveWorkoutModal({ routines, onClose, onSaved }) {
                 )}
 
                 {/* Footer navigation */}
-                <div className="flex items-center gap-3 px-5 py-4 border-t border-surface-highlight">
+                <div className="flex items-center gap-3 px-5 pt-4 pb-6 sm:pb-4 border-t border-surface-highlight">
                     {step > 0 ? (
                         <button
                             onClick={() => setStep(s => s - 1)}
