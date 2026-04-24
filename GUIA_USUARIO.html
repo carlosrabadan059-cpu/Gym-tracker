@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía del Usuario — Futures Gym</title>
+<style>
+  :root {
+    --primary: #c0ff00;
+    --secondary: #9d00ff;
+    --bg: #050505;
+    --card: #111;
+    --card2: #181818;
+    --border: #222;
+    --text: #f0f0f0;
+    --muted: #888;
+    --danger: #ff4444;
+    --success: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #0a0a0a 0%, #0d1a00 50%, #0a0a0a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 1.5rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(192,255,0,.08), transparent);
+  }
+  .hero-badge { display: inline-block; background: rgba(192,255,0,.12); border: 1px solid rgba(192,255,0,.3); color: var(--primary); font-size: .7rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; padding: .3rem .8rem; border-radius: 999px; margin-bottom: 1rem; }
+  .hero h1 { font-size: clamp(1.8rem, 6vw, 2.8rem); font-weight: 900; color: #fff; line-height: 1.1; }
+  .hero h1 span { color: var(--primary); }
+  .hero p { color: var(--muted); margin-top: .75rem; font-size: .95rem; max-width: 480px; margin-inline: auto; }
+
+  /* ── SEARCH ── */
+  .search-wrap { padding: 1.5rem 1.5rem .5rem; max-width: 700px; margin: 0 auto; }
+  .search-box { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: .75rem 1rem; color: var(--text); font-size: .95rem; outline: none; transition: border-color .2s; }
+  .search-box:focus { border-color: var(--primary); }
+  .search-box::placeholder { color: var(--muted); }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 700px; margin: 0 auto; padding: 1rem 1.5rem 4rem; }
+
+  /* ── TOC ── */
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; }
+  .toc h2 { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; margin-bottom: .75rem; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: .3rem; }
+  .toc-list a { color: var(--text); text-decoration: none; font-size: .9rem; display: flex; align-items: center; gap: .5rem; padding: .3rem .5rem; border-radius: 8px; transition: background .15s, color .15s; }
+  .toc-list a:hover { background: rgba(192,255,0,.08); color: var(--primary); }
+  .toc-list a .num { color: var(--primary); font-weight: 700; font-size: .75rem; min-width: 1.2rem; }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 2rem; scroll-margin-top: 1rem; }
+  .section-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+  .section-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(192,255,0,.12); border: 1px solid rgba(192,255,0,.25); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .section-header h2 { font-size: 1.15rem; font-weight: 800; color: #fff; }
+  .section-num { color: var(--primary); font-size: .75rem; font-weight: 700; }
+
+  /* ── CARD ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; margin-bottom: .75rem; }
+  .card h3 { font-size: .9rem; font-weight: 700; color: var(--primary); margin-bottom: .5rem; }
+  .card p, .card li { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+  .card ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+  .card ul li::before { content: '›'; color: var(--primary); margin-right: .4rem; font-weight: 700; }
+
+  /* ── STEPS ── */
+  .steps { display: flex; flex-direction: column; gap: .6rem; }
+  .step { display: flex; gap: .75rem; align-items: flex-start; }
+  .step-num { min-width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: #000; font-size: .7rem; font-weight: 900; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: .1rem; }
+  .step-text { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+  .step-text strong { color: var(--text); }
+
+  /* ── TIP / WARNING ── */
+  .tip { background: rgba(192,255,0,.05); border-left: 3px solid var(--primary); border-radius: 0 10px 10px 0; padding: .75rem 1rem; margin-top: .75rem; font-size: .82rem; color: var(--muted); }
+  .tip strong { color: var(--primary); }
+  .warn { background: rgba(255,68,68,.05); border-left: 3px solid var(--danger); border-radius: 0 10px 10px 0; padding: .75rem 1rem; margin-top: .75rem; font-size: .82rem; color: var(--muted); }
+  .warn strong { color: var(--danger); }
+
+  /* ── BADGE ── */
+  .badge { display: inline-flex; align-items: center; gap: .3rem; background: rgba(192,255,0,.12); border: 1px solid rgba(192,255,0,.25); color: var(--primary); font-size: .72rem; font-weight: 700; padding: .2rem .6rem; border-radius: 999px; }
+  .badge-purple { background: rgba(157,0,255,.12); border-color: rgba(157,0,255,.3); color: #b87fff; }
+
+  /* ── DIVIDER ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+
+  /* ── SEARCH HIGHLIGHT / HIDE ── */
+  .section.hidden { display: none; }
+  mark { background: rgba(192,255,0,.25); color: var(--primary); border-radius: 3px; padding: 0 2px; }
+
+  /* ── FOOTER ── */
+  footer { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: .78rem; border-top: 1px solid var(--border); }
+  footer span { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">📖 Guía del Usuario</div>
+  <h1>Gym Tracker<br><span>Manual Completo</span></h1>
+  <p>Todo lo que necesitas saber para sacar el máximo partido a tu aplicación de entrenamiento.</p>
+</div>
+
+<!-- SEARCH -->
+<div class="search-wrap">
+  <input class="search-box" type="text" id="searchInput" placeholder="🔍  Buscar en la guía... (ej: descanso, rutina, progreso)">
+</div>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Contenido</h2>
+    <ul class="toc-list" id="toc"></ul>
+  </div>
+
+  <!-- ───────────────── SECCIÓN 1 ───────────────── -->
+  <div class="section" id="s1" data-title="Primeros Pasos">
+    <div class="section-header">
+      <div class="section-icon">🚀</div>
+      <div>
+        <div class="section-num">01</div>
+        <h2>Primeros Pasos</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Iniciar Sesión</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Abre la app e introduce tu <strong>email</strong> y <strong>contraseña</strong>.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Pulsa <strong>Iniciar Sesión</strong>. Si es tu primera vez, usa <strong>Regístrate</strong>.</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">La app te llevará directamente a tu <strong>Dashboard</strong> personal.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Instalar como App (recomendado en iOS)</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Abre la web en <strong>Safari</strong>.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Pulsa el icono <strong>Compartir</strong> (cuadrado con flecha hacia arriba).</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Selecciona <strong>«Añadir a la pantalla de inicio»</strong>.</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">Confirma con <strong>Añadir</strong>. Ahora tienes el icono en tu pantalla como una app nativa.</div></div>
+      </div>
+      <div class="tip"><strong>💡 Importante:</strong> Instalándola así, recibirás las notificaciones del temporizador de descanso aunque cierres la app.</div>
+    </div>
+
+    <div class="card">
+      <h3>Activar Notificaciones</h3>
+      <p>La primera vez que inicies un temporizador de descanso, la app te pedirá permiso para enviar notificaciones. Acéptalo para recibir el aviso aunque estés en otra aplicación.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 2 ───────────────── -->
+  <div class="section" id="s2" data-title="El Dashboard">
+    <div class="section-header">
+      <div class="section-icon">🏠</div>
+      <div>
+        <div class="section-num">02</div>
+        <h2>El Dashboard</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Tus Rutinas Diarias</h3>
+      <p>En la pantalla principal verás las rutinas que tu entrenador te ha asignado, ordenadas por día. Cada tarjeta muestra:</p>
+      <ul>
+        <li>Nombre de la rutina y número de ejercicios</li>
+        <li>Estimación de calorías a quemar</li>
+        <li>Lista de ejercicios (pulsa la tarjeta para expandir)</li>
+        <li>Botón <strong>Iniciar Rutina</strong> o <strong>Revisar Entrenamiento</strong> si ya la completaste hoy</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Pull-to-Refresh</h3>
+      <p>Desliza hacia <strong>abajo desde el principio</strong> de la lista para recargar tus rutinas con los últimos cambios de tu entrenador.</p>
+    </div>
+
+    <div class="card">
+      <h3>Registrar un Entreno Pasado</h3>
+      <p>¿Te olvidaste de registrar un entrenamiento de días anteriores? Pulsa <strong>«Entreno pasado»</strong> (junto al título de tus rutinas) y sigue el asistente de 3 pasos para añadirlo con la fecha correcta.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 3 ───────────────── -->
+  <div class="section" id="s3" data-title="Iniciar un Entrenamiento">
+    <div class="section-header">
+      <div class="section-icon">⚡</div>
+      <div>
+        <div class="section-num">03</div>
+        <h2>Iniciar un Entrenamiento</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Paso a Paso</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Pulsa <strong>Iniciar Rutina</strong> en la tarjeta que quieras hacer hoy.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">(Opcional) Elige un <strong>ejercicio de cardio previo</strong> y su duración como calentamiento.</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Se abrirá la <strong>Vista de Entrenamiento</strong> con el cronómetro activo y la lista de ejercicios.</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">Pulsa sobre cualquier ejercicio para abrirlo y registrar sus series.</div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-text">Cuando todos los ejercicios tengan el círculo verde ✓, pulsa <strong>Terminar Entrenamiento</strong>.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Durante el Entrenamiento</h3>
+      <ul>
+        <li>El <strong>cronómetro</strong> en la cabecera registra el tiempo total de sesión.</li>
+        <li>Las <strong>calorías</strong> se actualizan en tiempo real según el tiempo transcurrido.</li>
+        <li>Puedes ir y volver entre ejercicios libremente.</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 4 ───────────────── -->
+  <div class="section" id="s4" data-title="Registrar Series y Pesos">
+    <div class="section-header">
+      <div class="section-icon">📋</div>
+      <div>
+        <div class="section-num">04</div>
+        <h2>Registrar Series y Pesos</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Detalle de Ejercicio</h3>
+      <p>Al pulsar sobre un ejercicio se abre su ficha, que incluye:</p>
+      <ul>
+        <li><strong>Imagen</strong> del ejercicio para referencia de postura</li>
+        <li><strong>Series objetivo</strong>, repeticiones y calorías estimadas</li>
+        <li><strong>Último registro:</strong> el peso y reps de la última vez que hiciste ese ejercicio (muy útil para progresar)</li>
+        <li><strong>Inputs por serie:</strong> introduce el <strong>peso en kg</strong> y las <strong>repeticiones</strong> completadas</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Completar una Serie</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Introduce el <strong>peso</strong> (kg) y las <strong>repeticiones</strong> de la serie.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Pulsa el <strong>círculo</strong> a la derecha de la fila para marcarla como completada ✓.</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">El <strong>temporizador de descanso</strong> arrancará automáticamente.</div></div>
+      </div>
+      <div class="tip"><strong>💡</strong> En ejercicios de peso corporal (abdominales, planchas...) no es necesario introducir el peso. Solo marca las repeticiones.</div>
+    </div>
+
+    <div class="card">
+      <h3>Finalizar el Ejercicio</h3>
+      <p>Cuando hayas completado todas las series, pulsa <strong>«Completar Ejercicio»</strong> en la parte inferior. El círculo del ejercicio en la lista principal se pondrá verde ✓.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 5 ───────────────── -->
+  <div class="section" id="s5" data-title="Temporizador de Descanso">
+    <div class="section-header">
+      <div class="section-icon">⏱️</div>
+      <div>
+        <div class="section-num">05</div>
+        <h2>Temporizador de Descanso</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Cómo funciona</h3>
+      <ul>
+        <li>Se activa <strong>automáticamente</strong> al completar cada serie.</li>
+        <li>También puedes iniciarlo manualmente con el botón <strong>«Iniciar Descanso»</strong>.</li>
+        <li>Puedes elegir entre <strong>60 s</strong> o <strong>90 s</strong> de descanso.</li>
+        <li>Al terminar recibirás un <strong>pitido + vibración</strong> y una notificación aunque estés en otra app.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>¿Por qué no suena en segundo plano?</h3>
+      <ul>
+        <li>Asegúrate de tener las <strong>notificaciones activadas</strong> (ver Sección 1).</li>
+        <li>La app debe estar <strong>instalada en la pantalla de inicio</strong> de iOS para recibir notificaciones nativas.</li>
+        <li>El audio suena siempre que el AudioContext esté desbloqueado — esto ocurre automáticamente cuando pulsas una serie o el botón de descanso.</li>
+      </ul>
+      <div class="warn"><strong>⚠️</strong> En iOS, el audio en segundo plano requiere que hayas interactuado con la app en esa sesión (pulsar al menos una vez antes de minimizarla).</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 6 ───────────────── -->
+  <div class="section" id="s6" data-title="Historial y Progreso">
+    <div class="section-header">
+      <div class="section-icon">📈</div>
+      <div>
+        <div class="section-num">06</div>
+        <h2>Historial y Progreso</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Pestaña Progreso</h3>
+      <p>Accede desde la barra de navegación inferior (icono de gráfica). Aquí encontrarás:</p>
+      <ul>
+        <li><strong>Resumen semanal:</strong> sesiones completadas, volumen total y calorías quemadas.</li>
+        <li><strong>Historial de sesiones:</strong> todas tus sesiones con fecha, duración y ejercicios.</li>
+        <li><strong>Evolución por ejercicio:</strong> cómo ha progresado tu peso en cada movimiento a lo largo del tiempo.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Detalle de una Sesión Pasada</h3>
+      <p>Pulsa sobre cualquier sesión en el historial para ver exactamente qué peso y repeticiones hiciste en cada serie, cuánto tiempo duró y las calorías estimadas.</p>
+    </div>
+
+    <div class="card">
+      <h3>Registrar un Entreno Olvidado</h3>
+      <p>Desde el Dashboard, pulsa <strong>«Entreno pasado»</strong> (icono reloj junto a "Tus Rutinas Diarias").</p>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Selecciona la <strong>fecha</strong> del día que entrenaste y la <strong>rutina</strong> que hiciste.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Introduce los <strong>pesos y repeticiones</strong> de cada ejercicio.</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text">Confirma y <strong>guarda</strong>. Aparecerá en tu historial con la fecha correcta.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 7 ───────────────── -->
+  <div class="section" id="s7" data-title="Perfil y Configuración">
+    <div class="section-header">
+      <div class="section-icon">👤</div>
+      <div>
+        <div class="section-num">07</div>
+        <h2>Perfil y Configuración</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Editar tu Perfil</h3>
+      <p>Accede desde la barra inferior → icono de persona. Puedes actualizar:</p>
+      <ul>
+        <li><strong>Nombre de usuario</strong> y foto de perfil</li>
+        <li><strong>Peso corporal</strong> (se usa para calcular las calorías con mayor precisión)</li>
+        <li><strong>Tema</strong> (oscuro / claro)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Notificaciones</h3>
+      <p>En la sección de Perfil → Notificaciones puedes gestionar qué avisos quieres recibir (nuevas rutinas asignadas, mensajes del entrenador, etc.).</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 8 ───────────────── -->
+  <div class="section" id="s8" data-title="Chat con el Entrenador">
+    <div class="section-header">
+      <div class="section-icon">💬</div>
+      <div>
+        <div class="section-num">08</div>
+        <h2>Chat con el Entrenador</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Mensajería Directa</h3>
+      <p>Desde la pestaña <strong>Chat</strong> (icono burbuja) puedes comunicarte directamente con tu entrenador para:</p>
+      <ul>
+        <li>Preguntar dudas sobre técnica o ejercicios</li>
+        <li>Informar de lesiones o limitaciones</li>
+        <li>Recibir feedback y motivación</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ───────────────── SECCIÓN 9 ───────────────── -->
+  <div class="section" id="s9" data-title="Preguntas Frecuentes">
+    <div class="section-header">
+      <div class="section-icon">❓</div>
+      <div>
+        <div class="section-num">09</div>
+        <h2>Preguntas Frecuentes</h2>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>No veo mis rutinas</h3>
+      <p>Las rutinas las asigna tu entrenador. Si no ves ninguna, contacta con él a través del Chat.</p>
+    </div>
+    <div class="card">
+      <h3>El temporizador no suena</h3>
+      <p>Comprueba que la app esté instalada en tu pantalla de inicio (iOS) y que los permisos de notificación estén activados en Ajustes del sistema.</p>
+    </div>
+    <div class="card">
+      <h3>¿Puedo cambiar el número de series?</h3>
+      <p>Las series y repeticiones las ajusta tu entrenador desde su panel. Consúltale directamente si necesitas modificarlas.</p>
+    </div>
+    <div class="card">
+      <h3>Registré mal un peso, ¿puedo corregirlo?</h3>
+      <p>Actualmente puedes añadir un nuevo registro retroactivo con los datos correctos. Si necesitas eliminar uno incorrecto, consulta con tu entrenador.</p>
+    </div>
+    <div class="card">
+      <h3>¿Mis datos están seguros?</h3>
+      <p>Todos tus registros se guardan en la nube (Supabase), protegidos con autenticación y cifrado. Solo tú y tu entrenador tienen acceso.</p>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <p>Futures Gym · GymTracker <span>v2.0</span> · Guía del Usuario</p>
+  <p style="margin-top:.5rem">Powered by <span>Antigravity AI</span></p>
+</footer>
+
+<script>
+// ── Build TOC ──
+const sections = document.querySelectorAll('.section[data-title]');
+const toc = document.getElementById('toc');
+sections.forEach((sec, i) => {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = '#' + sec.id;
+  a.innerHTML = `<span class="num">0${i+1}</span> ${sec.dataset.title}`;
+  li.appendChild(a);
+  toc.appendChild(li);
+});
+
+// ── Search ──
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.trim().toLowerCase();
+  sections.forEach(sec => {
+    if (!q) {
+      sec.classList.remove('hidden');
+      sec.querySelectorAll('mark').forEach(m => {
+        m.outerHTML = m.textContent;
+      });
+      return;
+    }
+    const text = sec.textContent.toLowerCase();
+    sec.classList.toggle('hidden', !text.includes(q));
+  });
+});
+</script>
+</body>
+</html>
