@@ -691,5 +691,12 @@
     "category": "Dorsal",
     "image_url": "/exercises/v2_dorsal_99.png",
     "description": null
+  },
+  {
+    "id": 100,
+    "name": "Curl femoral sentado en maquina",
+    "category": "Pierna",
+    "image_url": "/exercises/calf-raise-machine.png",
+    "description": null
   }
 ]

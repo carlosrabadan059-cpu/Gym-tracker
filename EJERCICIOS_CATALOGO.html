@@ -150,50 +150,32 @@
             align-items: center;
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 10px 18px;
-            gap: 10px;
+            border-radius: 8px;
+            padding: 10px 20px;
         }
 
         .search-bar input {
-            flex: 1;
-            background: none;
+            background: transparent;
             border: none;
-            outline: none;
-            color: var(--text);
+            color: white;
             font-size: 1rem;
+            width: 100%;
+            outline: none;
         }
-
-        .search-bar input::placeholder { color: #555; }
-
-        .section-row { display: table-row; }
-
-        .hidden { display: none; }
-
-        mark {
-            background: rgba(192, 255, 0, 0.25);
-            color: var(--primary);
-            border-radius: 3px;
-            padding: 0 2px;
-        }
-
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Catálogo Maestro Futures Gym v2</h1>
+    <h1>Catálogo Maestro</h1>
     <div class="stats">
-        <span id="count-label">99 Ejercicios</span> •
-        <span>Ordenado por ID y Grupo</span> •
-        <span>Activos Premium v2</span>
+        <span>Total Ejercicios: <strong id="total-count">100</strong></span>
+        <span>Última Actualización: <strong>28/4/2026</strong></span>
     </div>
 </header>
 
 <div class="search-bar">
-    <span style="color:#555;font-size:1.2rem">🔍</span>
-    <input id="searchInput" type="text" placeholder="Buscar por nombre o ID (ej: 66 o press)..." oninput="filterTable()">
-    <span id="clear-btn" style="cursor:pointer;color:#555;display:none" onclick="clearSearch()">✕</span>
+    <input type="text" id="searchInput" placeholder="Buscar por ID, nombre o categoría..." onkeyup="filterTable()">
 </div>
 
 <table>
@@ -201,167 +183,848 @@
         <tr>
             <th>ID</th>
             <th>Imagen</th>
-            <th>Nombre del Ejercicio</th>
+            <th>Nombre</th>
             <th>Categoría</th>
         </tr>
     </thead>
-    <tbody>
-        <!-- PECHO (1-14) -->
-        <tr><td colspan="4" class="section-header">PECHO</td></tr>
-        <tr><td class="id-cell">01</td><td><img src="public/exercises/v2_pecho_1.png" class="exercise-img"></td><td>Press de banca plano con barra</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">02</td><td><img src="public/exercises/v2_pecho_2.png" class="exercise-img"></td><td>Press de banca inclinado con barra</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">03</td><td><img src="public/exercises/v2_pecho_3.png" class="exercise-img"></td><td>Press de banca declinado con barra</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">04</td><td><img src="public/exercises/v2_pecho_4.png" class="exercise-img"></td><td>Press de banca plano con mancuernas</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">05</td><td><img src="public/exercises/v2_pecho_5.png" class="exercise-img"></td><td>Press de banca declinado con mancuernas</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">06</td><td><img src="public/exercises/v2_pecho_6.png" class="exercise-img"></td><td>Aperturas planas con mancuernas</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">07</td><td><img src="public/exercises/v2_pecho_7.png" class="exercise-img"></td><td>Aperturas inclinadas con mancuernas</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">08</td><td><img src="public/exercises/v2_pecho_8.png" class="exercise-img"></td><td>Press de pecho en máquina sentado</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">09</td><td><img src="public/exercises/v2_pecho_9.png" class="exercise-img"></td><td>Press de banca</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">10</td><td><img src="public/exercises/v2_pecho_10.png" class="exercise-img"></td><td>Pull-over con mancuerna Inclinado</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">11</td><td><img src="public/exercises/v2_pecho_11.png" class="exercise-img"></td><td>Press banca declinado</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">12</td><td><img src="public/exercises/v2_pecho_12.png" class="exercise-img"></td><td>Flexiones de brazos</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">13</td><td><img src="public/exercises/v2_pecho_13.png" class="exercise-img"></td><td>Aperturas de Pecho maquina</td><td><span class="category-badge">Pecho</span></td></tr>
-        <tr><td class="id-cell">14</td><td><img src="public/exercises/v2_pecho_14.png" class="exercise-img"></td><td>Fondos de pecho</td><td><span class="category-badge">Pecho</span></td></tr>
+    <tbody id="exerciseTableBody">
 
-        <!-- DORSAL (15-24, 99) -->
-        <tr><td colspan="4" class="section-header">DORSAL</td></tr>
-        <tr><td class="id-cell">15</td><td><img src="public/exercises/v2_dorsal_15.png" class="exercise-img"></td><td>Dominadas asistidas</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">16</td><td><img src="public/exercises/v2_dorsal_16.png" class="exercise-img"></td><td>Jalón al pecho agarre estrecho</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">17</td><td><img src="public/exercises/v2_dorsal_17.png" class="exercise-img"></td><td>Jalón al pecho agarre ancho</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">18</td><td><img src="public/exercises/v2_dorsal_18.png" class="exercise-img"></td><td>Jalón al pecho con brazos rectos</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">19</td><td><img src="public/exercises/v2_dorsal_19.png" class="exercise-img"></td><td>Jalón al pecho agarre neutro</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">20</td><td><img src="public/exercises/v2_dorsal_20.png" class="exercise-img"></td><td>Remo en polea baja (Gironda)</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">21</td><td><img src="public/exercises/v2_dorsal_21.png" class="exercise-img"></td><td>Remo en máquina</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">22</td><td><img src="public/exercises/v2_dorsal_22.png" class="exercise-img"></td><td>Remo con mancuerna</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">23</td><td><img src="public/exercises/v2_dorsal_23.png" class="exercise-img"></td><td>Remo con barra</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">24</td><td><img src="public/exercises/v2_dorsal_24.png" class="exercise-img"></td><td>Remo en banco con mancuernas una mano</td><td><span class="category-badge">Dorsal</span></td></tr>
-        <tr><td class="id-cell">99</td><td><img src="public/exercises/v2_dorsal_99.png" class="exercise-img"></td><td>Pullover tumbado en banco con mancuerna</td><td><span class="category-badge">Dorsal</span></td></tr>
-
-        <!-- BICEPS (25-38) -->
-        <tr><td colspan="4" class="section-header">BÍCEPS</td></tr>
-        <tr><td class="id-cell">25</td><td><img src="public/exercises/v2_biceps_25.png" class="exercise-img"></td><td>Curl con barra</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">26</td><td><img src="public/exercises/v2_biceps_26.png" class="exercise-img"></td><td>Curl predicador (Banco Scott)</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">27</td><td><img src="public/exercises/v2_biceps_27.png" class="exercise-img"></td><td>Curl con mancuernas alterno</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">28</td><td><img src="public/exercises/v2_biceps_28.png" class="exercise-img"></td><td>Curl con mancuernas sentado</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">29</td><td><img src="public/exercises/v2_biceps_29.png" class="exercise-img"></td><td>Curl con mancuernas banco inclinado</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">30</td><td><img src="public/exercises/v2_biceps_30.png" class="exercise-img"></td><td>Curl en polea baja</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">31</td><td><img src="public/exercises/v2_biceps_31.png" class="exercise-img"></td><td>Curl de bíceps martillo con polea baja</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">32</td><td><img src="public/exercises/v2_biceps_32.png" class="exercise-img"></td><td>Curl concentrado</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">33</td><td><img src="public/exercises/v2_biceps_33.png" class="exercise-img"></td><td>Dominadas asistidas (Bíceps)</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">34</td><td><img src="public/exercises/v2_biceps_34.png" class="exercise-img"></td><td>Curl tumbado barra z en polea gironda</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">35</td><td><img src="public/exercises/v2_biceps_35.png" class="exercise-img"></td><td>Curl de antebrazo supinación</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">36</td><td><img src="public/exercises/v2_biceps_36.png" class="exercise-img"></td><td>Curl de antebrazo pronación</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">37</td><td><img src="public/exercises/v2_biceps_37.png" class="exercise-img"></td><td>Enrollamiento de muñeca</td><td><span class="category-badge">Bíceps</span></td></tr>
-        <tr><td class="id-cell">38</td><td><img src="public/exercises/v2_biceps_38.png" class="exercise-img"></td><td>Curl invertido con barra</td><td><span class="category-badge">Bíceps</span></td></tr>
-
-        <!-- TRICEPS (39-49) -->
-        <tr><td colspan="4" class="section-header">TRÍCEPS</td></tr>
-        <tr><td class="id-cell">39</td><td><img src="public/exercises/v2_triceps_39.png" class="exercise-img"></td><td>Curl tríceps polea alta</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">40</td><td><img src="public/exercises/v2_triceps_40.png" class="exercise-img"></td><td>Extensión tras nuca con polea alta</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">41</td><td><img src="public/exercises/v2_triceps_41.png" class="exercise-img"></td><td>Extensión en polea alta</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">42</td><td><img src="public/exercises/v2_triceps_42.png" class="exercise-img"></td><td>Press francés con barra</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">43</td><td><img src="public/exercises/v2_triceps_43.png" class="exercise-img"></td><td>Press francés con barra z</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">44</td><td><img src="public/exercises/v2_triceps_44.png" class="exercise-img"></td><td>Extensión de tríceps a una mano</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">45</td><td><img src="public/exercises/v2_triceps_45.png" class="exercise-img"></td><td>Press de banca agarre cerrado una mano</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">46</td><td><img src="public/exercises/v2_triceps_46.png" class="exercise-img"></td><td>Patada de tríceps con mancuerna</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">47</td><td><img src="public/exercises/v2_triceps_47.png" class="exercise-img"></td><td>Press francés de pie</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">48</td><td><img src="public/exercises/v2_triceps_48.png" class="exercise-img"></td><td>Fondos en paralelas / máquina</td><td><span class="category-badge">Tríceps</span></td></tr>
-        <tr><td class="id-cell">49</td><td><img src="public/exercises/v2_triceps_49.png" class="exercise-img"></td><td>Fondos entre bancos</td><td><span class="category-badge">Tríceps</span></td></tr>
-
-        <!-- HOMBRO (50-62, 98) -->
-        <tr><td colspan="4" class="section-header">HOMBRO</td></tr>
-        <tr><td class="id-cell">50</td><td><img src="public/exercises/v2_hombro_50.png" class="exercise-img"></td><td>Press militar en máquina</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">51</td><td><img src="public/exercises/v2_hombro_51.png" class="exercise-img"></td><td>Press militar con barra sentado</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">52</td><td><img src="public/exercises/v2_hombro_52.png" class="exercise-img"></td><td>Press de hombro con barra</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">53</td><td><img src="public/exercises/v2_hombro_53.png" class="exercise-img"></td><td>Press con mancuernas sentado</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">54</td><td><img src="public/exercises/v2_hombro_54.png" class="exercise-img"></td><td>Elevaciones laterales con mancuernas</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">55</td><td><img src="public/exercises/v2_hombro_55.png" class="exercise-img"></td><td>Elevación lateral en polea baja</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">56</td><td><img src="public/exercises/v2_hombro_56.png" class="exercise-img"></td><td>Elevación frontal con mancuernas</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">57</td><td><img src="public/exercises/v2_hombro_57.png" class="exercise-img"></td><td>Pájaros sentado con mancuerna</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">58</td><td><img src="public/exercises/v2_hombro_58.png" class="exercise-img"></td><td>Elevación lateral polea baja (V2)</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">59</td><td><img src="public/exercises/v2_hombro_59.png" class="exercise-img"></td><td>Elevación frontal en polea</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">60</td><td><img src="public/exercises/v2_hombro_60.png" class="exercise-img"></td><td>Remo mentón con barra</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">61</td><td><img src="public/exercises/v2_hombro_61.png" class="exercise-img"></td><td>Elevación de hombros en polea baja</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">62</td><td><img src="public/exercises/v2_hombro_62.png" class="exercise-img"></td><td>Encogimiento de hombros con mancuernas</td><td><span class="category-badge">Hombro</span></td></tr>
-        <tr><td class="id-cell">98</td><td><img src="public/exercises/v2_hombro_98.png" class="exercise-img"></td><td>Hombro posterior polea alta a una mano</td><td><span class="category-badge">Hombro</span></td></tr>
-
-        <!-- PIERNA (63-75) -->
-        <tr><td colspan="4" class="section-header">PIERNA</td></tr>
-        <tr><td class="id-cell">63</td><td><img src="public/exercises/v2_pierna_63.png" class="exercise-img"></td><td>Extensión de cuádriceps</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">64</td><td><img src="public/exercises/v2_pierna_64.png" class="exercise-img"></td><td>Prensa de piernas inclinada</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">65</td><td><img src="public/exercises/v2_pierna_65.png" class="exercise-img"></td><td>Sentadilla en máquina (Hack)</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">66</td><td><img src="public/exercises/v2_pierna_66.png" class="exercise-img"></td><td>Sentadilla con barra</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">67</td><td><img src="public/exercises/v2_pierna_67.png" class="exercise-img"></td><td>Prensa de piernas horizontal</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">68</td><td><img src="public/exercises/v2_pierna_68.png" class="exercise-img"></td><td>Curl femoral tumbado</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">69</td><td><img src="public/exercises/v2_pierna_69.png" class="exercise-img"></td><td>Curl femoral sentado</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">70</td><td><img src="public/exercises/v2_pierna_70.png" class="exercise-img"></td><td>Peso muerto rumano</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">71</td><td><img src="public/exercises/v2_pierna_71.png" class="exercise-img"></td><td>Zancadas / Estocadas</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">72</td><td><img src="public/exercises/v2_pierna_72.png" class="exercise-img"></td><td>Elevación de gemelos de pie</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">73</td><td><img src="public/exercises/v2_pierna_73.png" class="exercise-img"></td><td>Elevación de gemelos sentado</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">74</td><td><img src="public/exercises/v2_pierna_74.png" class="exercise-img"></td><td>Gemelos en prensa</td><td><span class="category-badge">Pierna</span></td></tr>
-        <tr><td class="id-cell">75</td><td><img src="public/exercises/v2_pierna_75.png" class="exercise-img"></td><td>Abducción de cadera de pie (polea)</td><td><span class="category-badge">Pierna</span></td></tr>
-
-        <!-- GLÚTEO (76-82) -->
-        <tr><td colspan="4" class="section-header">GLÚTEO</td></tr>
-        <tr><td class="id-cell">76</td><td><img src="public/exercises/v2_gluteo_76.png" class="exercise-img"></td><td>Extensión de pierna en máquina (Kickback)</td><td><span class="category-badge">Glúteo</span></td></tr>
-        <tr><td class="id-cell">77</td><td><img src="public/exercises/v2_gluteo_77.png" class="exercise-img"></td><td>Extensión de pierna en polea baja</td><td><span class="category-badge">Glúteo</span></td></tr>
-        <tr><td class="id-cell">78</td><td><img src="public/exercises/v2_gluteo_78.png" class="exercise-img"></td><td>Abductor (Máquina o Polea)</td><td><span class="category-badge">Glúteo</span></td></tr>
-        <tr><td class="id-cell">79</td><td><img src="public/exercises/v2_gluteo_79.png" class="exercise-img"></td><td>Aductor (Máquina o Polea)</td><td><span class="category-badge">Glúteo</span></td></tr>
-        <tr><td class="id-cell">80</td><td><img src="public/exercises/v2_gluteo_80.png" class="exercise-img"></td><td>Patada lateral de glúteo</td><td><span class="category-badge">Glúteo</span></td></tr>
-        <tr><td class="id-cell">81</td><td><img src="public/exercises/v2_gluteo_81.png" class="exercise-img"></td><td>Puentes de glúteo (Hip Thrust)</td><td><span class="category-badge">Glúteo</span></td></tr>
-        <tr><td class="id-cell">82</td><td><img src="public/exercises/v2_gluteo_82.png" class="exercise-img"></td><td>Abducción de cadera con banda elástica</td><td><span class="category-badge">Glúteo</span></td></tr>
-
-        <!-- ABDOMEN (83-97) -->
-        <tr><td colspan="4" class="section-header">ABDOMEN</td></tr>
-        <tr><td class="id-cell">83</td><td><img src="public/exercises/v2_abdomen_83.png" class="exercise-img"></td><td>Crunch en máquina</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">84</td><td><img src="public/exercises/v2_abdomen_84.png" class="exercise-img"></td><td>Crunch en banco declinado</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">85</td><td><img src="public/exercises/v2_abdomen_85.png" class="exercise-img"></td><td>Elevación de piernas (Silla romana)</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">86</td><td><img src="public/exercises/v2_abdomen_86.png" class="exercise-img"></td><td>Crunch abdominal banco declinado</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">87</td><td><img src="public/exercises/v2_abdomen_87.png" class="exercise-img"></td><td>Crunch de rodillas en banco</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">88</td><td><img src="public/exercises/v2_abdomen_88.png" class="exercise-img"></td><td>Elevación de piernas en banco</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">89</td><td><img src="public/exercises/v2_abdomen_89.png" class="exercise-img"></td><td>Crunch abdominal piernas elevadas banco</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">90</td><td><img src="public/exercises/v2_abdomen_90.png" class="exercise-img"></td><td>Encogimiento de piernas</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">91</td><td><img src="public/exercises/v2_abdomen_91.png" class="exercise-img"></td><td>Giro de tronco (Oblicuos)</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">92</td><td><img src="public/exercises/v2_abdomen_92.png" class="exercise-img"></td><td>Abdominal oblicuo con mancuerna de pie</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">93</td><td><img src="public/exercises/v2_abdomen_93.png" class="exercise-img"></td><td>Giro de tronco con pica</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">94</td><td><img src="public/exercises/v2_abdomen_94.png" class="exercise-img"></td><td>Extensiones de tronco en banco</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">95</td><td><img src="public/exercises/v2_abdomen_95.png" class="exercise-img"></td><td>Flexiones con barra (Good Mornings)</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">96</td><td><img src="public/exercises/v2_abdomen_96.png" class="exercise-img"></td><td>Flexiones de pie con barra trasnuca</td><td><span class="category-badge">Abdomen</span></td></tr>
-        <tr><td class="id-cell">97</td><td><img src="public/exercises/v2_abdomen_97.png" class="exercise-img"></td><td>Plancha abdominal (Plank)</td><td><span class="category-badge">Abdomen</span></td></tr>
+        <tr>
+            <td class="id-cell">#1</td>
+            <td>
+                <img src="./exercises/v2_pecho_1.png" class="exercise-img" alt="Press de banca plano con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca plano con barra</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#2</td>
+            <td>
+                <img src="./exercises/v2_pecho_2.png" class="exercise-img" alt="Press de banca inclinado con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca inclinado con barra</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#3</td>
+            <td>
+                <img src="./exercises/v2_pecho_3.png" class="exercise-img" alt="Press de banca declinado con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca declinado con barra</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#4</td>
+            <td>
+                <img src="./exercises/v2_pecho_4.png" class="exercise-img" alt="Press de banca plano con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca plano con mancuernas</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#5</td>
+            <td>
+                <img src="./exercises/v2_pecho_5.png" class="exercise-img" alt="Press de banca declinado con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca declinado con mancuernas</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#6</td>
+            <td>
+                <img src="./exercises/v2_pecho_6.png" class="exercise-img" alt="Aperturas planas con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Aperturas planas con mancuernas</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#7</td>
+            <td>
+                <img src="./exercises/v2_pecho_7.png" class="exercise-img" alt="Aperturas inclinadas con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Aperturas inclinadas con mancuernas</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#8</td>
+            <td>
+                <img src="./exercises/v2_pecho_8.png" class="exercise-img" alt="Press de pecho en máquina sentado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de pecho en máquina sentado</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#9</td>
+            <td>
+                <img src="./exercises/v2_pecho_9.png" class="exercise-img" alt="Press de banca" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#10</td>
+            <td>
+                <img src="./exercises/v2_pecho_10.png" class="exercise-img" alt="Pull-over con mancuerna Inclinado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Pull-over con mancuerna Inclinado</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#11</td>
+            <td>
+                <img src="./exercises/v2_pecho_11.png" class="exercise-img" alt="Press banca declinado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press banca declinado</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#12</td>
+            <td>
+                <img src="./exercises/v2_pecho_12.png" class="exercise-img" alt="Flexiones de brazos" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Flexiones de brazos</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#13</td>
+            <td>
+                <img src="./exercises/v2_pecho_13.png" class="exercise-img" alt="Aperturas de Pecho maquina" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Aperturas de Pecho maquina</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#14</td>
+            <td>
+                <img src="./exercises/v2_pecho_14.png" class="exercise-img" alt="Fondos de pecho" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Fondos de pecho</strong></td>
+            <td><span class="category-badge">Pecho</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#15</td>
+            <td>
+                <img src="./exercises/v2_dorsal_15.png" class="exercise-img" alt="Dominadas asistidas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Dominadas asistidas</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#16</td>
+            <td>
+                <img src="./exercises/v2_dorsal_16.png" class="exercise-img" alt="Jalón al pecho agarre estrecho" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Jalón al pecho agarre estrecho</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#17</td>
+            <td>
+                <img src="./exercises/v2_dorsal_17.png" class="exercise-img" alt="Jalón al pecho agarre ancho" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Jalón al pecho agarre ancho</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#18</td>
+            <td>
+                <img src="./exercises/v2_dorsal_18.png" class="exercise-img" alt="Jalón al pecho con brazos rectos" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Jalón al pecho con brazos rectos</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#19</td>
+            <td>
+                <img src="./exercises/v2_dorsal_19.png" class="exercise-img" alt="Jalón al pecho agarre neutro" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Jalón al pecho agarre neutro</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#20</td>
+            <td>
+                <img src="./exercises/v2_dorsal_20.png" class="exercise-img" alt="Remo en polea baja (Gironda)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Remo en polea baja (Gironda)</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#21</td>
+            <td>
+                <img src="./exercises/v2_dorsal_21.png" class="exercise-img" alt="Remo en máquina" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Remo en máquina</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#22</td>
+            <td>
+                <img src="./exercises/v2_dorsal_22.png" class="exercise-img" alt="Remo con mancuerna" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Remo con mancuerna</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#23</td>
+            <td>
+                <img src="./exercises/v2_dorsal_23.png" class="exercise-img" alt="Remo con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Remo con barra</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#24</td>
+            <td>
+                <img src="./exercises/v2_dorsal_24.png" class="exercise-img" alt="Remo en banco con mancuernas una mano" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Remo en banco con mancuernas una mano</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#25</td>
+            <td>
+                <img src="./exercises/v2_biceps_25.png" class="exercise-img" alt="Curl con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl con barra</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#26</td>
+            <td>
+                <img src="./exercises/v2_biceps_26.png" class="exercise-img" alt="Curl predicador (Banco Scott)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl predicador (Banco Scott)</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#27</td>
+            <td>
+                <img src="./exercises/v2_biceps_27.png" class="exercise-img" alt="Curl con mancuernas alterno" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl con mancuernas alterno</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#28</td>
+            <td>
+                <img src="./exercises/v2_biceps_28.png" class="exercise-img" alt="Curl con mancuernas sentado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl con mancuernas sentado</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#29</td>
+            <td>
+                <img src="./exercises/v2_biceps_29.png" class="exercise-img" alt="Curl con mancuernas banco inclinado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl con mancuernas banco inclinado</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#30</td>
+            <td>
+                <img src="./exercises/v2_biceps_30.png" class="exercise-img" alt="Curl en polea baja" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl en polea baja</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#31</td>
+            <td>
+                <img src="./exercises/v2_biceps_31.png" class="exercise-img" alt="Curl de bíceps martillo con polea baja" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl de bíceps martillo con polea baja</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#32</td>
+            <td>
+                <img src="./exercises/v2_biceps_32.png" class="exercise-img" alt="Curl concentrado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl concentrado</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#33</td>
+            <td>
+                <img src="./exercises/v2_biceps_33.png" class="exercise-img" alt="Dominadas asistidas (Bíceps)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Dominadas asistidas (Bíceps)</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#34</td>
+            <td>
+                <img src="./exercises/v2_biceps_34.png" class="exercise-img" alt="Curl tumbado barra z en polea gironda" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl tumbado barra z en polea gironda</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#35</td>
+            <td>
+                <img src="./exercises/v2_biceps_35.png" class="exercise-img" alt="Curl de antebrazo supinación" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl de antebrazo supinación</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#36</td>
+            <td>
+                <img src="./exercises/v2_biceps_36.png" class="exercise-img" alt="Curl de antebrazo pronación" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl de antebrazo pronación</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#37</td>
+            <td>
+                <img src="./exercises/v2_biceps_37.png" class="exercise-img" alt="Enrollamiento de muñeca" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Enrollamiento de muñeca</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#38</td>
+            <td>
+                <img src="./exercises/v2_biceps_38.png" class="exercise-img" alt="Curl invertido con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl invertido con barra</strong></td>
+            <td><span class="category-badge">Bíceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#39</td>
+            <td>
+                <img src="./exercises/v2_triceps_39.png" class="exercise-img" alt="Curl tríceps polea alta" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl tríceps polea alta</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#40</td>
+            <td>
+                <img src="./exercises/v2_triceps_40.png" class="exercise-img" alt="Extensión tras nuca con polea alta" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensión tras nuca con polea alta</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#41</td>
+            <td>
+                <img src="./exercises/v2_triceps_41.png" class="exercise-img" alt="Extensión en polea alta" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensión en polea alta</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#42</td>
+            <td>
+                <img src="./exercises/v2_triceps_42.png" class="exercise-img" alt="Press francés con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press francés con barra</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#43</td>
+            <td>
+                <img src="./exercises/v2_triceps_43.png" class="exercise-img" alt="Press francés con barra z" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press francés con barra z</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#44</td>
+            <td>
+                <img src="./exercises/v2_triceps_44.png" class="exercise-img" alt="Extensión de tríceps a una mano" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensión de tríceps a una mano</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#45</td>
+            <td>
+                <img src="./exercises/v2_triceps_45.png" class="exercise-img" alt="Press de banca agarre cerrado una mano" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de banca agarre cerrado una mano</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#46</td>
+            <td>
+                <img src="./exercises/v2_triceps_46.png" class="exercise-img" alt="Patada de tríceps con mancuerna" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Patada de tríceps con mancuerna</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#47</td>
+            <td>
+                <img src="./exercises/v2_triceps_47.png" class="exercise-img" alt="Press francés de pie" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press francés de pie</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#48</td>
+            <td>
+                <img src="./exercises/v2_triceps_48.png" class="exercise-img" alt="Fondos en paralelas / máquina" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Fondos en paralelas / máquina</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#49</td>
+            <td>
+                <img src="./exercises/v2_triceps_49.png" class="exercise-img" alt="Fondos entre bancos" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Fondos entre bancos</strong></td>
+            <td><span class="category-badge">Tríceps</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#50</td>
+            <td>
+                <img src="./exercises/v2_hombro_50.png" class="exercise-img" alt="Press militar en máquina" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press militar en máquina</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#51</td>
+            <td>
+                <img src="./exercises/v2_hombro_51.png" class="exercise-img" alt="Press militar con barra sentado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press militar con barra sentado</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#52</td>
+            <td>
+                <img src="./exercises/v2_hombro_52.png" class="exercise-img" alt="Press de hombro con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press de hombro con barra</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#53</td>
+            <td>
+                <img src="./exercises/v2_hombro_53.png" class="exercise-img" alt="Press con mancuernas sentado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Press con mancuernas sentado</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#54</td>
+            <td>
+                <img src="./exercises/v2_hombro_54.png" class="exercise-img" alt="Elevaciones laterales con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevaciones laterales con mancuernas</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#55</td>
+            <td>
+                <img src="./exercises/v2_hombro_55.png" class="exercise-img" alt="Elevación lateral en polea baja" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación lateral en polea baja</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#56</td>
+            <td>
+                <img src="./exercises/v2_hombro_56.png" class="exercise-img" alt="Elevación frontal con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación frontal con mancuernas</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#57</td>
+            <td>
+                <img src="./exercises/v2_hombro_57.png" class="exercise-img" alt="Pájaros sentado con mancuerna" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Pájaros sentado con mancuerna</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#58</td>
+            <td>
+                <img src="./exercises/v2_hombro_58.png" class="exercise-img" alt="Elevación lateral polea baja (V2)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación lateral polea baja (V2)</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#59</td>
+            <td>
+                <img src="./exercises/v2_hombro_59.png" class="exercise-img" alt="Elevación frontal en polea" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación frontal en polea</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#60</td>
+            <td>
+                <img src="./exercises/v2_hombro_60.png" class="exercise-img" alt="Remo mentón con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Remo mentón con barra</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#61</td>
+            <td>
+                <img src="./exercises/v2_hombro_61.png" class="exercise-img" alt="Elevación de hombros en polea baja" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación de hombros en polea baja</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#62</td>
+            <td>
+                <img src="./exercises/v2_hombro_62.png" class="exercise-img" alt="Encogimiento de hombros con mancuernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Encogimiento de hombros con mancuernas</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#63</td>
+            <td>
+                <img src="./exercises/v2_pierna_63.png" class="exercise-img" alt="Extensión de cuádriceps" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensión de cuádriceps</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#64</td>
+            <td>
+                <img src="./exercises/v2_pierna_64.png" class="exercise-img" alt="Prensa de piernas inclinada" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Prensa de piernas inclinada</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#65</td>
+            <td>
+                <img src="./exercises/v2_pierna_65.png" class="exercise-img" alt="Sentadilla en máquina (Hack)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Sentadilla en máquina (Hack)</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#66</td>
+            <td>
+                <img src="./exercises/v2_pierna_66.png" class="exercise-img" alt="Sentadilla con barra" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Sentadilla con barra</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#67</td>
+            <td>
+                <img src="./exercises/v2_pierna_67.png" class="exercise-img" alt="Prensa de piernas horizontal" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Prensa de piernas horizontal</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#68</td>
+            <td>
+                <img src="./exercises/v2_pierna_68.png" class="exercise-img" alt="Curl femoral tumbado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl femoral tumbado</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#69</td>
+            <td>
+                <img src="./exercises/v2_pierna_69.png" class="exercise-img" alt="Curl femoral sentado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl femoral sentado</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#70</td>
+            <td>
+                <img src="./exercises/v2_pierna_70.png" class="exercise-img" alt="Peso muerto rumano" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Peso muerto rumano</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#71</td>
+            <td>
+                <img src="./exercises/v2_pierna_71.png" class="exercise-img" alt="Zancadas / Estocadas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Zancadas / Estocadas</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#72</td>
+            <td>
+                <img src="./exercises/v2_pierna_72.png" class="exercise-img" alt="Elevación de gemelos de pie" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación de gemelos de pie</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#73</td>
+            <td>
+                <img src="./exercises/v2_pierna_73.png" class="exercise-img" alt="Elevación de gemelos sentado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación de gemelos sentado</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#74</td>
+            <td>
+                <img src="./exercises/v2_pierna_74.png" class="exercise-img" alt="Gemelos en prensa" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Gemelos en prensa</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#75</td>
+            <td>
+                <img src="./exercises/v2_pierna_75.png" class="exercise-img" alt="Abducción de cadera de pie (polea)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Abducción de cadera de pie (polea)</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#76</td>
+            <td>
+                <img src="./exercises/v2_gluteo_76.png" class="exercise-img" alt="Extensión de pierna en máquina (Kickback)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensión de pierna en máquina (Kickback)</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#77</td>
+            <td>
+                <img src="./exercises/v2_gluteo_77.png" class="exercise-img" alt="Extensión de pierna en polea baja" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensión de pierna en polea baja</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#78</td>
+            <td>
+                <img src="./exercises/v2_gluteo_78.png" class="exercise-img" alt="Abductor (Máquina o Polea)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Abductor (Máquina o Polea)</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#79</td>
+            <td>
+                <img src="./exercises/v2_gluteo_79.png" class="exercise-img" alt="Aductor (Máquina o Polea)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Aductor (Máquina o Polea)</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#80</td>
+            <td>
+                <img src="./exercises/v2_gluteo_80.png" class="exercise-img" alt="Patada lateral de glúteo" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Patada lateral de glúteo</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#81</td>
+            <td>
+                <img src="./exercises/v2_gluteo_81.png" class="exercise-img" alt="Puentes de glúteo (Hip Thrust)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Puentes de glúteo (Hip Thrust)</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#82</td>
+            <td>
+                <img src="./exercises/v2_gluteo_82.png" class="exercise-img" alt="Abducción de cadera con banda elástica" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Abducción de cadera con banda elástica</strong></td>
+            <td><span class="category-badge">Glúteo</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#83</td>
+            <td>
+                <img src="./exercises/v2_abdomen_83.png" class="exercise-img" alt="Crunch en máquina" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Crunch en máquina</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#84</td>
+            <td>
+                <img src="./exercises/v2_abdomen_84.png" class="exercise-img" alt="Crunch en banco declinado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Crunch en banco declinado</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#85</td>
+            <td>
+                <img src="./exercises/v2_abdomen_85.png" class="exercise-img" alt="Elevación de piernas (Silla romana)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación de piernas (Silla romana)</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#86</td>
+            <td>
+                <img src="./exercises/v2_abdomen_86.png" class="exercise-img" alt="Crunch abdominal banco declinado" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Crunch abdominal banco declinado</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#87</td>
+            <td>
+                <img src="./exercises/v2_abdomen_87.png" class="exercise-img" alt="Crunch de rodillas en banco" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Crunch de rodillas en banco</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#88</td>
+            <td>
+                <img src="./exercises/v2_abdomen_88.png" class="exercise-img" alt="Elevación de piernas en banco" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Elevación de piernas en banco</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#89</td>
+            <td>
+                <img src="./exercises/v2_abdomen_89.png" class="exercise-img" alt="Crunch abdominal piernas elevadas banco" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Crunch abdominal piernas elevadas banco</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#90</td>
+            <td>
+                <img src="./exercises/v2_abdomen_90.png" class="exercise-img" alt="Encogimiento de piernas" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Encogimiento de piernas</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#91</td>
+            <td>
+                <img src="./exercises/v2_abdomen_91.png" class="exercise-img" alt="Giro de tronco (Oblicuos)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Giro de tronco (Oblicuos)</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#92</td>
+            <td>
+                <img src="./exercises/v2_abdomen_92.png" class="exercise-img" alt="Abdominal oblicuo con mancuerna de pie" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Abdominal oblicuo con mancuerna de pie</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#93</td>
+            <td>
+                <img src="./exercises/v2_abdomen_93.png" class="exercise-img" alt="Giro de tronco con pica" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Giro de tronco con pica</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#94</td>
+            <td>
+                <img src="./exercises/v2_abdomen_94.png" class="exercise-img" alt="Extensiones de tronco en banco" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Extensiones de tronco en banco</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#95</td>
+            <td>
+                <img src="./exercises/v2_abdomen_95.png" class="exercise-img" alt="Flexiones con barra (Good Mornings)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Flexiones con barra (Good Mornings)</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#96</td>
+            <td>
+                <img src="./exercises/v2_abdomen_96.png" class="exercise-img" alt="Flexiones de pie con barra trasnuca" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Flexiones de pie con barra trasnuca</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#97</td>
+            <td>
+                <img src="./exercises/v2_abdomen_97.png" class="exercise-img" alt="Plancha abdominal (Plank)" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Plancha abdominal (Plank)</strong></td>
+            <td><span class="category-badge">Abdomen</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#98</td>
+            <td>
+                <img src="./exercises/v2_hombro_98.png" class="exercise-img" alt="Hombro posterior polea alta a una mano" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Hombro posterior polea alta a una mano</strong></td>
+            <td><span class="category-badge">Hombro</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#99</td>
+            <td>
+                <img src="./exercises/v2_dorsal_99.png" class="exercise-img" alt="Pullover tumbado en banco con mancuerna" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Pullover tumbado en banco con mancuerna</strong></td>
+            <td><span class="category-badge">Dorsal</span></td>
+        </tr>
+        <tr>
+            <td class="id-cell">#100</td>
+            <td>
+                <img src="./exercises/calf-raise-machine.png" class="exercise-img" alt="Curl femoral sentado en maquina" onerror="this.src='https://via.placeholder.com/120x80/222/ff0000?text=Error'">
+            </td>
+            <td><strong>Curl femoral sentado en maquina</strong></td>
+            <td><span class="category-badge">Pierna</span></td>
+        </tr>
     </tbody>
 </table>
 
 <div class="actions">
-    <button onclick="window.print()" class="btn">Imprimir / Guardar como PDF</button>
+    <a href="#" class="btn" onclick="window.scrollTo(0,0)">↑ Volver Arriba</a>
 </div>
 
 <script>
 function filterTable() {
-    const q = document.getElementById('searchInput').value.toLowerCase().replace(/^#/, '').trim();
-    document.getElementById('clear-btn').style.display = q ? 'inline' : 'none';
-    const rows = document.querySelectorAll('tbody tr');
-    let visible = 0;
-    let lastSection = null;
-    rows.forEach(row => {
-        if (row.querySelector('.section-header')) {
-            lastSection = row;
-            row.classList.add('hidden');
-            return;
+    const input = document.getElementById("searchInput");
+    const filter = input.value.toUpperCase();
+    const tbody = document.getElementById("exerciseTableBody");
+    const tr = tbody.getElementsByTagName("tr");
+    let visibleCount = 0;
+
+    for (let i = 0; i < tr.length; i++) {
+        const tdId = tr[i].getElementsByTagName("td")[0];
+        const tdName = tr[i].getElementsByTagName("td")[2];
+        const tdCat = tr[i].getElementsByTagName("td")[3];
+        
+        if (tdId || tdName || tdCat) {
+            const txtId = tdId.textContent || tdId.innerText;
+            const txtName = tdName.textContent || tdName.innerText;
+            const txtCat = tdCat.textContent || tdCat.innerText;
+            
+            if (txtId.toUpperCase().indexOf(filter) > -1 || 
+                txtName.toUpperCase().indexOf(filter) > -1 ||
+                txtCat.toUpperCase().indexOf(filter) > -1) {
+                tr[i].style.display = "";
+                visibleCount++;
+            } else {
+                tr[i].style.display = "none";
+            }
         }
-        const id = row.querySelector('.id-cell')?.textContent.trim() || '';
-        const name = row.querySelector('td:nth-child(3)')?.textContent.trim() || '';
-        const match = !q || id.includes(q) || name.toLowerCase().includes(q);
-        row.classList.toggle('hidden', !match);
-        if (match) {
-            visible++;
-            if (lastSection) { lastSection.classList.remove('hidden'); lastSection = null; }
-        }
-    });
-    document.getElementById('count-label').textContent = q ? `${visible} resultado${visible !== 1 ? 's' : ''}` : '99 Ejercicios';
-}
-function clearSearch() {
-    document.getElementById('searchInput').value = '';
-    filterTable();
+    }
+    document.getElementById("total-count").innerText = visibleCount;
 }
 </script>
 
