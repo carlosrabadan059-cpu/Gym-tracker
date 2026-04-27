@@ -448,8 +448,10 @@ export function TrainerLibraryView({ onBack }) {
     }, []);
 
     const groups = useMemo(() => {
+        const query = searchQuery.toLowerCase().trim();
         const filtered = catalog.filter(ex =>
-            ex.name.toLowerCase().includes(searchQuery.toLowerCase())
+            ex.name.toLowerCase().includes(query) ||
+            ex.id.toString().includes(query)
         );
         const map = {};
         for (const ex of filtered) {
