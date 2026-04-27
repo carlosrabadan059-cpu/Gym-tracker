@@ -3,9 +3,8 @@ import { supabase } from '../../lib/supabase';
 import { ArrowLeft, Search, Dumbbell, ChevronDown, ChevronRight, Plus, X, Trash2, Check, ImageIcon, Pencil } from 'lucide-react';
 
 const MUSCLE_GROUPS = [
-    'Pecho', 'Espalda', 'Hombros', 'Bíceps', 'Tríceps',
-    'Cuádriceps', 'Isquiotibiales', 'Glúteos', 'Pantorrillas',
-    'Abdominales', 'Cardio', 'Otros',
+    'Pecho', 'Dorsal', 'Hombro', 'Bíceps', 'Tríceps',
+    'Pierna', 'Glúteo', 'Abdomen', 'Cardio', 'Otros',
 ];
 
 // Todas las imágenes locales disponibles en /public/exercises/
