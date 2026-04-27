@@ -76,7 +76,7 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
                             onChange={(v) => onUpdate(ex.id, 'series', v)}
                         />
                         <Stepper
-                            label="Reps"
+                            label={ex.id === 97 || ex.name?.toLowerCase().includes('plancha') ? "Min" : "Reps"}
                             value={selected.reps}
                             onChange={(v) => onUpdate(ex.id, 'reps', v)}
                         />

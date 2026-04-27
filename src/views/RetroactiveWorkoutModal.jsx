@@ -61,6 +61,27 @@ const StepLogExercises = ({ exercises, logsData, onChange }) => (
     <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
         {exercises.map(ex => {
             const setCount = parseInt(ex.series) || 3;
+            const exerciseName = (ex.name || '').toLowerCase();
+            let isBodyweight = false;
+            if (ex.catalog_id) {
+                isBodyweight = [84, 85, 86, 87, 88, 89, 90, 91, 93, 94].includes(Number(ex.catalog_id));
+            } else {
+                const hasWeightKeywords = exerciseName.includes('máquina') || exerciseName.includes('mancuerna') || exerciseName.includes('barra') || exerciseName.includes('polea') || exerciseName.includes('disco');
+                isBodyweight = !hasWeightKeywords && (
+                    exerciseName.includes('abdominal') ||
+                    exerciseName.includes('crunch') ||
+                    (exerciseName.includes('elevación') && (exerciseName.includes('pierna') || exerciseName.includes('rodilla') || exerciseName.includes('pelvis'))) ||
+                    exerciseName.includes('encogimiento') ||
+                    exerciseName.includes('lumbar') ||
+                    exerciseName.includes('plancha')
+                );
+            }
+            let isTimeBased = false;
+            if (ex.catalog_id) {
+                isTimeBased = Number(ex.catalog_id) === 97;
+            } else {
+                isTimeBased = exerciseName.includes('plancha');
+            }
             return (
                 <div key={ex.id} className="bg-background rounded-xl border border-surface-highlight p-3">
                     <div className="flex items-center gap-2 mb-3">
@@ -76,16 +97,18 @@ const StepLogExercises = ({ exercises, logsData, onChange }) => (
                         {Array.from({ length: setCount }, (_, i) => (
                             <div key={i} className="flex items-center gap-2">
                                 <span className="w-6 text-xs text-text-secondary font-mono text-center">{i + 1}</span>
-                                <div className="flex-1 flex items-center gap-1 bg-surface border border-surface-highlight rounded-lg px-3 py-1.5">
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        value={logsData[ex.id]?.setsData?.[i]?.weight || ''}
-                                        onChange={e => onChange(ex.id, i, 'weight', e.target.value)}
-                                        className="w-full bg-transparent text-text-primary text-right text-sm font-mono focus:outline-none placeholder-text-secondary/50"
-                                    />
-                                    <span className="text-xs text-text-secondary flex-shrink-0">kg</span>
-                                </div>
+                                {!isBodyweight && !isTimeBased && (
+                                    <div className="flex-1 flex items-center gap-1 bg-surface border border-surface-highlight rounded-lg px-3 py-1.5">
+                                        <input
+                                            type="number"
+                                            placeholder="0"
+                                            value={logsData[ex.id]?.setsData?.[i]?.weight || ''}
+                                            onChange={e => onChange(ex.id, i, 'weight', e.target.value)}
+                                            className="w-full bg-transparent text-text-primary text-right text-sm font-mono focus:outline-none placeholder-text-secondary/50"
+                                        />
+                                        <span className="text-xs text-text-secondary flex-shrink-0">kg</span>
+                                    </div>
+                                )}
                                 <div className="flex-1 flex items-center gap-1 bg-surface border border-surface-highlight rounded-lg px-3 py-1.5">
                                     <input
                                         type="number"
@@ -94,7 +117,7 @@ const StepLogExercises = ({ exercises, logsData, onChange }) => (
                                         onChange={e => onChange(ex.id, i, 'reps', e.target.value)}
                                         className="w-full bg-transparent text-text-primary text-right text-sm font-mono focus:outline-none placeholder-text-secondary/50"
                                     />
-                                    <span className="text-xs text-text-secondary flex-shrink-0">reps</span>
+                                    <span className="text-xs text-text-secondary flex-shrink-0">{isTimeBased ? 'min' : 'reps'}</span>
                                 </div>
                             </div>
                         ))}

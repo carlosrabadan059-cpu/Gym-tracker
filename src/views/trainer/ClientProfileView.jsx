@@ -27,7 +27,7 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
 
 // ─── Mapa estático id → nombre ───────────────────────────────────────────────
 const STATIC_ID_TO_NAME = {};
-staticRoutines.forEach(r => r.exercises.forEach(ex => { STATIC_ID_TO_NAME[String(ex.id)] = ex.name; }));
+staticRoutines.forEach(r => r.exercises.forEach(ex => { STATIC_ID_TO_NAME[String(ex.id)] = { name: ex.name, catalog_id: ex.catalog_id }; }));
 
 // ─── Panel detalle de sesión ─────────────────────────────────────────────────
 
@@ -41,13 +41,13 @@ function WorkoutDetailPanel({ entry, onClose }) {
 
         supabase
             .from('exercises')
-            .select('id, name')
+            .select('id, name, catalog_id')
             .in('id', ids.map(Number))
             .then(({ data }) => {
                 if (data) {
                     setNameMap(prev => {
                         const next = { ...prev };
-                        data.forEach(ex => { next[String(ex.id)] = ex.name; });
+                        data.forEach(ex => { next[String(ex.id)] = { name: ex.name, catalog_id: ex.catalog_id }; });
                         return next;
                     });
                 }
@@ -59,11 +59,17 @@ function WorkoutDetailPanel({ entry, onClose }) {
         if (!entry.logs) return [];
         return Object.entries(entry.logs)
             .filter(([k]) => k !== 'workoutDuration' && k !== 'cardio')
-            .map(([id, log]) => ({
-                id,
-                name: nameMap[id] || `Ejercicio #${id}`,
-                sets: Object.values(log.setsData || {}),
-            }));
+            .map(([id, log]) => {
+                const mapData = nameMap[id];
+                const name = mapData ? (typeof mapData === 'string' ? mapData : mapData.name) : `Ejercicio #${id}`;
+                const catalog_id = mapData && typeof mapData !== 'string' ? mapData.catalog_id : null;
+                return {
+                    id,
+                    name,
+                    catalog_id,
+                    sets: Object.values(log.setsData || {}),
+                };
+            });
     }, [entry.logs, nameMap]);
 
     const duration = entry.logs?.workoutDuration;
@@ -119,13 +125,21 @@ function WorkoutDetailPanel({ entry, onClose }) {
                                         doneSets.map((set, i) => {
                                             const w = parseFloat(String(set.weight || '0').replace(',', '.')) || 0;
                                             const r = parseInt(set.reps) || 0;
+                                            const isBodyweightAbs = ex.catalog_id && [84, 85, 86, 87, 88, 89, 90, 91, 93, 94].includes(Number(ex.catalog_id));
+                                            const isTimeBased = ex.catalog_id && Number(ex.catalog_id) === 97;
                                             return (
                                                 <div key={i} className="flex items-center gap-2">
                                                     <span className="text-xs text-text-secondary w-12">Serie {i + 1}</span>
                                                     <span className="text-xs font-mono font-bold text-text-primary">
-                                                        {w > 0 ? `${w} kg` : '—'}
-                                                        {w > 0 && r > 0 ? ' × ' : ''}
-                                                        {r > 0 ? `${r} reps` : ''}
+                                                        {isBodyweightAbs || isTimeBased ? (
+                                                            r > 0 ? `${r} ${isTimeBased ? 'min' : 'reps'}` : '—'
+                                                        ) : (
+                                                            <>
+                                                                {w > 0 ? `${w} kg` : '—'}
+                                                                {w > 0 && r > 0 ? ' × ' : ''}
+                                                                {r > 0 ? `${r} reps` : ''}
+                                                            </>
+                                                        )}
                                                     </span>
                                                 </div>
                                             );
@@ -830,7 +844,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                                 />
                                                                             </div>
                                                                             <div className="flex flex-col items-center gap-0.5">
-                                                                                <span className="text-[9px] text-text-secondary uppercase">Reps</span>
+                                                                                <span className="text-[9px] text-text-secondary uppercase">{ex.catalog_id == 97 || ex.name?.toLowerCase().includes('plancha') ? "Min" : "Reps"}</span>
                                                                                 <Stepper
                                                                                     value={editingExercise.reps}
                                                                                     onChange={(v) => setEditingExercise(prev => ({ ...prev, reps: v }))}
@@ -852,7 +866,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                         </div>
                                                                     ) : (
                                                                         <div className="flex items-center gap-1 flex-shrink-0">
-                                                                            <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">{ex.series}×{ex.reps}</span>
+                                                                            <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">{ex.series}×{ex.reps}{ex.catalog_id == 97 || ex.name?.toLowerCase().includes('plancha') ? 'm' : ''}</span>
                                                                             <button
                                                                                 onClick={(e) => startEditExercise(e, ex, assignment.id)}
                                                                                 className="w-7 h-7 rounded-full hover:bg-surface-highlight flex items-center justify-center transition-colors"

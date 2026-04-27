@@ -21,12 +21,26 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
     const userWeight = profile?.weight || null;
 
     const exerciseName = (exercise?.name || '').toLowerCase();
-    const isBodyweight = exerciseName.includes('abdominal') ||
-        exerciseName.includes('crunch') ||
-        exerciseName.includes('elevación') ||
-        exerciseName.includes('encogimiento') ||
-        exerciseName.includes('lumbar') ||
-        exerciseName.includes('plancha');
+    let isBodyweight = false;
+    if (exercise.catalog_id) {
+        isBodyweight = [84, 85, 86, 87, 88, 89, 90, 91, 93, 94].includes(Number(exercise.catalog_id));
+    } else {
+        const hasWeightKeywords = exerciseName.includes('máquina') || exerciseName.includes('mancuerna') || exerciseName.includes('barra') || exerciseName.includes('polea') || exerciseName.includes('disco');
+        isBodyweight = !hasWeightKeywords && (
+            exerciseName.includes('abdominal') ||
+            exerciseName.includes('crunch') ||
+            (exerciseName.includes('elevación') && (exerciseName.includes('pierna') || exerciseName.includes('rodilla') || exerciseName.includes('pelvis'))) ||
+            exerciseName.includes('encogimiento') ||
+            exerciseName.includes('lumbar') ||
+            exerciseName.includes('plancha')
+        );
+    }
+    let isTimeBased = false;
+    if (exercise.catalog_id) {
+        isTimeBased = Number(exercise.catalog_id) === 97;
+    } else {
+        isTimeBased = exerciseName.includes('plancha');
+    }
 
     const [timerActive, setTimerActive] = useState(false);
     const [timeLeft, setTimeLeft] = useState(60);
@@ -455,7 +469,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                         </div>
                         <div className="h-full w-px bg-surface" />
                         <div className="text-center">
-                            <p className="text-xs text-text-secondary uppercase tracking-wider">Repeticiones</p>
+                            <p className="text-xs text-text-secondary uppercase tracking-wider">{isTimeBased ? 'Minutos' : 'Repeticiones'}</p>
                             <p className="text-2xl font-bold text-primary">{exercise.reps}</p>
                         </div>
                         <div className="h-full w-px bg-surface" />
@@ -477,8 +491,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
 
                         // Construye el badge del header con lo que es común a todas las series
                         const headerBadge = lastLog && sets.length > 0 ? [
-                            sharedWeight ? `${sharedWeight} kg` : null,
-                            sharedReps   ? `${sharedReps} reps` : null,
+                            sharedWeight && !isBodyweight ? `${sharedWeight} kg` : null,
+                            sharedReps   ? `${sharedReps} ${isTimeBased ? 'min' : 'reps'}` : null,
                         ].filter(Boolean).join(' × ') : null;
 
                         // Solo mostramos la lista de series si hay algo que varía
@@ -516,8 +530,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                                     <div className="space-y-1.5 mt-2">
                                         {sets.map(([idx, set]) => {
                                             const parts = [];
-                                            if (!sharedWeight && set.weight) parts.push(`${set.weight} kg`);
-                                            if (!sharedReps && set.reps)     parts.push(`${set.reps} reps`);
+                                            if (!sharedWeight && set.weight && !isBodyweight && !isTimeBased) parts.push(`${set.weight} kg`);
+                                            if (!sharedReps && set.reps)     parts.push(`${set.reps} ${isTimeBased ? 'min' : 'reps'}`);
                                             return (
                                                 <div key={idx} className="flex items-center justify-between text-sm">
                                                     <span className="text-text-secondary">Serie {parseInt(idx) + 1}</span>
@@ -543,7 +557,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                         {Array.from({ length: parseInt(exercise.series) || 3 }).map((_, i) => (
                             <div key={i} className="flex items-center gap-3">
                                 <span className="w-8 text-center font-bold text-text-secondary">{i + 1}</span>
-                                {!isBodyweight && (
+                                {!isBodyweight && !isTimeBased && (
                                     <div className={`flex-1 rounded-xl bg-background border px-4 py-3 flex items-center gap-2 transition-colors ${inputErrors[i] ? 'border-red-500 bg-red-500/10' : 'border-surface-highlight'
                                         }`}>
                                         <input
@@ -564,7 +578,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                                         onChange={(e) => handleInputChange(i, 'reps', e.target.value)}
                                         className="w-full bg-transparent text-black dark:text-white placeholder-text-secondary focus:outline-none text-right font-mono"
                                     />
-                                    <span className="text-xs text-text-secondary">reps</span>
+                                    <span className="text-xs text-text-secondary">{isTimeBased ? 'min' : 'reps'}</span>
                                 </div>
                                 <div
                                     className={`h-6 w-6 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${completedSets[i]
