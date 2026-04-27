@@ -502,6 +502,12 @@ export function TrainerLibraryView({ onBack }) {
                 .update({ name: editingName.trim(), image_url: editingImageUrl || null })
                 .eq('id', editingExId);
             if (error) throw error;
+
+            // Update all assigned exercises that use this catalog_id
+            await supabase
+                .from('exercises')
+                .update({ name: editingName.trim(), image_url: editingImageUrl || null })
+                .eq('catalog_id', editingExId);
             setCatalog(prev => prev.map(ex =>
                 ex.id === editingExId
                     ? { ...ex, name: editingName.trim(), image_url: editingImageUrl || null }
