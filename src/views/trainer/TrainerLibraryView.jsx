@@ -255,7 +255,7 @@ function AddExerciseModal({ onClose, onAdded }) {
                 .from('exercise_catalog')
                 .insert([{
                     name: name.trim(),
-                    target: finalGroup,
+                    category: finalGroup,
                     image_url: imageUrl || null,
                 }])
                 .select()
