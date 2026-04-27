@@ -63,8 +63,6 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
     const audioCtxRef = useRef(null);
     // Flag para evitar que el beep se dispare dos veces (SW message + visibilitychange)
     const beepFiredRef = useRef(false);
-    // Nodos de audio pre-programados con el reloj hardware (para background en iOS)
-    const scheduledNodesRef = useRef([]);
     // Ref que mantiene siempre el estado actual del timer (evita closures obsoletas)
     const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
     useEffect(() => {
@@ -81,14 +79,19 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             console.error("AudioContext error:", e);
         }
 
+        // Crear audio silencioso en loop para mantener JS despierto en iOS
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+        silentAudio.loop = true;
+        silentAudioRef.current = silentAudio;
+
         return () => {
             if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
                 audioCtxRef.current.close().catch(() => {});
             }
-            // Cancel any pending SW timer and pre-scheduled audio on unmount
+            if (silentAudioRef.current) {
+                silentAudioRef.current.pause();
+            }
             scheduleSWNotification(null);
-            scheduledNodesRef.current.forEach(n => { try { n.stop(); } catch (_) {} });
-            scheduledNodesRef.current = [];
         };
     }, []);
 
@@ -120,46 +123,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
         }
     };
 
-    // Cancela nodos de audio pre-programados (evita doble pitido cuando la app está visible)
-    const cancelScheduledAudio = useCallback(() => {
-        scheduledNodesRef.current.forEach(n => { try { n.stop(); } catch (_) {} });
-        scheduledNodesRef.current = [];
-    }, []);
-
-    // Pre-programa el pitido usando el reloj HARDWARE del Web Audio API.
-    // Este reloj NO se throttlea aunque el tab esté en segundo plano (funciona en iOS Safari).
-    const scheduleAudioAhead = useCallback((delaySeconds) => {
-        const ctx = audioCtxRef.current;
-        if (!ctx) return;
-
-        // Cancelar cualquier audio previo programado
-        scheduledNodesRef.current.forEach(n => { try { n.stop(); } catch (_) {} });
-        scheduledNodesRef.current = [];
-
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const futureTime = ctx.currentTime + delaySeconds;
-
-        const addBeep = (startTime, freq) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(freq, startTime);
-            gain.gain.setValueAtTime(0, startTime);
-            gain.gain.linearRampToValueAtTime(1, startTime + 0.05);
-            gain.gain.setValueAtTime(1, startTime + 0.4);
-            gain.gain.linearRampToValueAtTime(0, startTime + 0.5);
-            osc.start(startTime);
-            osc.stop(startTime + 0.5);
-            scheduledNodesRef.current.push(osc);
-        };
-
-        addBeep(futureTime, 880);
-        addBeep(futureTime + 0.6, 880);
-        addBeep(futureTime + 1.2, 1320);
-    }, []);
+    // Silent audio element reference to keep background alive
+    const silentAudioRef = useRef(null);
 
     const unlockAudio = () => {
         // Pedir permiso de notificación en el primer gesto del usuario
@@ -226,16 +191,13 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             setTargetTime(Date.now() + dur * 1000);
             setTimeLeft(dur);
             setTimerActive(true);
-            // Pre-programa el pitido con el reloj hardware (funciona en background iOS)
-            scheduleAudioAhead(dur);
+            silentAudioRef.current?.play().catch(() => {});
         }
     };
 
     // Audio context para el sonido de pitido + voz
     // La notificación nativa la gestiona el Service Worker desde el fondo.
     const playBeep = useCallback(() => {
-        // Cancelar el audio pre-programado para evitar doble pitido cuando la app está visible
-        cancelScheduledAudio();
         try {
             // Voz (fiable en iOS, interrumpe música de fondo)
             if ('speechSynthesis' in window) {
@@ -308,6 +270,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                     beepFiredRef.current = true;
                     setTimerActive(false);
                     setTargetTime(null);
+                    silentAudioRef.current?.pause();
                     scheduleSWNotification(null);
                     playBeep();
                     setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
@@ -334,6 +297,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             setTimerActive(false);
             setTargetTime(null);
             setTimeLeft(0);
+            silentAudioRef.current?.pause();
             playBeep();
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
@@ -354,6 +318,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
+                silentAudioRef.current?.pause();
                 scheduleSWNotification(null);
                 playBeep();
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
@@ -370,13 +335,11 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             setTargetTime(t);
             setTimeLeft(selectedDuration);
             setTimerActive(true);
-            // Pre-programa el pitido con el reloj hardware (funciona en background iOS)
-            scheduleAudioAhead(selectedDuration);
+            silentAudioRef.current?.play().catch(() => {});
         } else {
             setTimerActive(false);
             setTargetTime(null);
-            cancelScheduledAudio();
-            // El effect se encargará de enviar CANCEL_NOTIFICATION al SW
+            silentAudioRef.current?.pause();
         }
     };
 
@@ -388,8 +351,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             const newTarget = Date.now() + duration * 1000;
             setTargetTime(newTarget);
             setTimeLeft(duration);
-            // Reprogramar el audio hardware con la nueva duración
-            scheduleAudioAhead(duration);
+            silentAudioRef.current?.play().catch(() => {});
         }
     };
 
