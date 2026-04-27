@@ -449,10 +449,11 @@ export function TrainerLibraryView({ onBack }) {
 
     const groups = useMemo(() => {
         const query = searchQuery.toLowerCase().trim();
-        const filtered = catalog.filter(ex =>
-            ex.name.toLowerCase().includes(query) ||
-            ex.id.toString().includes(query)
-        );
+        const filtered = catalog.filter(ex => {
+            const safeName = (ex.name || '').toLowerCase();
+            const safeId = (ex.id || '').toString();
+            return safeName.includes(query) || safeId.includes(query);
+        });
         const map = {};
         for (const ex of filtered) {
             if (!map[ex.group]) map[ex.group] = [];
