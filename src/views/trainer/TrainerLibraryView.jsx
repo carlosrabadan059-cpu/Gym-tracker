@@ -516,6 +516,7 @@ export function TrainerLibraryView({ onBack }) {
     const [editMode, setEditMode] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [deletingId, setDeletingId] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
 
     // Inline edit state
     const [editingExId, setEditingExId] = useState(null);
@@ -624,6 +625,26 @@ export function TrainerLibraryView({ onBack }) {
 
     return (
         <>
+            {previewImage && (
+                <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity"
+                    onClick={() => setPreviewImage(null)}
+                >
+                    <button 
+                        className="absolute top-6 right-6 p-2 rounded-full text-text-secondary hover:text-primary transition-colors z-[101]"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <X size={32} />
+                    </button>
+                    <img 
+                        src={previewImage} 
+                        alt="Preview" 
+                        className="max-w-[90%] max-h-[90vh] object-contain border-2 border-primary rounded-xl shadow-[0_0_40px_rgba(192,255,0,0.2)]" 
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
+
             {showAddModal && (
                 <AddExerciseModal
                     onClose={() => setShowAddModal(false)}
@@ -773,8 +794,9 @@ export function TrainerLibraryView({ onBack }) {
                                                                     <img
                                                                         src={ex.image_url}
                                                                         alt={ex.name}
-                                                                        className="w-full h-full object-contain"
+                                                                        className="w-full h-full object-contain cursor-pointer hover:scale-110 transition-transform"
                                                                         referrerPolicy="no-referrer"
+                                                                        onClick={() => setPreviewImage(ex.image_url)}
                                                                     />
                                                                 ) : (
                                                                     <Dumbbell size={14} className="text-text-secondary" />
