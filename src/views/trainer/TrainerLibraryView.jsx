@@ -627,11 +627,11 @@ export function TrainerLibraryView({ onBack }) {
         <>
             {previewImage && (
                 <div 
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity"
+                    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-sm transition-opacity"
                     onClick={() => setPreviewImage(null)}
                 >
                     <button 
-                        className="absolute top-6 right-6 p-2 rounded-full text-text-secondary hover:text-primary transition-colors z-[101]"
+                        className="absolute top-6 right-6 p-2 rounded-full text-text-secondary hover:text-primary transition-colors z-[10000]"
                         onClick={() => setPreviewImage(null)}
                     >
                         <X size={32} />
@@ -789,14 +789,16 @@ export function TrainerLibraryView({ onBack }) {
                                                     ) : (
                                                         // ── Normal row ──
                                                         <div key={ex.id} className="flex items-center gap-3 px-4 py-2.5">
-                                                            <div className="w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center">
+                                                            <div 
+                                                                className={`w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center ${ex.image_url ? 'cursor-pointer hover:scale-110 transition-transform' : ''}`}
+                                                                onClick={() => ex.image_url && setPreviewImage(ex.image_url)}
+                                                            >
                                                                 {ex.image_url ? (
                                                                     <img
                                                                         src={ex.image_url}
                                                                         alt={ex.name}
-                                                                        className="w-full h-full object-contain cursor-pointer hover:scale-110 transition-transform"
+                                                                        className="w-full h-full object-contain"
                                                                         referrerPolicy="no-referrer"
-                                                                        onClick={() => setPreviewImage(ex.image_url)}
                                                                     />
                                                                 ) : (
                                                                     <Dumbbell size={14} className="text-text-secondary" />
