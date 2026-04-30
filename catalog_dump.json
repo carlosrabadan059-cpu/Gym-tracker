@@ -141,7 +141,7 @@
   },
   {
     "id": 21,
-    "name": "Remo en máquina",
+    "name": "Remo en máquina (Seated Row)",
     "category": "Dorsal",
     "image_url": "/exercises/v2_dorsal_21.png",
     "description": null
@@ -687,7 +687,7 @@
   },
   {
     "id": 99,
-    "name": "Pullover tumbado en banco con mancuerna",
+    "name": "Pullover con mancuerna (Banco plano)",
     "category": "Dorsal",
     "image_url": "/exercises/v2_dorsal_99.png",
     "description": null
