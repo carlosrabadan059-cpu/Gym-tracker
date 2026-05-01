@@ -25,14 +25,14 @@ export const routines = [
                 name: 'Press Declinado',
                 series: '3',
                 reps: '10',
-                image: '/exercises/decline-bench-press.png'
+                image: '/exercises/v2_pecho_3.png'
             },
             {
                 id: 10,
                 name: 'Aperturas en Máquina',
                 series: '3',
                 reps: '10',
-                image: '/exercises/futures-pecho-contractora.png'
+                image: '/exercises/v2_pecho_10.png'
             },
             {
                 id: 201,
@@ -53,7 +53,7 @@ export const routines = [
                 name: 'Curl Concentrado',
                 series: '3',
                 reps: '10',
-                image: '/exercises/futures-biceps-curl-concentrado.png'
+                image: '/exercises/v2_biceps_28.png'
             },
             {
                 id: 84,
@@ -76,28 +76,28 @@ export const routines = [
                 name: 'Extensión de Cuádriceps',
                 series: '3',
                 reps: '10',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Extensions/0.jpg'
+                image: '/exercises/v2_pierna_68.png'
             },
             {
                 id: 63,
                 name: 'Prensa de Piernas',
                 series: '4',
                 reps: '10',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg'
+                image: '/exercises/v2_pierna_63.png'
             },
             {
                 id: 64,
                 name: 'Leg Curl (Femoral Tumbado)',
                 series: '3',
                 reps: '10',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Leg_Curls/0.jpg'
+                image: '/exercises/v2_pierna_64.png'
             },
             {
                 id: 79,
                 name: 'Extensión de Gemelos en Máquina',
                 series: '3',
                 reps: '15',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Smith_Machine_Calf_Raise/0.jpg'
+                image: '/exercises/v2_gluteo_79.png'
             },
             {
                 id: 205,
@@ -125,7 +125,7 @@ export const routines = [
                 name: 'Encogimiento de Abdomen en banco',
                 series: '4',
                 reps: '15',
-                image: '/exercises/seated-bench-crunch.png'
+                image: '/exercises/v2_abdomen_90.png'
             }
         ]
     },
@@ -148,7 +148,7 @@ export const routines = [
                 name: 'V-bar pulldown',
                 series: '4',
                 reps: '10',
-                image: '/exercises/v-bar-pulldown.png'
+                image: '/exercises/v2_dorsal_19.png'
             },
             {
                 id: 60,
@@ -199,21 +199,21 @@ export const routines = [
                 name: 'Press Militar',
                 series: '4',
                 reps: '10',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Machine_Shoulder_Military_Press/0.jpg'
+                image: '/exercises/v2_hombro_50.png'
             },
             {
                 id: 54,
                 name: 'Elevaciones Laterales',
                 series: '3',
                 reps: '10',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg'
+                image: '/exercises/v2_hombro_54.png'
             },
             {
                 id: 57,
                 name: 'Elevaciones Frontales',
                 series: '3',
                 reps: '10',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Front_Dumbbell_Raise/0.jpg'
+                image: '/exercises/v2_hombro_58.png'
             },
             {
                 id: 60,
@@ -234,7 +234,7 @@ export const routines = [
                 name: 'Crunch Oblicuo Declinado',
                 series: '4',
                 reps: '15',
-                image: 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Oblique_Crunch/0.jpg'
+                image: '/exercises/v2_abdomen_86.png'
             }
         ]
     }

@@ -25,6 +25,7 @@ categoriesOrder.forEach(cat => {
         if (fs.existsSync(v2Path)) {
             const finalPath = `/exercises/${v2Name}`;
             sql += `UPDATE exercise_catalog SET image_url = '${finalPath}' WHERE id = ${ex.id};\n`;
+            sql += `UPDATE exercises SET image_url = '${finalPath}' WHERE catalog_id = ${ex.id};\n`;
             csvRows.push(`${ex.id};${ex.name};${ex.category};${finalPath}`);
         } else {
             // Keep current if v2 doesn't exist
