@@ -76,6 +76,7 @@ ID;Nombre;Categoria;Imagen
 73;Elevación de gemelos sentado;Pierna;/exercises/v2_pierna_73.png
 74;Gemelos en prensa;Pierna;/exercises/v2_pierna_74.png
 75;Abducción de cadera de pie (polea);Pierna;/exercises/v2_pierna_75.png
+100;Curl femoral sentado en maquina;Pierna;/exercises/v2_pierna_100.png
 76;Extensión de pierna en máquina (Kickback);Glúteo;/exercises/v2_gluteo_76.png
 77;Extensión de pierna en polea baja;Glúteo;/exercises/v2_gluteo_77.png
 78;Abductor (Máquina o Polea);Glúteo;/exercises/v2_gluteo_78.png
@@ -98,4 +99,3 @@ ID;Nombre;Categoria;Imagen
 95;Flexiones con barra (Good Mornings);Abdomen;/exercises/v2_abdomen_95.png
 96;Flexiones de pie con barra trasnuca;Abdomen;/exercises/v2_abdomen_96.png
 97;Planchas frontales;Abdomen;/exercises/v2_abdomen_97.png
-100;Curl femoral sentado en maquina;Pierna;/exercises/v2_pierna_100.png

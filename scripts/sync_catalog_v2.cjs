@@ -16,12 +16,12 @@ catalog.forEach(ex => {
 });
 
 categoriesOrder.forEach(cat => {
-    grouped[cat].sort((a,b) => a.id - b.id);
+    grouped[cat].sort((a, b) => a.id - b.id);
     grouped[cat].forEach(ex => {
         const catSlug = slugify(ex.category);
         const v2Name = `v2_${catSlug}_${ex.id}.png`;
         const v2Path = `./public/exercises/${v2Name}`;
-        
+
         if (fs.existsSync(v2Path)) {
             const finalPath = `/exercises/${v2Name}`;
             sql += `UPDATE exercise_catalog SET image_url = '${finalPath}' WHERE id = ${ex.id};\n`;
