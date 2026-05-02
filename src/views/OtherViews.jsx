@@ -94,9 +94,15 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
 
     // Pide permiso de notificación a través del SW (requerido en iOS y Android)
     const requestNotificationPermission = async () => {
-        if ('Notification' in window && Notification.permission !== 'granted') {
+        if (!('Notification' in window)) return;
+        
+        if (Notification.permission === 'default') {
             try {
-                await Notification.requestPermission();
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    // Test notification to ensure it works
+                    scheduleSWNotification(Date.now() + 1000, true);
+                }
             } catch (e) {
                 console.error("Permission request failed", e);
             }
@@ -382,6 +388,22 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-surface">
+                    
+                    {/* iOS / PWA Status Banner */}
+                    {('Notification' in window) && (Notification.permission !== 'granted' || !window.navigator.standalone) && (
+                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-500 flex flex-col gap-2">
+                            <p className="font-bold uppercase tracking-tight">⚠️ Acción requerida para avisos en reposo:</p>
+                            <ul className="list-disc ml-4 space-y-1">
+                                {Notification.permission !== 'granted' && (
+                                    <li>Debes <button onClick={requestNotificationPermission} className="underline font-bold">Permitir Notificaciones</button>.</li>
+                                )}
+                                {!window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent) && (
+                                    <li>Usa "Añadir a pantalla de inicio" en Safari para que funcione bloqueado.</li>
+                                )}
+                            </ul>
+                        </div>
+                    )}
+
                     {/* Timer Section */}
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
                         <h3 className="text-xs text-text-secondary uppercase tracking-wider mb-3">Temporizador de Descanso</h3>
