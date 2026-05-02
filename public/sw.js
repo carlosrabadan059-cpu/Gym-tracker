@@ -8,7 +8,7 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener('message', (event) => {
-  const { type, targetTime } = event.data || {};
+  const { type, targetTime, title, body, isStart } = event.data || {};
 
   if (type === 'SCHEDULE_NOTIFICATION') {
     // Cancel any previously scheduled timer
@@ -17,20 +17,32 @@ self.addEventListener('message', (event) => {
       cancelCurrent = null;
     }
 
+    // If it's a "start" notification, show it immediately
+    if (isStart) {
+      event.waitUntil(
+        self.registration.showNotification(title || '¡Descanso iniciado! ⏱️', {
+          body: body || 'El temporizador ha comenzado.',
+          icon: '/vite.svg',
+          badge: '/vite.svg',
+          tag: 'rest-timer-start',
+          renotify: true,
+        })
+      );
+    }
+
     const delay = Math.max(0, targetTime - Date.now());
     let cancelled = false;
 
     // event.waitUntil keeps the SW alive until the Promise resolves.
-    // This prevents the browser/OS from terminating the SW mid-timer.
     event.waitUntil(
       new Promise((resolve) => {
         const timerId = setTimeout(async () => {
           cancelCurrent = null;
           if (cancelled) { resolve(); return; }
 
-          // Show OS-level notification (works with screen off on Android;
-          // on iOS 16.4+ PWA when added to home screen)
           try {
+            // After the delay, we ALWAYS show the "completion" message 
+            // unless it was cancelled.
             await self.registration.showNotification('¡Recuperación completada! 💪', {
               body: '¡Es hora de tu siguiente serie!',
               icon: '/vite.svg',
@@ -40,9 +52,8 @@ self.addEventListener('message', (event) => {
               renotify: true,
               requireInteraction: false,
             });
-          } catch (_) { /* permission may have been revoked */ }
+          } catch (_) {}
 
-          // Notify any open clients so they can play audio if visible
           try {
             const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
             for (const client of clients) {
@@ -53,7 +64,6 @@ self.addEventListener('message', (event) => {
           resolve();
         }, delay);
 
-        // Expose cancellation: clear timeout + mark cancelled + resolve promise
         cancelCurrent = () => {
           cancelled = true;
           clearTimeout(timerId);

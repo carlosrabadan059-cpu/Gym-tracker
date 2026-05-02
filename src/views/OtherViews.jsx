@@ -88,32 +88,36 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
                 audioCtxRef.current.close().catch(() => {});
             }
-            if (silentAudioRef.current) {
-                silentAudioRef.current.pause();
-            }
             scheduleSWNotification(null);
         };
     }, []);
 
     // Pide permiso de notificación a través del SW (requerido en iOS y Android)
     const requestNotificationPermission = async () => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            await Notification.requestPermission();
+        if ('Notification' in window && Notification.permission !== 'granted') {
+            try {
+                await Notification.requestPermission();
+            } catch (e) {
+                console.error("Permission request failed", e);
+            }
         }
     };
 
     // Envía un mensaje al Service Worker para que gestione la notificación de fondo.
     // targetTime = timestamp en ms → programa la notificación
     // targetTime = null         → cancela cualquier notificación pendiente
-    const scheduleSWNotification = (targetTime) => {
+    const scheduleSWNotification = (targetTime, isStart = false) => {
         if (!('serviceWorker' in navigator)) return;
         const msg = targetTime !== null
-            ? { type: 'SCHEDULE_NOTIFICATION', targetTime }
+            ? { 
+                type: 'SCHEDULE_NOTIFICATION', 
+                targetTime, 
+                title: isStart ? '¡Descanso iniciado! ⏱️' : '¡Recuperación completada! 💪',
+                body: isStart ? 'El temporizador ha comenzado.' : '¡Es hora de tu siguiente serie!',
+                isStart
+              }
             : { type: 'CANCEL_NOTIFICATION' };
 
-        // Prefer the controller (SW actively serving this page).
-        // Falls back to reg.active for the case where the page was just loaded
-        // and controller isn't set yet (first registration before clients.claim()).
         if (navigator.serviceWorker.controller) {
             navigator.serviceWorker.controller.postMessage(msg);
         } else {
@@ -188,62 +192,56 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
 
         if (isCompleting) {
             const dur = selectedDuration;
-            setTargetTime(Date.now() + dur * 1000);
+            const target = Date.now() + dur * 1000;
+            setTargetTime(target);
             setTimeLeft(dur);
             setTimerActive(true);
-            silentAudioRef.current?.play().catch(() => {});
+            playBeep('start');
+            scheduleSWNotification(target, true);
         }
     };
 
-    // Audio context para el sonido de pitido + voz
-    // La notificación nativa la gestiona el Service Worker desde el fondo.
-    const playBeep = useCallback(() => {
+    // Audio context para el sonido de pitido
+    // Usamos Web Audio API porque suele mezclarse con la música en lugar de pausarla
+    const playBeep = useCallback((type = 'end') => {
         try {
-            // Voz (fiable en iOS, interrumpe música de fondo)
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance('Recuperación completada');
-                utterance.lang = 'es-ES';
-                utterance.rate = 1.1;
-                utterance.pitch = 1;
-                utterance.volume = 1;
-                window.speechSynthesis.speak(utterance);
-            }
-
-            // Vibración en móvil
-            if ('vibrate' in navigator) {
-                navigator.vibrate([500, 200, 500, 200, 800]);
-            }
-
             const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
             if (!ctx) return;
-
             if (ctx.state === 'suspended') ctx.resume();
 
-            const scheduleBeep = (startTime, freq) => {
+            const now = ctx.currentTime;
+            
+            const scheduleNote = (startTime, freq, duration, type = 'sine') => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                osc.type = 'square';
-                gain.gain.value = 1;
-                osc.frequency.setValueAtTime(freq, startTime);
+                osc.type = type;
+                
                 gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(1, startTime + 0.05);
-                gain.gain.setValueAtTime(1, startTime + 0.4);
-                gain.gain.linearRampToValueAtTime(0, startTime + 0.5);
+                gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+                gain.gain.setValueAtTime(0.3, startTime + duration - 0.05);
+                gain.gain.linearRampToValueAtTime(0, startTime + duration);
+                
+                osc.frequency.setValueAtTime(freq, startTime);
                 osc.start(startTime);
-                osc.stop(startTime + 0.5);
+                osc.stop(startTime + duration);
             };
 
-            const now = ctx.currentTime;
-            scheduleBeep(now, 880);
-            scheduleBeep(now + 0.6, 880);
-            scheduleBeep(now + 1.2, 1320);
-
-            if (ctx !== audioCtxRef.current) {
-                setTimeout(() => {
-                    if (ctx.state !== 'closed') ctx.close().catch(() => {});
-                }, 2000);
+            if (type === 'start') {
+                // Sonido corto ascendente para el inicio
+                scheduleNote(now, 440, 0.15);
+                scheduleNote(now + 0.1, 880, 0.2);
+            } else {
+                // Sonido de fin (clásico triple beep)
+                scheduleNote(now, 880, 0.3, 'square');
+                scheduleNote(now + 0.4, 880, 0.3, 'square');
+                scheduleNote(now + 0.8, 1320, 0.5, 'square');
+                
+                // Vibración en móvil
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([500, 200, 500, 200, 800]);
+                }
             }
         } catch (error) {
             console.error('No se pudo reproducir el sonido del temporizador', error);
@@ -270,9 +268,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                     beepFiredRef.current = true;
                     setTimerActive(false);
                     setTargetTime(null);
-                    silentAudioRef.current?.pause();
                     scheduleSWNotification(null);
-                    playBeep();
+                    playBeep('end');
                     setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
                 }
             }, 500);
@@ -297,8 +294,7 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
             setTimerActive(false);
             setTargetTime(null);
             setTimeLeft(0);
-            silentAudioRef.current?.pause();
-            playBeep();
+            playBeep('end');
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
         navigator.serviceWorker?.addEventListener('message', handleSWMessage);
@@ -318,9 +314,8 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
-                silentAudioRef.current?.pause();
                 scheduleSWNotification(null);
-                playBeep();
+                playBeep('end');
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
             }
         };
@@ -331,15 +326,17 @@ const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClo
     const toggleTimer = () => {
         unlockAudio();
         if (!timerActive) {
-            const t = Date.now() + selectedDuration * 1000;
+            const dur = selectedDuration;
+            const t = Date.now() + dur * 1000;
             setTargetTime(t);
-            setTimeLeft(selectedDuration);
+            setTimeLeft(dur);
             setTimerActive(true);
-            silentAudioRef.current?.play().catch(() => {});
+            playBeep('start');
+            scheduleSWNotification(t, true);
         } else {
             setTimerActive(false);
             setTargetTime(null);
-            silentAudioRef.current?.pause();
+            scheduleSWNotification(null);
         }
     };
 
