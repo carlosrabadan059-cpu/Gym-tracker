@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2, Calendar, Clock, Edit2, Check, X, Search, Minus, Plus, Timer, Pencil } from 'lucide-react';
 import { routines as staticRoutines } from '../../data/routines';
 
@@ -41,13 +42,16 @@ function WorkoutDetailPanel({ entry, onClose }) {
 
         supabase
             .from('exercises')
-            .select('id, name, catalog_id')
+            .select('id, name, catalog_id, exercise_catalog(name)')
             .in('id', ids.map(Number))
             .then(({ data }) => {
                 if (data) {
                     setNameMap(prev => {
                         const next = { ...prev };
-                        data.forEach(ex => { next[String(ex.id)] = { name: ex.name, catalog_id: ex.catalog_id }; });
+                        data.forEach(ex => {
+                            const resolvedName = ex.exercise_catalog?.name || ex.name;
+                            next[String(ex.id)] = { name: resolvedName, catalog_id: ex.catalog_id };
+                        });
                         return next;
                     });
                 }
@@ -465,11 +469,13 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
                 if (routinesError) throw routinesError;
 
-                const { data: exercisesData, error: exercisesError } = await supabase
+                const { data: rawExercisesData, error: exercisesError } = await supabase
                     .from('exercises')
-                    .select('*')
+                    .select('*, exercise_catalog(name, image_url)')
                     .in('routine_id', routineIds)
                     .order('ui_order');
+
+                const exercisesData = enrichExercisesWithCatalog(rawExercisesData);
 
                 if (exercisesError) throw exercisesError;
 

@@ -6,6 +6,38 @@ export function cn(...inputs) {
     return twMerge(clsx(inputs));
 }
 
+/**
+ * Enriquece un array de ejercicios con los datos actualizados del catálogo maestro.
+ * Si un ejercicio tiene `catalog_id` y la relación `exercise_catalog` viene
+ * incluida en la query (embedded select), hereda `name` e `image_url`
+ * del catálogo para garantizar sincronización automática.
+ *
+ * Patrón de uso:
+ *   const { data } = await supabase
+ *     .from('exercises')
+ *     .select('*, exercise_catalog(name, image_url)')
+ *     ...
+ *   const enriched = enrichExercisesWithCatalog(data);
+ *
+ * @param {Array} exercises - Filas de la tabla exercises con la relación embebida
+ * @returns {Array} Ejercicios con name/image_url del catálogo aplicados
+ */
+export function enrichExercisesWithCatalog(exercises) {
+    if (!exercises) return [];
+    return exercises.map(exercise => {
+        const catalogData = exercise.exercise_catalog;
+        if (!catalogData) return exercise;
+
+        // Hereda del catálogo, preservando el rest de los campos del ejercicio
+        const { exercise_catalog: _removed, ...exerciseWithoutCatalog } = exercise;
+        return {
+            ...exerciseWithoutCatalog,
+            name: catalogData.name || exercise.name,
+            image_url: catalogData.image_url || exercise.image_url,
+        };
+    });
+}
+
 // Helper para obtener el próximo sábado a las 23:59:59 (como límite de la semana)
 // Si hoy es sábado, el límite es hoy mismo a esa hora.
 export function getNextSaturdayExpiration() {

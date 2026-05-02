@@ -8,7 +8,7 @@ import {
     Flame, Zap, Target, ChevronRight, Star
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { loadWorkoutLogs, loadExerciseHistory } from '../lib/utils';
+import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
 // ─────────────────────────────────────────────────────────
@@ -237,11 +237,11 @@ export function StatisticsView() {
         (async () => {
             setLoading(true);
             try {
-                const [logs, { data: exData }] = await Promise.all([
+                const [logs, { data: rawExData }] = await Promise.all([
                     loadWorkoutLogs(user.id),
-                    supabase.from('exercises').select('id, name, routine_id')
+                    supabase.from('exercises').select('id, name, routine_id, exercise_catalog(name)')
                 ]);
-                const exercises = exData || [];
+                const exercises = enrichExercisesWithCatalog(rawExData || []);
                 setExercisesData(exercises);
                 const { stats, personalRecords } = computeStats(logs, exercises);
                 setStats(stats);

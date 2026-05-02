@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
+import { enrichExercisesWithCatalog } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 
@@ -55,11 +56,13 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 return;
             }
 
-            const { data: exercisesData, error: exercisesError } = await supabase
+            const { data: rawExercisesData, error: exercisesError } = await supabase
                 .from('exercises')
-                .select('*')
+                .select('*, exercise_catalog(name, image_url)')
                 .in('routine_id', targetRoutineIds)
                 .order('ui_order');
+
+            const exercisesData = enrichExercisesWithCatalog(rawExercisesData);
 
             if (exercisesError) throw exercisesError;
 

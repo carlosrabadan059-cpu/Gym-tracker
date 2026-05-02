@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
 
@@ -116,11 +117,13 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                 if (error) throw error;
 
                 const ids = (routinesData || []).map(r => r.id);
-                const { data: exercisesData } = await supabase
+                const { data: rawExercisesData } = await supabase
                     .from('exercises')
-                    .select('*')
+                    .select('*, exercise_catalog(name, image_url)')
                     .in('routine_id', ids)
                     .order('ui_order');
+
+                const exercisesData = enrichExercisesWithCatalog(rawExercisesData);
 
                 const map = {};
                 (routinesData || []).forEach(r => { map[r.id] = { ...r, exercises: [] }; });

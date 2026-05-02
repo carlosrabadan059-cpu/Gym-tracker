@@ -3,6 +3,7 @@ import { Send, Bot, Loader2, Sparkles, Copy, Check as CheckIcon, Trash2 } from '
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { enrichExercisesWithCatalog } from '../lib/utils';
 
 const SUGGESTED_QUESTIONS = [
     "Analiza mis rutinas y sugiere mejoras",
@@ -249,11 +250,13 @@ export function ChatView() {
                     .in('id', routineIds)
                     .order('id');
 
-                const { data: exercisesData } = await supabase
+                const { data: rawExercisesData } = await supabase
                     .from('exercises')
-                    .select('routine_id, name, series, reps')
+                    .select('routine_id, name, series, reps, exercise_catalog(name)')
                     .in('routine_id', routineIds)
                     .order('ui_order');
+
+                const exercisesData = enrichExercisesWithCatalog(rawExercisesData);
 
                 if (routinesData) {
                     const merged = routinesData.map(r => ({
