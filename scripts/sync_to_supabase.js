@@ -38,8 +38,8 @@ async function syncToSupabase() {
     let errors = 0;
 
     for (const ex of catalog) {
-        // Solo actualizar si la URL es de tipo v2 (las que hemos estado generando)
-        if (!ex.image_url.includes('v2_')) continue;
+        // Solo actualizar si la URL es de tipo v2 o v3 (las que hemos estado generando)
+        if (!ex.image_url.includes('v2_') && !ex.image_url.includes('v3_')) continue;
 
         try {
             // Actualizar tabla maestra (exercise_catalog)
