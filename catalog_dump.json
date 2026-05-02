@@ -15,7 +15,7 @@
   },
   {
     "id": 3,
-    "name": "Aperturas en banco con mancuernas",
+    "name": "Press de banca declinado con barra",
     "category": "Pecho",
     "image_url": "/exercises/v2_pecho_3.png",
     "description": null
@@ -43,7 +43,7 @@
   },
   {
     "id": 7,
-    "name": "Press inclinado con mancuernas",
+    "name": "Aperturas inclinadas con mancuernas",
     "category": "Pecho",
     "image_url": "/exercises/v2_pecho_7.png",
     "description": null
@@ -71,7 +71,7 @@
   },
   {
     "id": 11,
-    "name": "Press banca declinado con barra",
+    "name": "Press banca declinado",
     "category": "Pecho",
     "image_url": "/exercises/v2_pecho_11.png",
     "description": null
@@ -85,7 +85,7 @@
   },
   {
     "id": 13,
-    "name": "Aperturas en pecho maquina",
+    "name": "Aperturas de Pecho maquina",
     "category": "Pecho",
     "image_url": "/exercises/v2_pecho_13.png",
     "description": null
@@ -141,14 +141,14 @@
   },
   {
     "id": 21,
-    "name": "Remo en máquina (Seated Row)",
+    "name": "Remo en máquina",
     "category": "Dorsal",
     "image_url": "/exercises/v2_dorsal_21.png",
     "description": null
   },
   {
     "id": 22,
-    "name": "Remo en punta / T-Bar Row",
+    "name": "Remo con mancuerna",
     "category": "Dorsal",
     "image_url": "/exercises/v2_dorsal_22.png",
     "description": null
@@ -211,7 +211,7 @@
   },
   {
     "id": 31,
-    "name": "Curl martillo en polea (Una mano)",
+    "name": "Curl de bíceps martillo con polea baja",
     "category": "Bíceps",
     "image_url": "/exercises/v2_biceps_31.png",
     "description": null
@@ -274,7 +274,7 @@
   },
   {
     "id": 40,
-    "name": "Extension triceps trasnuca en polea alta",
+    "name": "Extensión tras nuca con polea alta",
     "category": "Tríceps",
     "image_url": "/exercises/v2_triceps_40.png",
     "description": null
@@ -288,7 +288,7 @@
   },
   {
     "id": 42,
-    "name": "Press banca con agarre estrecho",
+    "name": "Press francés con barra",
     "category": "Tríceps",
     "image_url": "/exercises/v2_triceps_42.png",
     "description": null
@@ -297,7 +297,7 @@
     "id": 43,
     "name": "Press francés con barra z",
     "category": "Tríceps",
-    "image_url": "/exercises/v3_triceps_43.png",
+    "image_url": "/exercises/v2_triceps_43.png",
     "description": null
   },
   {
@@ -309,7 +309,7 @@
   },
   {
     "id": 45,
-    "name": "Extension de triceps acostado",
+    "name": "Press de banca agarre cerrado una mano",
     "category": "Tríceps",
     "image_url": "/exercises/v2_triceps_45.png",
     "description": null
@@ -400,14 +400,14 @@
   },
   {
     "id": 58,
-    "name": "Elevación frontal en polea baja",
+    "name": "Elevación lateral polea baja (V2)",
     "category": "Hombro",
     "image_url": "/exercises/v2_hombro_58.png",
     "description": null
   },
   {
     "id": 59,
-    "name": "Elevación frontal con polea baja",
+    "name": "Elevación frontal en polea",
     "category": "Hombro",
     "image_url": "/exercises/v2_hombro_59.png",
     "description": null
@@ -428,7 +428,7 @@
   },
   {
     "id": 62,
-    "name": "Elevación de hombros con mancuernas",
+    "name": "Encogimiento de hombros con mancuernas",
     "category": "Hombro",
     "image_url": "/exercises/v2_hombro_62.png",
     "description": null
@@ -449,14 +449,14 @@
   },
   {
     "id": 65,
-    "name": "Sentadilla Hack en máquina",
+    "name": "Sentadilla en máquina (Hack)",
     "category": "Pierna",
     "image_url": "/exercises/v2_pierna_65.png",
     "description": null
   },
   {
     "id": 66,
-    "name": "Sentadilla con mancuerna",
+    "name": "Sentadilla con barra",
     "category": "Pierna",
     "image_url": "/exercises/v2_pierna_66.png",
     "description": null
@@ -547,7 +547,7 @@
   },
   {
     "id": 79,
-    "name": "Abductores en máquina",
+    "name": "Aductor (Máquina o Polea)",
     "category": "Glúteo",
     "image_url": "/exercises/v2_gluteo_79.png",
     "description": null
@@ -575,7 +575,7 @@
   },
   {
     "id": 83,
-    "name": "Crunch en máquina",
+    "name": "Crunch abdominal en máquina",
     "category": "Abdomen",
     "image_url": "/exercises/v2_abdomen_83.png",
     "description": null
@@ -603,7 +603,7 @@
   },
   {
     "id": 87,
-    "name": "Encogimiento de piernas en banco",
+    "name": "Crunch de rodillas en banco",
     "category": "Abdomen",
     "image_url": "/exercises/v2_abdomen_87.png",
     "description": null
@@ -631,14 +631,14 @@
   },
   {
     "id": 91,
-    "name": "Toque de talones (Oblicuos)",
+    "name": "Giro de tronco (Oblicuos)",
     "category": "Abdomen",
     "image_url": "/exercises/v2_abdomen_91.png",
     "description": null
   },
   {
     "id": 92,
-    "name": "Flexión lateral con mancuerna",
+    "name": "Abdominal oblicuo con mancuerna de pie",
     "category": "Abdomen",
     "image_url": "/exercises/v2_abdomen_92.png",
     "description": null
@@ -673,21 +673,21 @@
   },
   {
     "id": 97,
-    "name": "Planchas frontales",
+    "name": "Plancha abdominal (Plank)",
     "category": "Abdomen",
     "image_url": "/exercises/v2_abdomen_97.png",
     "description": null
   },
   {
     "id": 98,
-    "name": "Hombro posterior en polea alta",
+    "name": "Hombro posterior polea alta a una mano",
     "category": "Hombro",
     "image_url": "/exercises/v2_hombro_98.png",
     "description": null
   },
   {
     "id": 99,
-    "name": "Pullover con mancuerna (Banco plano)",
+    "name": "Pullover tumbado en banco con mancuerna",
     "category": "Dorsal",
     "image_url": "/exercises/v2_dorsal_99.png",
     "description": null

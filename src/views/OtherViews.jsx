@@ -643,10 +643,19 @@ const TrainingView = ({ workout, onFinish }) => {
                     .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
                 if (recentLog && recentLog.logs) {
-                    setExerciseLogs(recentLog.logs);
+                    // Filtrar los logs para incluir solo ejercicios que existen en la rutina actual
+                    const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
+                    const filteredLogs = {};
+                    Object.entries(recentLog.logs).forEach(([id, log]) => {
+                        if (currentExerciseIds.has(String(id)) || id === 'workoutDuration' || id === 'cardio') {
+                            filteredLogs[id] = log;
+                        }
+                    });
+
+                    setExerciseLogs(filteredLogs);
                     const completed = {};
                     activeWorkout.exercises?.forEach(ex => {
-                        if (recentLog.logs[ex.id]) completed[ex.id] = true;
+                        if (filteredLogs[ex.id]) completed[ex.id] = true;
                     });
                     setCompletedExercises(completed);
                 }
@@ -774,8 +783,17 @@ const TrainingView = ({ workout, onFinish }) => {
                     const endTime = Date.now();
                     const durationMinutes = Math.round((endTime - workoutStartTime) / 60000);
                     const realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
+                    // Filtrar logs finales para asegurar que solo guardamos ejercicios de la rutina actual
+                    const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
+                    const filteredExerciseLogs = {};
+                    Object.entries(exerciseLogs).forEach(([id, log]) => {
+                        if (currentExerciseIds.has(String(id))) {
+                            filteredExerciseLogs[id] = log;
+                        }
+                    });
+
                     const finalLogs = {
-                        ...exerciseLogs,
+                        ...filteredExerciseLogs,
                         workoutDuration: {
                             startTime: workoutStartTime,
                             endTime,

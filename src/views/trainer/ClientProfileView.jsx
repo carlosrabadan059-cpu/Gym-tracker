@@ -61,8 +61,13 @@ function WorkoutDetailPanel({ entry, onClose }) {
             .filter(([k]) => k !== 'workoutDuration' && k !== 'cardio')
             .map(([id, log]) => {
                 const mapData = nameMap[id];
-                const name = mapData ? (typeof mapData === 'string' ? mapData : mapData.name) : `Ejercicio #${id}`;
-                const catalog_id = mapData && typeof mapData !== 'string' ? mapData.catalog_id : null;
+                let name = `Ejercicio antiguo (#${id})`;
+                let catalog_id = null;
+
+                if (mapData) {
+                    name = (typeof mapData === 'string' ? mapData : mapData.name);
+                    catalog_id = typeof mapData !== 'string' ? mapData.catalog_id : null;
+                }
                 return {
                     id,
                     name,
