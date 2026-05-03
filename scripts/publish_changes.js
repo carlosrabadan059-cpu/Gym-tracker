@@ -1,14 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const supabaseUrl = 'https://jqpyqqlkgisykgywilrf.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxcHlxcWxrZ2lzeWtneXdpbHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcyNjMsImV4cCI6MjA4Njg0MzI2M30.HGvZZHYwAj1whHcUDIMu0fwdI9Xzngvl_VXaDs2S0ZU';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load .env.local without external dependencies
+try {
+    const envPath = resolve(__dirname, '../.env.local');
+    readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+        const eq = line.indexOf('=');
+        if (eq > 0) process.env[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+    });
+} catch {
+    // .env.local not found — rely on environment variables already set
+}
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const adminEmail = process.env.SUPABASE_ADMIN_EMAIL;
+const adminPassword = process.env.SUPABASE_ADMIN_PASSWORD;
+
+if (!supabaseUrl || !supabaseKey || !adminEmail || !adminPassword) {
+    console.error('Missing required env vars. Copy .env.example to .env.local and fill in the values.');
+    process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function publishChanges() {
     console.log('Logging in to Supabase...');
     const { error: authError } = await supabase.auth.signInWithPassword({
-        email: 'carlosrabadan059@gmail.com',
-        password: 'admin123'
+        email: adminEmail,
+        password: adminPassword,
     });
 
     if (authError) {

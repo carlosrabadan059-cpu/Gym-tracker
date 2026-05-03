@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
 import { DashboardView } from './views/DashboardView';
-import { TrainingView, ProgressView } from './views/OtherViews';
-import { ChatView } from './views/ChatView';
+import { TrainingView } from './views/OtherViews';
+const ProgressView = lazy(() => import('./views/StatisticsView').then(m => ({ default: m.StatisticsView })));
+const ChatView = lazy(() => import('./views/ChatView').then(m => ({ default: m.ChatView })));
 import { ProfileView } from './views/ProfileView';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -12,6 +13,7 @@ import { Dumbbell, Eye, EyeOff } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
 import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
 import { supabase } from './lib/supabase';
+import { TRAINER_ROLES, isTrainer } from './lib/constants';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
 import { ClientsListView } from './views/trainer/ClientsListView';
 import { ClientProfileView } from './views/trainer/ClientProfileView';
@@ -180,9 +182,6 @@ const LoginView = () => {
     );
 };
 
-// Roles que tienen acceso a la sección de entrenador
-const TRAINER_ROLES = ['trainer', 'admin'];
-const isTrainer = (p) => TRAINER_ROLES.includes(p?.role);
 
 const AuthenticatedApp = () => {
     useShakeToUndoPrevention(); // Prevenir "Shake to Undo" globalmente
@@ -232,34 +231,38 @@ const AuthenticatedApp = () => {
         const migrateData = async () => {
             if (!user) return;
             const localRaw = localStorage.getItem('gymTrackerWorkoutLogs');
-            if (localRaw) {
-                try {
-                    const parsed = JSON.parse(localRaw);
-                    if (parsed.history && Array.isArray(parsed.history) && parsed.history.length > 0) {
-                        // Avoid duplicates if they somehow re-run it
-                        const { count, error: countErr } = await supabase
-                            .from('workout_logs')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('user_id', user.id);
+            if (!localRaw) return;
 
-                        if (!countErr && count === 0) {
-                            const payload = parsed.history.map(h => ({
-                                user_id: user.id,
-                                routine_id: h.routineId,
-                                date: h.date || new Date().toISOString(),
-                                logs: h.logs
-                            }));
-                            console.log("Migrando datos locales a Supabase...", payload);
-                            await supabase.from('workout_logs').insert(payload);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error migrating local data to Supabase", e);
-                } finally {
+            try {
+                const parsed = JSON.parse(localRaw);
+                if (!parsed.history || !Array.isArray(parsed.history) || parsed.history.length === 0) {
                     localStorage.removeItem('gymTrackerWorkoutLogs');
+                    return;
                 }
-                // Also trigger a UI refresh by reloading the window once after migration to re-fetch
+
+                const { count, error: countErr } = await supabase
+                    .from('workout_logs')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', user.id);
+
+                if (countErr) throw countErr;
+
+                if (count === 0) {
+                    const payload = parsed.history.map(h => ({
+                        user_id: user.id,
+                        routine_id: h.routineId,
+                        date: h.date || new Date().toISOString(),
+                        logs: h.logs
+                    }));
+                    const { error: insertErr } = await supabase.from('workout_logs').insert(payload);
+                    if (insertErr) throw insertErr;
+                }
+
+                // Only delete local data and reload after confirmed success
+                localStorage.removeItem('gymTrackerWorkoutLogs');
                 window.location.reload();
+            } catch (e) {
+                console.error("Error migrating local data to Supabase — local data preserved", e);
             }
         };
         migrateData();
@@ -344,20 +347,23 @@ const AuthenticatedApp = () => {
                         workout={currentWorkout}
                         onFinish={async (logs) => {
                             if (currentWorkout) {
-                                // Update local state for immediate UI feedback
                                 setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
-
-                                // Save to Supabase, then refresh completed list so state matches DB
-                                await saveWorkoutLog(user?.id, currentWorkout.id, logs || {});
-                                const refreshed = await loadCompletedRoutines(user?.id);
-                                setCompletedRoutines(refreshed);
+                                try {
+                                    await saveWorkoutLog(user?.id, currentWorkout.id, logs || {});
+                                    const refreshed = await loadCompletedRoutines(user?.id);
+                                    setCompletedRoutines(refreshed);
+                                } catch {
+                                    alert('No se pudo guardar el entrenamiento. Comprueba tu conexión e inténtalo de nuevo.');
+                                }
                             }
                             setView('dashboard');
                         }}
                     />
                 )}
-                {view === 'progress' && <ProgressView />}
-                {view === 'chat' && <ChatView />}
+                <Suspense fallback={<div className="h-full flex items-center justify-center text-primary">Cargando...</div>}>
+                    {view === 'progress' && <ProgressView />}
+                    {view === 'chat' && <ChatView />}
+                </Suspense>
                 {view === 'profile' && <ProfileView />}
                 {view === 'notifications' && <NotificationsListView onClose={() => setView('dashboard')} />}
             </main>

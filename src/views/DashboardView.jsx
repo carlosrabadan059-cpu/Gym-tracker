@@ -248,6 +248,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                                     src={routineIcon}
                                                     alt="icon"
                                                     className="h-full w-full object-cover p-1.5"
+                                                    loading="lazy"
                                                     onError={(e) => {
                                                         e.target.onerror = null;
                                                         e.target.src = 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=200';
@@ -281,6 +282,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                                         src={ex.image_url}
                                                         alt={ex.name}
                                                         className="h-full w-full object-cover"
+                                                        loading="lazy"
                                                         referrerPolicy="no-referrer"
                                                         onError={(e) => {
                                                             e.target.style.display = 'none';
@@ -373,6 +375,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                         <img
                                             src={cardio.img}
                                             alt={cardio.name}
+                                            loading="lazy"
                                             className={cn("absolute inset-0 w-full h-full object-cover transition-all", isSelected ? "opacity-100" : "opacity-60")}
                                         />
                                         <div className={cn("absolute inset-0 bg-gradient-to-t transition-all", isSelected ? "from-black/90 via-black/40 to-transparent" : "from-black/80 to-black/20")} />

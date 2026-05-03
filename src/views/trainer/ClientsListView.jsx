@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
+import { TRAINER_ROLES } from '../../lib/constants';
 import { ArrowLeft, User, ChevronRight } from 'lucide-react';
 
 export function ClientsListView({ onBack, onSelectClient }) {
@@ -15,7 +16,6 @@ export function ClientsListView({ onBack, onSelectClient }) {
 
                 if (error) throw error;
 
-                const TRAINER_ROLES = ['trainer', 'admin'];
                 setClients((data || []).filter(p => !TRAINER_ROLES.includes(p.role)));
             } catch (error) {
                 console.error('Error fetching clients:', error);
@@ -69,6 +69,7 @@ export function ClientsListView({ onBack, onSelectClient }) {
                                     <img
                                         src={client.avatar_url || `https://ui-avatars.com/api/?name=${client.username}&background=random&color=fff`}
                                         alt={client.username}
+                                        loading="lazy"
                                         className="w-full h-full object-cover"
                                     />
                                 </div>

@@ -333,7 +333,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                                         <div key={ex.id} className="flex items-center gap-3 text-sm">
                                             <div className="w-8 h-8 rounded-lg bg-surface-highlight overflow-hidden flex-shrink-0 flex items-center justify-center">
                                                 {ex.image_url ? (
-                                                    <img src={ex.image_url} alt={ex.name} className="w-full h-full object-contain" />
+                                                    <img src={ex.image_url} alt={ex.name} className="w-full h-full object-contain" loading="lazy" />
                                                 ) : (
                                                     <Dumbbell size={12} className="text-text-secondary" />
                                                 )}
@@ -670,7 +670,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                             {selectedExercises.map((ex) => (
                                 <div key={ex.catalog_id} className="flex items-center gap-3 bg-background rounded-xl px-3 py-2">
                                     {ex.image_url ? (
-                                        <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+                                        <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
                                     ) : (
                                         <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
                                             <Dumbbell size={12} className="text-text-secondary" />

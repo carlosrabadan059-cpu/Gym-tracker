@@ -86,7 +86,7 @@ const StepLogExercises = ({ exercises, logsData, onChange }) => (
                 <div key={ex.id} className="bg-background rounded-xl border border-surface-highlight p-3">
                     <div className="flex items-center gap-2 mb-3">
                         {ex.image_url && (
-                            <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" referrerPolicy="no-referrer" />
+                            <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" referrerPolicy="no-referrer" />
                         )}
                         <div>
                             <p className="text-sm font-semibold text-text-primary leading-tight">{ex.name}</p>

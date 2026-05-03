@@ -305,6 +305,7 @@ function ImagePickerPanel({ selected, onSelect, onClose }) {
                                 <img
                                     src={path}
                                     alt={filename}
+                                    loading="lazy"
                                     className="w-full h-full object-contain bg-surface-highlight"
                                 />
                                 {isSelected && (
@@ -469,6 +470,7 @@ function AddExerciseModal({ onClose, onAdded }) {
                                     <img
                                         src={imageUrl}
                                         alt="seleccionada"
+                                        loading="lazy"
                                         className="w-10 h-10 rounded-lg object-contain flex-shrink-0"
                                     />
                                     <span className="text-sm text-text-primary flex-1 text-left truncate">
@@ -797,6 +799,7 @@ export function TrainerLibraryView({ onBack }) {
                                                                     <img
                                                                         src={ex.image_url}
                                                                         alt={ex.name}
+                                                                        loading="lazy"
                                                                         className="w-full h-full object-contain"
                                                                         referrerPolicy="no-referrer"
                                                                     />

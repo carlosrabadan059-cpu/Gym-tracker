@@ -122,6 +122,7 @@ export async function saveWorkoutLog(userId, routineId, logs) {
         }
     } catch (e) {
         console.error("Error saving workout log to Supabase:", e);
+        throw e;
     }
 }
 
