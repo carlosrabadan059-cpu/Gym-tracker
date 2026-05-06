@@ -1,13 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
   <rect width="256" height="256" rx="56" fill="#000000"/>
-  <g transform="translate(128, 128) rotate(-45) translate(-128, -128)">
-    <rect x="100" y="56" width="56" height="144" rx="16" fill="#1C1C1E"/>
-    <rect x="116" y="80" width="24" height="96" rx="12" fill="#2C2C2E"/>
+  
+  <g transform="translate(128, 128) rotate(-45) translate(-128, -128)" filter="url(#neon-glow)">
+    <!-- Handle -->
+    <rect x="116" y="80" width="24" height="96" rx="12" fill="#CCFF00"/>
     
-    <rect x="56" y="48" width="144" height="40" rx="20" fill="#CCFF00"/>
-    <rect x="72" y="24" width="112" height="24" rx="12" fill="#88cc00"/>
+    <!-- Top Weights -->
+    <rect x="56" y="48" width="144" height="40" rx="16" fill="#CCFF00"/>
+    <rect x="72" y="24" width="112" height="24" rx="12" fill="#CCFF00"/>
 
-    <rect x="56" y="168" width="144" height="40" rx="20" fill="#CCFF00"/>
-    <rect x="72" y="208" width="112" height="24" rx="12" fill="#88cc00"/>
+    <!-- Bottom Weights -->
+    <rect x="56" y="168" width="144" height="40" rx="16" fill="#CCFF00"/>
+    <rect x="72" y="208" width="112" height="24" rx="12" fill="#CCFF00"/>
   </g>
 </svg>
