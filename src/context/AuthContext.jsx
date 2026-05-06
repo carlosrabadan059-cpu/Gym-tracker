@@ -40,10 +40,16 @@ export const AuthProvider = ({ children }) => {
                         .update({ user_id: userId })
                         .eq('id', fallback.id);
                     setProfile({ ...fallback, user_id: userId });
+                    return;
                 }
             }
+
+            // Perfil no encontrado — cerrar sesión para evitar pantalla de carga infinita
+            console.warn('Perfil no encontrado para el usuario, cerrando sesión.');
+            await supabase.auth.signOut();
         } catch (err) {
             console.error('Error fetching profile:', err);
+            await supabase.auth.signOut();
         }
     };
 
