@@ -445,7 +445,6 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
 
     const canSave = routineName.trim() && selectedExercises.length > 0;
 
-    const [saveError, setSaveError] = useState(null);
 
     const handleSave = async () => {
         if (!canSave || !client) return;
