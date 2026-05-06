@@ -17,23 +17,45 @@ export function WorkoutDetailPanel({ entry, onClose }) {
         const ids = Object.keys(entry.logs || {}).filter(k => k !== 'workoutDuration' && k !== 'cardio');
         if (ids.length === 0) { setLoading(false); return; }
 
-        supabase
-            .from('exercises')
-            .select('id, name, catalog_id, exercise_catalog(name)')
-            .in('id', ids.map(Number))
-            .then(({ data }) => {
-                if (data) {
-                    setNameMap(prev => {
-                        const next = { ...prev };
-                        data.forEach(ex => {
-                            const resolvedName = ex.exercise_catalog?.name || ex.name;
-                            next[String(ex.id)] = { name: resolvedName, catalog_id: ex.catalog_id };
-                        });
-                        return next;
+        const fetchNames = async () => {
+            let nextNameMap = { ...STATIC_ID_TO_NAME };
+
+            const { data } = await supabase
+                .from('exercises')
+                .select('id, name, catalog_id, exercise_catalog(name)')
+                .in('id', ids.map(Number));
+
+            if (data) {
+                data.forEach(ex => {
+                    const resolvedName = ex.exercise_catalog?.name || ex.name;
+                    nextNameMap[String(ex.id)] = { name: resolvedName, catalog_id: ex.catalog_id };
+                });
+            }
+
+            const missingIds = ids.filter(id => !data?.some(d => String(d.id) === id) && STATIC_ID_TO_NAME[id]?.catalog_id);
+            if (missingIds.length > 0) {
+                const catalogIds = [...new Set(missingIds.map(id => STATIC_ID_TO_NAME[id].catalog_id))];
+                const { data: catalogData } = await supabase
+                    .from('exercise_catalog')
+                    .select('id, name')
+                    .in('id', catalogIds);
+
+                if (catalogData) {
+                    missingIds.forEach(id => {
+                        const catId = STATIC_ID_TO_NAME[id].catalog_id;
+                        const catRow = catalogData.find(c => c.id === catId);
+                        if (catRow) {
+                            nextNameMap[id] = { name: catRow.name, catalog_id: catId };
+                        }
                     });
                 }
-            })
-            .finally(() => setLoading(false));
+            }
+
+            setNameMap(nextNameMap);
+            setLoading(false);
+        };
+
+        fetchNames();
     }, [entry]);
 
     const exercises = useMemo(() => {

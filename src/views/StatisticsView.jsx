@@ -10,6 +10,12 @@ import {
 import { supabase } from '../lib/supabase';
 import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { routines as staticRoutines } from '../data/routines';
+
+const STATIC_ID_TO_NAME = {};
+staticRoutines.forEach(r => r.exercises.forEach(ex => {
+    STATIC_ID_TO_NAME[String(ex.id)] = { name: ex.name, catalog_id: ex.catalog_id };
+}));
 
 // ─────────────────────────────────────────────────────────
 // Helper: inicio de la semana (lunes)
@@ -123,9 +129,7 @@ function CustomTooltip({ active, payload, label }) {
 // Funciones puras de cálculo (fuera del componente → no se
 // re-crean en cada render)
 // ─────────────────────────────────────────────────────────
-function computeStats(logs, exercises) {
-    const idToName = {};
-    exercises.forEach(ex => { idToName[String(ex.id)] = ex.name; });
+function computeStats(logs, idToName) {
 
     let vol = 0;
     const prMap = {};
@@ -243,7 +247,37 @@ export function StatisticsView() {
                 ]);
                 const exercises = enrichExercisesWithCatalog(rawExData || []);
                 setExercisesData(exercises);
-                const { stats, personalRecords } = computeStats(logs, exercises);
+                
+                const idToName = {};
+                exercises.forEach(ex => { idToName[String(ex.id)] = ex.name; });
+
+                const exIds = new Set();
+                logs.forEach(session => {
+                    if (session.logs) {
+                        Object.keys(session.logs).forEach(id => {
+                            if (id !== 'cardio' && id !== 'workoutDuration') exIds.add(id);
+                        });
+                    }
+                });
+
+                const missingIds = Array.from(exIds).filter(id => !idToName[id] && STATIC_ID_TO_NAME[id]?.catalog_id);
+                if (missingIds.length > 0) {
+                    const catalogIds = [...new Set(missingIds.map(id => STATIC_ID_TO_NAME[id].catalog_id))];
+                    const { data: catalogData } = await supabase
+                        .from('exercise_catalog')
+                        .select('id, name')
+                        .in('id', catalogIds);
+                        
+                    if (catalogData) {
+                        missingIds.forEach(id => {
+                            const catId = STATIC_ID_TO_NAME[id].catalog_id;
+                            const catRow = catalogData.find(c => c.id === catId);
+                            idToName[id] = catRow ? catRow.name : STATIC_ID_TO_NAME[id].name;
+                        });
+                    }
+                }
+
+                const { stats, personalRecords } = computeStats(logs, idToName);
                 setStats(stats);
                 setPersonalRecords(personalRecords);
                 const { heatmapData, weekdayData } = computeActivity(logs);
