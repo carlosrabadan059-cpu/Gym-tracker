@@ -40,9 +40,8 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
     return (
         <div
             onClick={() => onToggle(ex)}
-            className={`relative rounded-xl overflow-hidden cursor-pointer border-2 transition-all aspect-square ${
-                selected ? 'border-primary shadow-lg shadow-primary/30 scale-[1.02]' : 'border-transparent hover:border-surface-highlight'
-            }`}
+            className={`relative rounded-xl overflow-hidden cursor-pointer border-2 transition-all aspect-square ${selected ? 'border-primary shadow-lg shadow-primary/30 scale-[1.02]' : 'border-transparent hover:border-surface-highlight'
+                }`}
         >
             {/* Image or placeholder */}
             {ex.image_url ? (
@@ -446,9 +445,12 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
 
     const canSave = routineName.trim() && selectedExercises.length > 0;
 
+    const [saveError, setSaveError] = useState(null);
+
     const handleSave = async () => {
         if (!canSave || !client) return;
         setSaving(true);
+        setSaveError(null);
         try {
             const routineId = `custom_${crypto.randomUUID()}`;
 
@@ -476,14 +478,20 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     ui_order: i + 1,
                 }))
             );
-            if (exError) throw exError;
+            if (exError) {
+                setSaveError(`❌ Error al guardar ejercicios: ${exError.message}`);
+                return;
+            }
 
             const { error: assignError } = await supabase.from('assigned_routines').insert([{
                 client_id: client.user_id,
                 routine_id: routineId,
                 assigned_by: user.id,
             }]);
-            if (assignError) throw assignError;
+            if (assignError) {
+                setSaveError(`❌ Error al asignar rutina: ${assignError.message}`);
+                return;
+            }
 
             if (client.user_id) {
                 try {
