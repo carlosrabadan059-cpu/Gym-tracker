@@ -1,80 +1,111 @@
 // Service Worker — Rest Timer Notifications
-// KEY FIX: event.waitUntil() keeps the SW alive for the full timer duration.
-// Without it, the OS can terminate the SW before the notification fires.
+// Uses a keep-alive ping loop to prevent iOS from killing the SW
+// before the rest timer fires (60-90 seconds).
 
-let cancelCurrent = null; // cancellation function for the active timer
+let timerState = null; // { targetTime, title, body, resolve }
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+
+// ── Keep-alive: re-extends waitUntil every 20s ──────────────
+function keepAliveUntil(targetTime) {
+  return new Promise((resolve) => {
+    const check = () => {
+      const remaining = targetTime - Date.now();
+      if (remaining <= 0 || !timerState) {
+        resolve();
+        return;
+      }
+      // Sleep for min(20s, remaining) then re-check
+      const sleepMs = Math.min(20000, remaining);
+      setTimeout(check, sleepMs);
+    };
+    check();
+  });
+}
+
+async function fireCompletionNotification() {
+  try {
+    await self.registration.showNotification('¡Recuperación completada! 💪', {
+      body: '¡Es hora de tu siguiente serie!',
+      icon: '/vite.svg',
+      badge: '/vite.svg',
+      vibrate: [500, 200, 500, 200, 800],
+      tag: 'rest-timer',
+      renotify: true,
+      requireInteraction: true,
+    });
+  } catch (e) { /* notification permission may be missing */ }
+
+  try {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED' }));
+  } catch (e) {}
+}
 
 self.addEventListener('message', (event) => {
   const { type, targetTime, title, body, isStart } = event.data || {};
 
   if (type === 'SCHEDULE_NOTIFICATION') {
-    // 1. Cancel previous
-    if (cancelCurrent) {
-      cancelCurrent();
-      cancelCurrent = null;
+    // Cancel any previous timer
+    if (timerState) {
+      timerState.resolve?.();
+      timerState = null;
     }
 
     const delay = Math.max(0, targetTime - Date.now());
-    let cancelled = false;
 
-    // 2. Wrap EVERYTHING in a waitUntil promise
     event.waitUntil(
-      new Promise(async (resolve) => {
-        // Immediate start notification if requested
+      (async () => {
+        // Show immediate "started" notification if requested
         if (isStart) {
           try {
-            await self.registration.showNotification(title || '¡Descanso iniciado! ⏱️', {
-              body: body || 'El temporizador ha comenzado.',
-              icon: '/vite.svg',
-              badge: '/vite.svg',
-              tag: 'rest-timer-start',
-              renotify: true,
-            });
-          } catch (err) {}
+            await self.registration.showNotification(
+              title || '¡Descanso iniciado! ⏱️',
+              {
+                body: body || 'El temporizador ha comenzado.',
+                icon: '/vite.svg',
+                badge: '/vite.svg',
+                tag: 'rest-timer-start',
+                renotify: true,
+              }
+            );
+          } catch (e) {}
         }
 
-        // Setup the completion timer
+        // Set up the completion timer with keep-alive
+        let resolveKeepAlive;
+        const keepAlivePromise = new Promise(r => { resolveKeepAlive = r; });
+
+        timerState = { targetTime, resolve: resolveKeepAlive };
+
+        // Main timer
         const timerId = setTimeout(async () => {
-          if (cancelled) { resolve(); return; }
-          cancelCurrent = null;
-
-          try {
-            await self.registration.showNotification('¡Recuperación completada! 💪', {
-              body: '¡Es hora de tu siguiente serie!',
-              icon: '/vite.svg',
-              badge: '/vite.svg',
-              vibrate: [500, 200, 500, 200, 800],
-              tag: 'rest-timer',
-              renotify: true,
-              requireInteraction: true,
-            });
-          } catch (e) {}
-
-          // Notify clients
-          try {
-            const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-            clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED' }));
-          } catch (e) {}
-
-          resolve();
+          if (!timerState || timerState.targetTime !== targetTime) {
+            resolveKeepAlive();
+            return;
+          }
+          timerState = null;
+          await fireCompletionNotification();
+          resolveKeepAlive();
         }, delay);
 
-        cancelCurrent = () => {
-          cancelled = true;
-          clearTimeout(timerId);
-          resolve();
-        };
-      })
+        // Keep-alive loop runs alongside the timer
+        const alivePromise = keepAliveUntil(targetTime + 2000);
+
+        // Wait for both: the timer to fire AND the keep-alive to finish
+        await Promise.race([keepAlivePromise, alivePromise]);
+
+        // Cleanup just in case
+        clearTimeout(timerId);
+      })()
     );
   }
 
   if (type === 'CANCEL_NOTIFICATION') {
-    if (cancelCurrent) {
-      cancelCurrent();
-      cancelCurrent = null;
+    if (timerState) {
+      timerState.resolve?.();
+      timerState = null;
     }
   }
 });
