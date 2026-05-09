@@ -11,8 +11,8 @@ async function fireCompletionNotification() {
   try {
     await self.registration.showNotification('¡Recuperación completada! 💪', {
       body: '¡Es hora de tu siguiente serie!',
-      icon: '/vite.svg',
-      badge: '/vite.svg',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       vibrate: [500, 200, 500, 200, 800],
       tag: 'rest-timer',
       renotify: true,
@@ -50,8 +50,8 @@ self.addEventListener('message', (event) => {
             title || '¡Descanso iniciado! ⏱️',
             {
               body: body || 'El temporizador ha comenzado.',
-              icon: '/vite.svg',
-              badge: '/vite.svg',
+              icon: '/icon-192.png',
+              badge: '/icon-192.png',
               tag: 'rest-timer-start',
               renotify: true,
             }
