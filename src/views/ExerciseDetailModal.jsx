@@ -15,7 +15,7 @@ function formatRelativeDate(isoDate) {
 }
 
 export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClose, savedTimerState, onTimerStateChange }) => {
-    const { profile } = useAuth();
+    const { user, profile } = useAuth();
     const userWeight = profile?.weight || null;
 
     const isBodyweight = isBodyweightExercise(exercise);
