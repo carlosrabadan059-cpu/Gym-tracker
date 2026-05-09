@@ -8,22 +8,31 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 async function fireCompletionNotification() {
-  try {
-    await self.registration.showNotification('¡Recuperación completada! 💪', {
-      body: '¡Es hora de tu siguiente serie!',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [500, 200, 500, 200, 800],
-      tag: 'rest-timer',
-      renotify: true,
-      requireInteraction: true,
-    });
-  } catch (e) {}
+  let isClientVisible = false;
 
   try {
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED' }));
+    for (const client of clients) {
+      if (client.visibilityState === 'visible') isClientVisible = true;
+      client.postMessage({ type: 'TIMER_FIRED' });
+    }
   } catch (e) {}
+
+  // Only show notification when app is in background/locked.
+  // In foreground, the pre-scheduled Web Audio beep is sufficient.
+  if (!isClientVisible) {
+    try {
+      await self.registration.showNotification('¡Recuperación completada! 💪', {
+        body: '¡Es hora de tu siguiente serie!',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        vibrate: [500, 200, 500, 200, 800],
+        tag: 'rest-timer',
+        renotify: true,
+        requireInteraction: true,
+      });
+    } catch (e) {}
+  }
 }
 
 function cancelActiveTimer() {
@@ -43,22 +52,6 @@ self.addEventListener('message', (event) => {
     const delay = Math.max(0, targetTime - Date.now());
 
     event.waitUntil(new Promise(async (resolve) => {
-      // Immediate "started" notification if requested
-      if (isStart) {
-        try {
-          await self.registration.showNotification(
-            title || '¡Descanso iniciado! ⏱️',
-            {
-              body: body || 'El temporizador ha comenzado.',
-              icon: '/icon-192.png',
-              badge: '/icon-192.png',
-              tag: 'rest-timer-start',
-              renotify: true,
-            }
-          );
-        } catch (e) {}
-      }
-
       let fired = false;
 
       const fire = async () => {
