@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const VAPID_PUBLIC_KEY = 'BOABd1tyZIeOvxKWzukzIf8bmMKRkZ4oZ80KlGhA4ZIrtm8uQQ43-OE8Xamv9T3D1vNkM8X88Q-Qp7ysU7tafQk';
+const VAPID_PUBLIC_KEY = 'BJnd9P2SuZH8YWq4aZXEj9TrmMSydxiXrxt41L0FdlMhGjUE4gyMWmH-sKKn32uOVzbVgY_vXrqS6JRl0qbT16U';
 
 /**
  * Converts a URL-safe base64 string to a Uint8Array.
@@ -37,16 +37,17 @@ export async function subscribeToPush(userId) {
         console.log('[Push] SW ready. Checking existing subscription...');
 
         let subscription = await registration.pushManager.getSubscription();
-        console.log('[Push] Existing subscription:', !!subscription);
-
-        if (!subscription) {
-            console.log('[Push] Subscribing with VAPID key...');
-            subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-            });
-            console.log('[Push] Subscribed successfully:', subscription.endpoint?.substring(0, 50));
+        if (subscription) {
+            console.log('[Push] Existing subscription found. Unsubscribing to refresh VAPID key...');
+            await subscription.unsubscribe();
         }
+
+        console.log(`[Push] Subscribing with new VAPID key... (${VAPID_PUBLIC_KEY.substring(0, 10)}...)`);
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+        console.log('[Push] Subscribed successfully:', subscription.endpoint?.substring(0, 50));
 
         console.log('[Push] Saving to Supabase...');
         const { error } = await supabase

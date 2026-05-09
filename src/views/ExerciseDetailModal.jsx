@@ -248,7 +248,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             scheduleEndBeep(dur);
             silentAudioRef.current?.play().catch(() => {});
             scheduleSWNotification(target, true);
-            if (user?.id) scheduleServerPush(user.id, target);
+            if (user?.id) {
+                subscribeToPush(user.id)
+                    .then(() => scheduleServerPush(user.id, target))
+                    .catch(e => console.error('[Push] Repair failed on toggle', e));
+            }
         }
     };
 
@@ -447,7 +451,27 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
                     {/* DEBUG: Push status — remove after debugging */}
                     {pushDebug && (
-                        <p className="text-xs text-center text-text-secondary bg-surface-highlight rounded-lg p-2 font-mono">{pushDebug}</p>
+                        <p 
+                            className="text-[10px] text-center text-text-secondary bg-surface-highlight rounded-lg p-2 font-mono cursor-pointer"
+                            onClick={async () => {
+                                setPushDebug('Borrando Service Worker y suscripción...');
+                                if (user?.id) {
+                                    try {
+                                        const reg = await navigator.serviceWorker.ready;
+                                        const sub = await reg.pushManager.getSubscription();
+                                        if (sub) await sub.unsubscribe();
+                                        const regs = await navigator.serviceWorker.getRegistrations();
+                                        for (let r of regs) await r.unregister();
+                                        setPushDebug('SW borrado. Recargando...');
+                                        setTimeout(() => window.location.reload(), 1000);
+                                    } catch (e) {
+                                        setPushDebug('Error: ' + e.message);
+                                    }
+                                }
+                            }}
+                        >
+                            {pushDebug} (Toca aquí para REINICIAR PUSH)
+                        </p>
                     )}
 
                     {/* Timer Section */}
