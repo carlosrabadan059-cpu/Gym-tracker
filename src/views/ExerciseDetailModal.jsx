@@ -409,27 +409,48 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-surface">
 
                     {/* Instructions */}
-                    {exercise.instructions && (
-                        <div className="rounded-2xl overflow-hidden bg-surface-highlight">
-                            <button
-                                onClick={() => setShowInstructions(!showInstructions)}
-                                className="w-full flex items-center justify-between px-4 py-3"
-                            >
-                                <span className="text-sm font-semibold text-text-primary">Indicaciones</span>
-                                <span className={`text-xs text-text-secondary transition-transform duration-200 ${showInstructions ? 'rotate-180' : ''}`}>▾</span>
-                            </button>
-                            {showInstructions && (
-                                <div className="px-4 pb-4 space-y-2 border-t border-white/5">
-                                    {exercise.instructions.split('\n').filter(p => p.trim()).map((para, i) => (
-                                        <p key={i} className="text-sm text-text-secondary leading-relaxed flex gap-2">
-                                            <span className="text-primary mt-0.5 flex-shrink-0">•</span>
-                                            {para.trim()}
-                                        </p>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {exercise.instructions && (() => {
+                        // Parse "N. **Título**: descripción" format, skip intro lines
+                        const stepRegex = /^\d+\.\s+\*\*(.+?)\*\*[:\s]*(.*)$/;
+                        const steps = exercise.instructions
+                            .split('\n')
+                            .map(l => l.trim())
+                            .filter(l => l && stepRegex.test(l))
+                            .map(l => {
+                                const [, title, desc] = l.match(stepRegex);
+                                return { title, desc };
+                            });
+                        if (steps.length === 0) return null;
+                        return (
+                            <div className="rounded-2xl overflow-hidden bg-surface-highlight">
+                                <button
+                                    onClick={() => setShowInstructions(!showInstructions)}
+                                    className="w-full flex items-center justify-between px-4 py-3.5"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-text-primary">Cómo hacerlo</span>
+                                        <span className="text-[10px] font-semibold bg-primary/15 text-primary px-2 py-0.5 rounded-full">{steps.length} pasos</span>
+                                    </div>
+                                    <span className={`text-text-secondary transition-transform duration-200 ${showInstructions ? 'rotate-180' : ''}`} style={{fontSize: 10}}>▾</span>
+                                </button>
+                                {showInstructions && (
+                                    <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
+                                        {steps.map(({ title, desc }, i) => (
+                                            <div key={i} className="flex gap-3">
+                                                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
+                                                    <span className="text-[11px] font-black text-black">{i + 1}</span>
+                                                </div>
+                                                <div className="flex-1 min-w-0 pt-0.5">
+                                                    <p className="text-xs font-bold text-text-primary uppercase tracking-wide">{title}</p>
+                                                    {desc && <p className="text-sm text-text-secondary leading-relaxed mt-0.5">{desc}</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
 
                     {/* iOS / PWA Status Banner */}
                     {(() => {
