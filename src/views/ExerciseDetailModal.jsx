@@ -103,9 +103,19 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     };
 
     // Auto-subscribe to Web Push if permission was previously granted
+    const [pushDebug, setPushDebug] = useState('');
     useEffect(() => {
         if (user?.id && 'Notification' in window && Notification.permission === 'granted') {
-            subscribeToPush(user.id);
+            setPushDebug('Subscribing...');
+            subscribeToPush(user.id)
+                .then(ok => setPushDebug(ok ? '✅ Push OK' : '❌ Push failed'))
+                .catch(e => setPushDebug('❌ ' + e.message));
+        } else {
+            const reasons = [];
+            if (!user?.id) reasons.push('no user');
+            if (!('Notification' in window)) reasons.push('no Notification API');
+            else if (Notification.permission !== 'granted') reasons.push('permission=' + Notification.permission);
+            setPushDebug('⚠️ ' + reasons.join(', '));
         }
     }, [user?.id]);
 
@@ -434,6 +444,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                             </div>
                         );
                     })()}
+
+                    {/* DEBUG: Push status — remove after debugging */}
+                    {pushDebug && (
+                        <p className="text-xs text-center text-text-secondary bg-surface-highlight rounded-lg p-2 font-mono">{pushDebug}</p>
+                    )}
 
                     {/* Timer Section */}
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
