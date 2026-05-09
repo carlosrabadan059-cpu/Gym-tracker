@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, History, Info } from 'lucide-react';
+import { X, Check, History } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
@@ -400,45 +400,34 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     >
                         <X size={24} />
                     </button>
-                    <div className="absolute bottom-4 left-6 flex items-center gap-3">
+                    <div className="absolute bottom-4 left-6">
                         <h2 className="text-3xl font-bold text-black dark:text-white leading-tight">{exercise.name}</h2>
-                        {exercise.instructions && (
-                            <button 
-                                onClick={() => setShowInstructions(!showInstructions)}
-                                className={`p-2 rounded-full transition-all ${
-                                    showInstructions 
-                                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30 scale-110' 
-                                    : 'bg-white/20 backdrop-blur-md text-white hover:bg-white/30'
-                                }`}
-                            >
-                                <Info size={20} />
-                            </button>
-                        )}
                     </div>
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-surface">
 
-                    {/* Instructions Panel */}
-                    {showInstructions && exercise.instructions && (
-                        <div 
-                            onClick={() => setShowInstructions(false)}
-                            className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4 text-sm text-text-secondary leading-relaxed cursor-pointer animate-in fade-in slide-in-from-top-2 duration-300 shadow-inner"
-                        >
-                            <div className="space-y-3">
-                                {exercise.instructions.split('\n').filter(p => p.trim()).map((para, i) => (
-                                    <p key={i} className="relative pl-4">
-                                        <span className="absolute left-0 top-2 w-1.5 h-1.5 rounded-full bg-blue-500/40" />
-                                        {para.trim()}
-                                    </p>
-                                ))}
-                            </div>
-                            <div className="mt-4 pt-3 border-t border-blue-500/10 flex justify-center items-center gap-2">
-                                <span className="text-[10px] uppercase tracking-widest text-blue-500/50 font-bold">Cerrar indicaciones</span>
-                                <div className="w-1 h-1 rounded-full bg-blue-500/30" />
-                                <span className="text-[10px] text-blue-500/40">Toca cualquier parte</span>
-                            </div>
+                    {/* Instructions */}
+                    {exercise.instructions && (
+                        <div className="rounded-2xl overflow-hidden bg-surface-highlight">
+                            <button
+                                onClick={() => setShowInstructions(!showInstructions)}
+                                className="w-full flex items-center justify-between px-4 py-3"
+                            >
+                                <span className="text-sm font-semibold text-text-primary">Indicaciones</span>
+                                <span className={`text-xs text-text-secondary transition-transform duration-200 ${showInstructions ? 'rotate-180' : ''}`}>▾</span>
+                            </button>
+                            {showInstructions && (
+                                <div className="px-4 pb-4 space-y-2 border-t border-white/5">
+                                    {exercise.instructions.split('\n').filter(p => p.trim()).map((para, i) => (
+                                        <p key={i} className="text-sm text-text-secondary leading-relaxed flex gap-2">
+                                            <span className="text-primary mt-0.5 flex-shrink-0">•</span>
+                                            {para.trim()}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
