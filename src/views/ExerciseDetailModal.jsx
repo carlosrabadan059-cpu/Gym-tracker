@@ -402,19 +402,26 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-surface">
 
                     {/* iOS / PWA Status Banner */}
-                    {('Notification' in window) && (Notification.permission !== 'granted' || !window.navigator.standalone) && (
-                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-500 flex flex-col gap-2">
-                            <p className="font-bold uppercase tracking-tight">⚠️ Acción requerida para avisos en reposo:</p>
-                            <ul className="list-disc ml-4 space-y-1">
-                                {Notification.permission !== 'granted' && (
-                                    <li>Debes <button onClick={requestNotificationPermission} className="underline font-bold">Permitir Notificaciones</button>.</li>
-                                )}
-                                {!window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent) && (
-                                    <li>Usa "Añadir a pantalla de inicio" en Safari para que funcione bloqueado.</li>
-                                )}
-                            </ul>
-                        </div>
-                    )}
+                    {(() => {
+                        const items = [];
+                        if ('Notification' in window && Notification.permission !== 'granted') {
+                            items.push(
+                                <li key="perm">Debes <button onClick={requestNotificationPermission} className="underline font-bold">Permitir Notificaciones</button>.</li>
+                            );
+                        }
+                        if (!window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                            items.push(
+                                <li key="pwa">Usa "Añadir a pantalla de inicio" en Safari para que funcione bloqueado.</li>
+                            );
+                        }
+                        if (items.length === 0) return null;
+                        return (
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-500 flex flex-col gap-2">
+                                <p className="font-bold uppercase tracking-tight">⚠️ Acción requerida para avisos en reposo:</p>
+                                <ul className="list-disc ml-4 space-y-1">{items}</ul>
+                            </div>
+                        );
+                    })()}
 
                     {/* Timer Section */}
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
