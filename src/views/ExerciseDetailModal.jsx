@@ -3,6 +3,7 @@ import { X, Check, History } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
+import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -92,12 +93,21 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
                     scheduleSWNotification(Date.now() + 1000, true);
+                    // Register Web Push subscription for background notifications
+                    if (user?.id) subscribeToPush(user.id);
                 }
             } catch (e) {
                 console.error("Permission request failed", e);
             }
         }
     };
+
+    // Auto-subscribe to Web Push if permission was previously granted
+    useEffect(() => {
+        if (user?.id && 'Notification' in window && Notification.permission === 'granted') {
+            subscribeToPush(user.id);
+        }
+    }, [user?.id]);
 
     const scheduleSWNotification = (targetTime, isStart = false) => {
         if (!('serviceWorker' in navigator)) return;
@@ -228,6 +238,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             scheduleEndBeep(dur);
             silentAudioRef.current?.play().catch(() => {});
             scheduleSWNotification(target, true);
+            if (user?.id) scheduleServerPush(user.id, target);
         }
     };
 
@@ -348,6 +359,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             scheduleEndBeep(dur);
             silentAudioRef.current?.play().catch(() => {});
             scheduleSWNotification(t, true);
+            if (user?.id) scheduleServerPush(user.id, t);
         } else {
             setTimerActive(false);
             setTargetTime(null);

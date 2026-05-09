@@ -7,6 +7,32 @@ let activeTimer = null; // { timeoutId, intervalId, targetTime, resolve }
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
+// ── Web Push from server (works even with locked iPhone) ──
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  event.waitUntil(
+    (async () => {
+      await self.registration.showNotification(
+        data.title || '¡Recuperación completada! 💪',
+        {
+          body: data.body || '¡Es hora de tu siguiente serie!',
+          icon: data.icon || '/icon-192.png',
+          badge: data.badge || '/icon-192.png',
+          vibrate: [500, 200, 500, 200, 800],
+          tag: 'rest-timer-push',
+          renotify: true,
+          requireInteraction: true,
+        }
+      );
+      // Notify client to reset timer UI if open
+      try {
+        const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED' }));
+      } catch (e) {}
+    })()
+  );
+});
+
 async function fireCompletionNotification() {
   let isClientVisible = false;
 
