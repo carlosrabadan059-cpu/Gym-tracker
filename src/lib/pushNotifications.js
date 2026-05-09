@@ -22,25 +22,33 @@ function urlBase64ToUint8Array(base64String) {
  * subscription to Supabase. Returns true on success.
  */
 export async function subscribeToPush(userId) {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push notifications not supported');
+    if (!('serviceWorker' in navigator)) {
+        console.warn('[Push] No serviceWorker support');
+        return false;
+    }
+    if (!('PushManager' in window)) {
+        console.warn('[Push] No PushManager support');
         return false;
     }
 
     try {
+        console.log('[Push] Getting SW registration...');
         const registration = await navigator.serviceWorker.ready;
+        console.log('[Push] SW ready. Checking existing subscription...');
 
-        // Check for existing subscription
         let subscription = await registration.pushManager.getSubscription();
+        console.log('[Push] Existing subscription:', !!subscription);
 
         if (!subscription) {
+            console.log('[Push] Subscribing with VAPID key...');
             subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
             });
+            console.log('[Push] Subscribed successfully:', subscription.endpoint?.substring(0, 50));
         }
 
-        // Persist to Supabase
+        console.log('[Push] Saving to Supabase...');
         const { error } = await supabase
             .from('push_subscriptions')
             .upsert({
@@ -49,10 +57,14 @@ export async function subscribeToPush(userId) {
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'user_id' });
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Push] Supabase upsert error:', error);
+            throw error;
+        }
+        console.log('[Push] ✅ Subscription saved to DB');
         return true;
     } catch (err) {
-        console.error('Push subscription failed:', err);
+        console.error('[Push] Subscription failed:', err.name, err.message);
         return false;
     }
 }
