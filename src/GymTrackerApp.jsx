@@ -156,7 +156,7 @@ const LoginView = () => {
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
                         tabIndex={-1}
                     >
-                        {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                 </div>
 
