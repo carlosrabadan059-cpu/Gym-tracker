@@ -37,17 +37,17 @@ export async function subscribeToPush(userId) {
         console.log('[Push] SW ready. Checking existing subscription...');
 
         let subscription = await registration.pushManager.getSubscription();
-        if (subscription) {
-            console.log('[Push] Existing subscription found. Unsubscribing to refresh VAPID key...');
-            await subscription.unsubscribe();
+        
+        if (!subscription) {
+            console.log(`[Push] No existing subscription. Subscribing with VAPID key... (${VAPID_PUBLIC_KEY.substring(0, 10)}...)`);
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+            });
+            console.log('[Push] Subscribed successfully:', subscription.endpoint?.substring(0, 50));
+        } else {
+            console.log('[Push] Existing subscription found, reusing it.');
         }
-
-        console.log(`[Push] Subscribing with new VAPID key... (${VAPID_PUBLIC_KEY.substring(0, 10)}...)`);
-        subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        });
-        console.log('[Push] Subscribed successfully:', subscription.endpoint?.substring(0, 50));
 
         console.log('[Push] Saving to Supabase...');
         const { error } = await supabase
