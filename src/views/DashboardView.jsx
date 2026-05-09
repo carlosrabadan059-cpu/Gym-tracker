@@ -58,7 +58,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
 
             const { data: rawExercisesData, error: exercisesError } = await supabase
                 .from('exercises')
-                .select('*, exercise_catalog(name, image_url)')
+                .select('*, exercise_catalog(name, image_url, instructions)')
                 .in('routine_id', targetRoutineIds)
                 .order('ui_order');
 

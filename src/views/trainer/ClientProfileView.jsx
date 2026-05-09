@@ -67,7 +67,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                     { data: rawExercisesData, error: exercisesError },
                 ] = await Promise.all([
                     supabase.from('routines').select('*').in('id', routineIds).order('id'),
-                    supabase.from('exercises').select('*, exercise_catalog(name, image_url)').in('routine_id', routineIds).order('ui_order'),
+                    supabase.from('exercises').select('*, exercise_catalog(name, image_url, instructions)').in('routine_id', routineIds).order('ui_order'),
                 ]);
 
                 if (routinesError) throw routinesError;

@@ -34,6 +34,7 @@ export function enrichExercisesWithCatalog(exercises) {
             ...exerciseWithoutCatalog,
             name: catalogData.name || exercise.name,
             image_url: catalogData.image_url || exercise.image_url,
+            instructions: catalogData.instructions || exercise.instructions,
         };
     });
 }
