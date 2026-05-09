@@ -76,8 +76,12 @@ export async function subscribeToPush(userId) {
  */
 export async function scheduleServerPush(userId, targetTime) {
     try {
+        console.log('[Push] Scheduling server push for', new Date(targetTime).toLocaleTimeString());
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return false;
+        if (!session) {
+            console.warn('[Push] No session, cannot schedule');
+            return false;
+        }
 
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
@@ -91,11 +95,11 @@ export async function scheduleServerPush(userId, targetTime) {
             body: JSON.stringify({ userId, targetTime }),
         });
 
-        // Fire-and-forget: don't await the response since it will
-        // hang until targetTime is reached (60-90s)
-        return true;
+        const result = await response.json();
+        console.log('[Push] Server response:', response.status, result);
+        return response.ok;
     } catch (err) {
-        console.error('Failed to schedule server push:', err);
+        console.error('[Push] Failed to schedule server push:', err);
         return false;
     }
 }
