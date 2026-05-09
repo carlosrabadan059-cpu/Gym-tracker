@@ -9,7 +9,18 @@ self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
 // ── Web Push from server (works even with locked iPhone) ──
 self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {};
+  let data = {};
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (err) {
+    console.error('[Push] Error parsing data:', err);
+    try {
+        data = { body: event.data.text() };
+    } catch(e) {}
+  }
+
   event.waitUntil(
     (async () => {
       await self.registration.showNotification(
@@ -32,6 +43,7 @@ self.addEventListener('push', (event) => {
     })()
   );
 });
+
 
 async function fireCompletionNotification() {
   let isClientVisible = false;
