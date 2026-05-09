@@ -30,7 +30,7 @@ self.addEventListener('push', (event) => {
           icon: data.icon || '/icon-192.png',
           badge: data.badge || '/icon-192.png',
           vibrate: [500, 200, 500, 200, 800],
-          tag: 'rest-timer-push',
+          tag: 'gym-rest-timer',
           renotify: true,
           requireInteraction: true,
         }
@@ -65,7 +65,7 @@ async function fireCompletionNotification() {
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         vibrate: [500, 200, 500, 200, 800],
-        tag: 'rest-timer',
+        tag: 'gym-rest-timer',
         renotify: true,
         requireInteraction: true,
       });
