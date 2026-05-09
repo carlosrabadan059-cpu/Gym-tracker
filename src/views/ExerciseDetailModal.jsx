@@ -102,22 +102,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         }
     };
 
-    // Auto-subscribe to Web Push if permission was previously granted
-    const [pushDebug, setPushDebug] = useState('');
-    useEffect(() => {
-        if (user?.id && 'Notification' in window && Notification.permission === 'granted') {
-            setPushDebug('Subscribing...');
-            subscribeToPush(user.id)
-                .then(ok => setPushDebug(ok ? '✅ Push OK' : '❌ Push failed'))
-                .catch(e => setPushDebug('❌ ' + e.message));
-        } else {
-            const reasons = [];
-            if (!user?.id) reasons.push('no user');
-            if (!('Notification' in window)) reasons.push('no Notification API');
-            else if (Notification.permission !== 'granted') reasons.push('permission=' + Notification.permission);
-            setPushDebug('⚠️ ' + reasons.join(', '));
-        }
-    }, [user?.id]);
+    // Se eliminó el auto-subscribe y los logs de depuración (ya no son necesarios en UI)
 
     const scheduleSWNotification = (targetTime, isStart = false) => {
         if (!('serviceWorker' in navigator)) return;
@@ -449,30 +434,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                         );
                     })()}
 
-                    {/* DEBUG: Push status — remove after debugging */}
-                    {pushDebug && (
-                        <p 
-                            className="text-[10px] text-center text-text-secondary bg-surface-highlight rounded-lg p-2 font-mono cursor-pointer"
-                            onClick={async () => {
-                                setPushDebug('Borrando Service Worker y suscripción...');
-                                if (user?.id) {
-                                    try {
-                                        const reg = await navigator.serviceWorker.ready;
-                                        const sub = await reg.pushManager.getSubscription();
-                                        if (sub) await sub.unsubscribe();
-                                        const regs = await navigator.serviceWorker.getRegistrations();
-                                        for (let r of regs) await r.unregister();
-                                        setPushDebug('SW borrado. Recargando...');
-                                        setTimeout(() => window.location.reload(), 1000);
-                                    } catch (e) {
-                                        setPushDebug('Error: ' + e.message);
-                                    }
-                                }
-                            }}
-                        >
-                            {pushDebug} (Toca aquí para REINICIAR PUSH)
-                        </p>
-                    )}
 
                     {/* Timer Section */}
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
