@@ -71,10 +71,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             console.error("AudioContext error:", e);
         }
 
-        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-        silentAudio.loop = true;
-        silentAudioRef.current = silentAudio;
-
         return () => {
             cancelScheduledEndBeep();
             if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
@@ -125,7 +121,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         }
     };
 
-    const silentAudioRef = useRef(null);
+
 
     const cancelScheduledEndBeep = useCallback(() => {
         scheduledEndNodesRef.current.forEach(osc => {
@@ -231,7 +227,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
-            silentAudioRef.current?.play().catch(() => {});
             scheduleSWNotification(target, true);
             if (user?.id) {
                 subscribeToPush(user.id)
@@ -293,7 +288,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     beepFiredRef.current = true;
                     setTimerActive(false);
                     setTargetTime(null);
-                    silentAudioRef.current?.pause();
+        
                     // End beep was pre-scheduled via Web Audio at timer start.
                     // Vibrate as additional feedback (Android only).
                     if ('vibrate' in navigator) {
@@ -318,7 +313,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTimerActive(false);
             setTargetTime(null);
             setTimeLeft(0);
-            silentAudioRef.current?.pause();
+
             if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
@@ -337,7 +332,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
-                silentAudioRef.current?.pause();
+    
                 if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
             }
@@ -356,14 +351,14 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
-            silentAudioRef.current?.play().catch(() => {});
+
             scheduleSWNotification(t, true);
             if (user?.id) scheduleServerPush(user.id, t);
         } else {
             setTimerActive(false);
             setTargetTime(null);
             cancelScheduledEndBeep();
-            silentAudioRef.current?.pause();
+
             scheduleSWNotification(null);
         }
     };
@@ -377,7 +372,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTargetTime(newTarget);
             setTimeLeft(duration);
             scheduleEndBeep(duration);
-            silentAudioRef.current?.play().catch(() => {});
+
         }
     };
 
