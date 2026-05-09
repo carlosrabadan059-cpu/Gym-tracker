@@ -275,7 +275,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
         if (timerActive && targetTime) {
             beepFiredRef.current = false;
-            scheduleSWNotification(targetTime);
 
             interval = setInterval(() => {
                 const remaining = Math.max(0, Math.ceil((targetTime - Date.now()) / 1000));
@@ -284,7 +283,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     beepFiredRef.current = true;
                     setTimerActive(false);
                     setTargetTime(null);
-                    scheduleSWNotification(null);
                     silentAudioRef.current?.pause();
                     // End beep was pre-scheduled via Web Audio at timer start.
                     // Vibrate as additional feedback (Android only).
@@ -294,8 +292,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
                 }
             }, 500);
-        } else {
-            scheduleSWNotification(null);
         }
 
         return () => {
@@ -331,7 +327,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
-                scheduleSWNotification(null);
                 silentAudioRef.current?.pause();
                 if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);

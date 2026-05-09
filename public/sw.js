@@ -1,28 +1,11 @@
 // Service Worker — Rest Timer Notifications
-// Uses a keep-alive ping loop to prevent iOS from killing the SW
-// before the rest timer fires (60-90 seconds).
+// Dual-timer approach: primary setTimeout + backup setInterval every 5s.
+// The interval acts as a safety net if iOS suspends the primary timer.
 
-let timerState = null; // { targetTime, title, body, resolve }
+let activeTimer = null; // { timeoutId, intervalId, targetTime, resolve }
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
-
-// ── Keep-alive: re-extends waitUntil every 20s ──────────────
-function keepAliveUntil(targetTime) {
-  return new Promise((resolve) => {
-    const check = () => {
-      const remaining = targetTime - Date.now();
-      if (remaining <= 0 || !timerState) {
-        resolve();
-        return;
-      }
-      // Sleep for min(20s, remaining) then re-check
-      const sleepMs = Math.min(20000, remaining);
-      setTimeout(check, sleepMs);
-    };
-    check();
-  });
-}
 
 async function fireCompletionNotification() {
   try {
@@ -35,7 +18,7 @@ async function fireCompletionNotification() {
       renotify: true,
       requireInteraction: true,
     });
-  } catch (e) { /* notification permission may be missing */ }
+  } catch (e) {}
 
   try {
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -43,70 +26,67 @@ async function fireCompletionNotification() {
   } catch (e) {}
 }
 
+function cancelActiveTimer() {
+  if (!activeTimer) return;
+  clearTimeout(activeTimer.timeoutId);
+  clearInterval(activeTimer.intervalId);
+  activeTimer.resolve?.();
+  activeTimer = null;
+}
+
 self.addEventListener('message', (event) => {
   const { type, targetTime, title, body, isStart } = event.data || {};
 
   if (type === 'SCHEDULE_NOTIFICATION') {
-    // Cancel any previous timer
-    if (timerState) {
-      timerState.resolve?.();
-      timerState = null;
-    }
+    cancelActiveTimer();
 
     const delay = Math.max(0, targetTime - Date.now());
 
-    event.waitUntil(
-      (async () => {
-        // Show immediate "started" notification if requested
-        if (isStart) {
-          try {
-            await self.registration.showNotification(
-              title || '¡Descanso iniciado! ⏱️',
-              {
-                body: body || 'El temporizador ha comenzado.',
-                icon: '/vite.svg',
-                badge: '/vite.svg',
-                tag: 'rest-timer-start',
-                renotify: true,
-              }
-            );
-          } catch (e) {}
+    event.waitUntil(new Promise(async (resolve) => {
+      // Immediate "started" notification if requested
+      if (isStart) {
+        try {
+          await self.registration.showNotification(
+            title || '¡Descanso iniciado! ⏱️',
+            {
+              body: body || 'El temporizador ha comenzado.',
+              icon: '/vite.svg',
+              badge: '/vite.svg',
+              tag: 'rest-timer-start',
+              renotify: true,
+            }
+          );
+        } catch (e) {}
+      }
+
+      let fired = false;
+
+      const fire = async () => {
+        if (fired) return;
+        fired = true;
+        if (activeTimer) {
+          clearTimeout(activeTimer.timeoutId);
+          clearInterval(activeTimer.intervalId);
         }
+        activeTimer = null;
+        await fireCompletionNotification();
+        resolve();
+      };
 
-        // Set up the completion timer with keep-alive
-        let resolveKeepAlive;
-        const keepAlivePromise = new Promise(r => { resolveKeepAlive = r; });
+      // Primary timer: exact delay
+      const timeoutId = setTimeout(fire, delay);
 
-        timerState = { targetTime, resolve: resolveKeepAlive };
+      // Backup: poll every 5s in case iOS killed the primary setTimeout
+      const intervalId = setInterval(() => {
+        if (Date.now() >= targetTime) fire();
+      }, 5000);
 
-        // Main timer
-        const timerId = setTimeout(async () => {
-          if (!timerState || timerState.targetTime !== targetTime) {
-            resolveKeepAlive();
-            return;
-          }
-          timerState = null;
-          await fireCompletionNotification();
-          resolveKeepAlive();
-        }, delay);
-
-        // Keep-alive loop runs alongside the timer
-        const alivePromise = keepAliveUntil(targetTime + 2000);
-
-        // Wait for both: the timer to fire AND the keep-alive to finish
-        await Promise.race([keepAlivePromise, alivePromise]);
-
-        // Cleanup just in case
-        clearTimeout(timerId);
-      })()
-    );
+      activeTimer = { timeoutId, intervalId, targetTime, resolve };
+    }));
   }
 
   if (type === 'CANCEL_NOTIFICATION') {
-    if (timerState) {
-      timerState.resolve?.();
-      timerState = null;
-    }
+    cancelActiveTimer();
   }
 });
 
