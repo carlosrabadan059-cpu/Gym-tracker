@@ -410,16 +410,24 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
                     {/* Instructions */}
                     {exercise.instructions && (() => {
-                        // Parse "N. **Título**: descripción" format, skip intro lines
                         const stepRegex = /^\d+\.\s+\*\*(.+?)\*\*[:\s]*(.*)$/;
-                        const steps = exercise.instructions
-                            .split('\n')
-                            .map(l => l.trim())
-                            .filter(l => l && stepRegex.test(l))
-                            .map(l => {
-                                const [, title, desc] = l.match(stepRegex);
-                                return { title, desc };
-                            });
+                        const steps = [];
+                        let current = null;
+                        for (const raw of exercise.instructions.split('\n')) {
+                            const line = raw.trim();
+                            if (!line) continue;
+                            if (/^claro[,\s]/i.test(line) || /^aquí tienes/i.test(line)) continue;
+                            const m = line.match(stepRegex);
+                            if (m) {
+                                if (current) steps.push(current);
+                                current = { title: m[1], items: m[2].trim() ? [m[2].trim()] : [] };
+                            } else if (current && /^[-•]/.test(line)) {
+                                current.items.push(line.replace(/^[-•]\s*/, ''));
+                            } else if (current && line) {
+                                current.items.push(line);
+                            }
+                        }
+                        if (current) steps.push(current);
                         if (steps.length === 0) return null;
                         return (
                             <div className="rounded-2xl overflow-hidden bg-surface-highlight">
@@ -435,14 +443,26 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                                 </button>
                                 {showInstructions && (
                                     <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
-                                        {steps.map(({ title, desc }, i) => (
+                                        {steps.map(({ title, items }, i) => (
                                             <div key={i} className="flex gap-3">
                                                 <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                                                     <span className="text-[11px] font-black text-black">{i + 1}</span>
                                                 </div>
                                                 <div className="flex-1 min-w-0 pt-0.5">
                                                     <p className="text-xs font-bold text-text-primary uppercase tracking-wide">{title}</p>
-                                                    {desc && <p className="text-sm text-text-secondary leading-relaxed mt-0.5">{desc}</p>}
+                                                    {items.length === 1 && (
+                                                        <p className="text-sm text-text-secondary leading-relaxed mt-0.5">{items[0]}</p>
+                                                    )}
+                                                    {items.length > 1 && (
+                                                        <ul className="mt-1 space-y-0.5">
+                                                            {items.map((item, j) => (
+                                                                <li key={j} className="text-sm text-text-secondary leading-relaxed flex gap-1.5">
+                                                                    <span className="text-primary flex-shrink-0 mt-1.5 w-1 h-1 rounded-full bg-primary block" />
+                                                                    {item}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
