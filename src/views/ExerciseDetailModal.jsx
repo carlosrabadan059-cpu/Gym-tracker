@@ -411,13 +411,17 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     {/* Instructions */}
                     {exercise.instructions && (() => {
                         const stepRegex = /^\d+\.\s+\*\*(.+?)\*\*[:\s]*(.*)$/;
+                        const altStepRegex = /^\*\*\d+\.\s+(.+?)\*\*[:\s]*$/;
                         const steps = [];
                         let current = null;
                         for (const raw of exercise.instructions.split('\n')) {
                             const line = raw.trim();
                             if (!line) continue;
                             if (/^claro[,\s]/i.test(line) || /^aquí tienes/i.test(line)) continue;
-                            const m = line.match(stepRegex);
+                            const m = line.match(stepRegex) || (() => {
+                                const a = line.match(altStepRegex);
+                                return a ? [null, a[1], ''] : null;
+                            })();
                             if (m) {
                                 if (current) steps.push(current);
                                 current = { title: m[1], items: m[2].trim() ? [m[2].trim()] : [] };
