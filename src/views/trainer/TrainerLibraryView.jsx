@@ -601,17 +601,18 @@ export function TrainerLibraryView({ onBack }) {
         if (!editingName.trim()) return;
         setSavingEdit(true);
         try {
-            const { error } = await supabase
+            const { error: catalogError } = await supabase
                 .from('exercise_catalog')
                 .update({ name: editingName.trim(), image_url: editingImageUrl || null })
                 .eq('id', editingExId);
-            if (error) throw error;
+            if (catalogError) throw catalogError;
 
-            // Update all assigned exercises that use this catalog_id
-            await supabase
+            const { error: exercisesError } = await supabase
                 .from('exercises')
                 .update({ name: editingName.trim(), image_url: editingImageUrl || null })
                 .eq('catalog_id', editingExId);
+            if (exercisesError) throw exercisesError;
+
             setCatalog(prev => prev.map(ex =>
                 ex.id === editingExId
                     ? { ...ex, name: editingName.trim(), image_url: editingImageUrl || null }
@@ -620,6 +621,7 @@ export function TrainerLibraryView({ onBack }) {
             setEditingExId(null);
         } catch (err) {
             console.error('Error updating exercise:', err);
+            alert('Error al guardar los cambios. Inténtalo de nuevo.');
         } finally {
             setSavingEdit(false);
         }
