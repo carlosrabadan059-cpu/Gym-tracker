@@ -464,10 +464,8 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 }]);
             if (routineError) throw routineError;
 
-            const baseId = Math.floor(Math.random() * 800_000) + 100_000;
             const { error: exError } = await supabase.from('exercises').insert(
                 selectedExercises.map((ex, i) => ({
-                    id: baseId + i,
                     routine_id: routineId,
                     name: ex.name,
                     series: String(ex.series),

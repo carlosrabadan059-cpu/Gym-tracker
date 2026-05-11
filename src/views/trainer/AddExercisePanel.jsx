@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
+import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check } from 'lucide-react';
 
 export function AddExercisePanel({ assignment, onClose, onAdded }) {
@@ -84,10 +85,8 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 .limit(1);
 
             const maxOrder = existing?.[0]?.ui_order || 0;
-            const baseId = Date.now();
 
             const newExercises = selected.map((ex, i) => ({
-                id: baseId + i,
                 routine_id: routineId,
                 name: ex.name,
                 series: String(ex.series),
@@ -100,10 +99,10 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
             const { data: inserted, error } = await supabase
                 .from('exercises')
                 .insert(newExercises)
-                .select();
+                .select('*, exercise_catalog(name, image_url, instructions)');
 
             if (error) throw error;
-            onAdded(assignment.id, inserted || newExercises);
+            onAdded(assignment.id, enrichExercisesWithCatalog(inserted || []));
             onClose();
         } catch (err) {
             console.error('Error adding exercises:', err);
