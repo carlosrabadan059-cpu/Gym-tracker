@@ -3,7 +3,7 @@ import { X, Check, History } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
-import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
+import { subscribeToPush } from '../lib/pushNotifications';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -89,7 +89,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             try {
                 const permission = await Notification.requestPermission();
                 if (permission === 'granted') {
-                    scheduleSWNotification(Date.now() + 1000, true);
                     // Register Web Push subscription for background notifications
                     if (user?.id) subscribeToPush(user.id);
                 }
@@ -228,12 +227,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
-            scheduleSWNotification(target, true);
-            if (user?.id) {
-                subscribeToPush(user.id)
-                    .then(() => scheduleServerPush(user.id, target))
-                    .catch(e => console.error('[Push] Repair failed on toggle', e));
-            }
+            scheduleSWNotification(target, false); // Schedule END notification
+            // subscribeToPush registra el dispositivo para futuros Push; el SW local gestiona el temporizador.
+            if (user?.id) subscribeToPush(user.id).catch(e => console.error('[Push] Register failed', e));
         }
     };
 
@@ -353,8 +349,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             playBeep('start');
             scheduleEndBeep(dur);
 
-            scheduleSWNotification(t, true);
-            if (user?.id) scheduleServerPush(user.id, t);
+            scheduleSWNotification(t, false); // Schedule END notification
+            // Server push eliminado: el SW local es suficiente para notificar al dispositivo.
         } else {
             setTimerActive(false);
             setTargetTime(null);
