@@ -3,7 +3,7 @@ import { X, Check, History } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
-import { subscribeToPush } from '../lib/pushNotifications';
+import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -228,8 +228,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             playBeep('start');
             scheduleEndBeep(dur);
             scheduleSWNotification(target, false); // Schedule END notification
-            // subscribeToPush registra el dispositivo para futuros Push; el SW local gestiona el temporizador.
-            if (user?.id) subscribeToPush(user.id).catch(e => console.error('[Push] Register failed', e));
+            if (user?.id) {
+                subscribeToPush(user.id)
+                    .then(() => scheduleServerPush(user.id, target))
+                    .catch(e => console.error('[Push] Repair failed on toggle', e));
+            }
         }
     };
 
@@ -350,7 +353,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             scheduleEndBeep(dur);
 
             scheduleSWNotification(t, false); // Schedule END notification
-            // Server push eliminado: el SW local es suficiente para notificar al dispositivo.
+            if (user?.id) scheduleServerPush(user.id, t);
         } else {
             setTimerActive(false);
             setTargetTime(null);
