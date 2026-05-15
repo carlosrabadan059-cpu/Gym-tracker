@@ -104,6 +104,7 @@ const LOCAL_IMAGES = [
     'futures_abdomen_elevacion_suspendido_final.png',
     'futures_abdomen_tijeras_final.png',
     'futures_biceps_curl_barra_recta_alt_final.png',
+    'futures_biceps_curl_tumbado_barra_z_polea_gironda_final.png',
     'futures_dorsal_jalon_neutral_final.png',
     'futures_dorsal_lumbares_banco_final.png',
     'futures_dorsal_remo_mancuerna_horizontal_final.png',
