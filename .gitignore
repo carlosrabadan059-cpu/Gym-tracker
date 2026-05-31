@@ -29,3 +29,9 @@ dist-ssr
 *.sw?
 .vercel
 .claude/settings.json
+
+# Setup and seed scripts contain credentials — do not track new ones
+setup_*.js
+test_db.js
+_supabase-client.js
+scripts/

@@ -1,12 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './_supabase-client.js';
 
-const supabaseUrl = 'https://jqpyqqlkgisykgywilrf.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpxcHlxcWxrZ2lzeWtneXdpbHJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjcyNjMsImV4cCI6MjA4Njg0MzI2M30.HGvZZHYwAj1whHcUDIMu0fwdI9Xzngvl_VXaDs2S0ZU';
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function setupTrainer() {
     const email = 'trainer_agent@test.com';
-    const password = 'password123';
+    const password = process.env.TEST_ACCOUNT_PASSWORD;
     
     console.log("Signing up...");
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -39,7 +36,7 @@ async function setupTrainer() {
     if (updateError) {
         console.error("Update error:", updateError.message);
     } else {
-        console.log("Success! Account ready: trainer_agent@test.com / password123");
+        console.log("Success! Account ready: trainer_agent@test.com");
     }
 }
 

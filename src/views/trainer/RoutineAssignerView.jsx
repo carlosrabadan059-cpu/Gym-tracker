@@ -461,6 +461,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     color: routineColor.value,
                     border_color: routineColor.border,
                     text_color: routineColor.text,
+                    trainer_id: user.id,
                 }]);
             if (routineError) throw routineError;
 
