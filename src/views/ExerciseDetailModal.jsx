@@ -205,7 +205,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
     const toggleSet = (index) => {
         const currentSet = setsData[index];
-        if (!isBodyweight && (!currentSet || !currentSet.weight)) {
+        if (!isBodyweight && !isTimeBased && (!currentSet || !currentSet.weight)) {
             setInputErrors(prev => ({ ...prev, [index]: true }));
             return;
         }
