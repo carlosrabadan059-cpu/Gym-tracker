@@ -35,3 +35,6 @@ setup_*.js
 test_db.js
 _supabase-client.js
 scripts/
+
+# Graphify knowledge graph (regenerable)
+graphify-out/
