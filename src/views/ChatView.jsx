@@ -276,6 +276,24 @@ export function ChatView() {
     }, [user]);
 
     const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
+    const abortControllerRef = useRef(null);
+
+    useEffect(() => {
+        return () => abortControllerRef.current?.abort();
+    }, []);
+
+    const fetchWithTimeout = async (url, options, timeoutMs = 30000) => {
+        abortControllerRef.current?.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            return response;
+        } finally {
+            clearTimeout(timer);
+        }
+    };
 
     const handleSendMessage = async (text) => {
         if (!text.trim()) return;
@@ -316,72 +334,87 @@ ${routinesString}
 
         const fullMessage = `${contextString}\n\nPregunta del usuario: ${text}`;
 
-        try {
-            const response = await fetch(N8N_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: user?.id || "anonymous",
-                    chatInput: fullMessage,
-                    message: fullMessage,
-                    userData: {
-                        ...profileContext,
-                        email: user?.email,
-                        routines: userRoutines
-                    }
-                })
-            });
-
-            if (!response.ok) throw new Error('Network response was not ok');
-
-            const data = await response.json();
-
-            let botText = "Lo siento, no pude procesar la respuesta correctamente.";
-            let botImage = null;
-
-            // Handle n8n array format: [{ "answer": "...", "image": "..." }]
-            if (Array.isArray(data) && data.length > 0) {
-                const item = data[0];
-                if (item.answer) botText = item.answer;
-                else if (item.output) botText = item.output;
-                else if (item.text) botText = item.text;
-                else if (item.reply) botText = item.reply;
-
-                if (item.image) botImage = item.image;
-                else if (item.imageUrl) botImage = item.imageUrl;
+        const body = JSON.stringify({
+            sessionId: user?.id || "anonymous",
+            chatInput: fullMessage,
+            message: fullMessage,
+            userData: {
+                ...profileContext,
+                email: user?.email,
+                routines: userRoutines
             }
-            // Handle single object format
-            else if (typeof data === 'object') {
-                if (data.answer) botText = data.answer;
-                else if (data.reply) botText = data.reply;
-                else if (data.output) botText = data.output;
-                else if (data.text) botText = data.text;
+        });
 
-                if (data.image) botImage = data.image;
-                else if (data.imageUrl) botImage = data.imageUrl;
+        const MAX_RETRIES = 2;
+        let lastError;
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const response = await fetchWithTimeout(
+                    N8N_WEBHOOK_URL,
+                    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body },
+                    30000
+                );
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+
+                let botText = "Lo siento, no pude procesar la respuesta correctamente.";
+                let botImage = null;
+
+                if (Array.isArray(data) && data.length > 0) {
+                    const item = data[0];
+                    if (item.answer) botText = item.answer;
+                    else if (item.output) botText = item.output;
+                    else if (item.text) botText = item.text;
+                    else if (item.reply) botText = item.reply;
+                    if (item.image) botImage = item.image;
+                    else if (item.imageUrl) botImage = item.imageUrl;
+                } else if (typeof data === 'object') {
+                    if (data.answer) botText = data.answer;
+                    else if (data.reply) botText = data.reply;
+                    else if (data.output) botText = data.output;
+                    else if (data.text) botText = data.text;
+                    if (data.image) botImage = data.image;
+                    else if (data.imageUrl) botImage = data.imageUrl;
+                }
+
+                const botMsg = {
+                    id: Date.now() + 1,
+                    type: 'bot',
+                    text: botText,
+                    image: botImage,
+                    timestamp: new Date().toISOString()
+                };
+                setMessages(prev => [...prev, botMsg]);
+                setIsTyping(false);
+                return;
+
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    lastError = 'timeout';
+                    break;
+                }
+                lastError = error;
+                if (attempt < MAX_RETRIES) {
+                    await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+                }
             }
-
-            const botMsg = {
-                id: Date.now() + 1,
-                type: 'bot',
-                text: botText,
-                image: botImage,
-                timestamp: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, botMsg]);
-
-        } catch (error) {
-            console.error("AI Error:", error);
-            const errorMsg = {
-                id: Date.now() + 1,
-                type: 'bot',
-                text: "⚠️ **Error de conexión:** Asegúrate de que tu webhook de n8n esté activo.",
-                timestamp: new Date().toISOString()
-            };
-            setMessages(prev => [...prev, errorMsg]);
-        } finally {
-            setIsTyping(false);
         }
+
+        console.error("AI Error:", lastError);
+        const isTimeout = lastError === 'timeout';
+        const errorMsg = {
+            id: Date.now() + 1,
+            type: 'bot',
+            text: isTimeout
+                ? "⚠️ **Sin respuesta:** El servidor tardó demasiado. Inténtalo de nuevo en unos segundos."
+                : "⚠️ **Error de conexión:** No se pudo contactar al asistente. Comprueba tu conexión e inténtalo de nuevo.",
+            timestamp: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, errorMsg]);
+        setIsTyping(false);
     };
 
 
