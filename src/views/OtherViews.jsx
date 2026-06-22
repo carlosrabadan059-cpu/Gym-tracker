@@ -144,7 +144,9 @@ const TrainingView = ({ workout, onFinish }) => {
     const handleExerciseModalClose = (completed, logs) => {
         if (activeExercise) {
             const exerciseId = String(activeExercise.id);
-            const newLogs = { ...exerciseLogs, [exerciseId]: logs };
+            const newLogs = completed
+                ? { ...exerciseLogs, [exerciseId]: logs }
+                : exerciseLogs;
             const newCompleted = completed
                 ? { ...completedExercises, [exerciseId]: true }
                 : completedExercises;

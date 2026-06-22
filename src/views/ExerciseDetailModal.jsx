@@ -672,14 +672,33 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
                 {/* Footer */}
                 <div className="p-4 pb-6 border-t border-surface-highlight bg-surface mt-auto z-10">
-                    <button
-                        onClick={() => {
-                            onClose(true, { setsData, completedSets });
-                        }}
-                        className="w-full rounded-2xl bg-primary py-4 font-bold text-black shadow-lg shadow-primary/20 active:scale-[0.98] transition-all"
-                    >
-                        {isCompleted ? 'Actualizar Ejercicio' : 'Completar Ejercicio'}
-                    </button>
+                    {(() => {
+                        const totalSets = parseInt(exercise.series) || 3;
+                        const markedSets = Object.values(completedSets).filter(Boolean).length;
+                        const allDone = markedSets >= totalSets;
+                        return (
+                            <>
+                                {!allDone && (
+                                    <p className="text-center text-xs text-text-secondary mb-3">
+                                        {markedSets}/{totalSets} series completadas
+                                    </p>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        if (!allDone) return;
+                                        onClose(true, { setsData, completedSets });
+                                    }}
+                                    disabled={!allDone}
+                                    className={`w-full rounded-2xl py-4 font-bold shadow-lg active:scale-[0.98] transition-all ${allDone
+                                        ? 'bg-primary text-black shadow-primary/20'
+                                        : 'bg-surface-highlight text-text-secondary cursor-not-allowed opacity-50'
+                                    }`}
+                                >
+                                    {isCompleted ? 'Actualizar Ejercicio' : 'Completar Ejercicio'}
+                                </button>
+                            </>
+                        );
+                    })()}
                 </div>
             </div>
         </div>
