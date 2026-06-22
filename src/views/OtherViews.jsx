@@ -73,20 +73,21 @@ const TrainingView = ({ workout, onFinish }) => {
             try {
                 const savedSession = getSavedState();
 
-                if (savedSession) {
-                    console.log('[TrainingView] Restaurando sesión guardada en localStorage', savedSession);
+                const hasSessionData = savedSession &&
+                    (Object.keys(savedSession.completedExercises ?? {}).length > 0 ||
+                     Object.keys(savedSession.exerciseLogs ?? {}).length > 0);
+
+                if (hasSessionData) {
                     setCompletedExercises(savedSession.completedExercises ?? {});
                     setExerciseLogs(savedSession.exerciseLogs ?? {});
                     setResumedFromSave(true);
                 } else {
+                    if (savedSession && STORAGE_KEY) localStorage.removeItem(STORAGE_KEY);
                     const allLogs = await loadWorkoutLogs(user.id);
                     const todayStr = new Date().toDateString();
-                    console.log('[TrainingView] activeWorkout.id:', activeWorkout.id, 'buscando en', allLogs.length, 'logs');
-                    console.log('[TrainingView] routineIds en logs:', [...new Set(allLogs.map(l => l.routineId))]);
                     const todaysLog = allLogs.find(l =>
                         l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
                     );
-                    console.log('[TrainingView] log de hoy:', todaysLog);
 
                     const weekStart = new Date();
                     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
