@@ -144,9 +144,10 @@ const TrainingView = ({ workout, onFinish }) => {
     const handleExerciseModalClose = (completed, logs) => {
         if (activeExercise) {
             const exerciseId = String(activeExercise.id);
-            const newLogs = completed
-                ? { ...exerciseLogs, [exerciseId]: logs }
-                : exerciseLogs;
+            // Siempre guardamos el progreso parcial (setsData, completedSets) para
+            // que al volver al ejercicio se restaure lo introducido. Solo marcamos
+            // el ejercicio como completado cuando completed===true.
+            const newLogs = logs ? { ...exerciseLogs, [exerciseId]: logs } : exerciseLogs;
             const newCompleted = completed
                 ? { ...completedExercises, [exerciseId]: true }
                 : completedExercises;
