@@ -78,8 +78,9 @@ const TrainingView = ({ workout, onFinish }) => {
                      Object.keys(savedSession.exerciseLogs ?? {}).length > 0);
 
                 if (hasSessionData) {
-                    setCompletedExercises(savedSession.completedExercises ?? {});
-                    setExerciseLogs(savedSession.exerciseLogs ?? {});
+                    const normalizeKeys = obj => Object.fromEntries(Object.entries(obj).map(([k, v]) => [String(k), v]));
+                    setCompletedExercises(normalizeKeys(savedSession.completedExercises ?? {}));
+                    setExerciseLogs(normalizeKeys(savedSession.exerciseLogs ?? {}));
                     setResumedFromSave(true);
                 } else {
                     if (savedSession && STORAGE_KEY) localStorage.removeItem(STORAGE_KEY);
@@ -108,7 +109,7 @@ const TrainingView = ({ workout, onFinish }) => {
                         setExerciseLogs(filteredLogs);
                         const completed = {};
                         activeWorkout.exercises?.forEach(ex => {
-                            if (filteredLogs[ex.id] || filteredLogs[String(ex.id)]) completed[ex.id] = true;
+                            if (filteredLogs[String(ex.id)]) completed[String(ex.id)] = true;
                         });
                         setCompletedExercises(completed);
                     }
@@ -121,7 +122,7 @@ const TrainingView = ({ workout, onFinish }) => {
                             if (!last && ex.name) {
                                 last = await loadLastExerciseLogGlobal(user.id, ex.name, activeWorkout.id);
                             }
-                            return [ex.id, last];
+                            return [String(ex.id), last];
                         })
                     );
                     setLastExerciseLogs(Object.fromEntries(lastLogsEntries));
@@ -136,19 +137,19 @@ const TrainingView = ({ workout, onFinish }) => {
         fetchExistingLogs();
     }, [activeWorkout, user]);
 
-    const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[ex.id]);
+    const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[String(ex.id)]);
 
     const handleExerciseModalClose = (completed, logs) => {
         if (activeExercise) {
             setIsLiveSession(true);
             setExerciseLogs(prev => ({
                 ...prev,
-                [activeExercise.id]: logs
+                [String(activeExercise.id)]: logs
             }));
             if (completed) {
                 setCompletedExercises(prev => ({
                     ...prev,
-                    [activeExercise.id]: true
+                    [String(activeExercise.id)]: true
                 }));
             }
             setActiveExercise(null);
@@ -244,11 +245,11 @@ const TrainingView = ({ workout, onFinish }) => {
                             <h4 className="font-bold text-black dark:text-white">{ex.name}</h4>
                             <p className="text-sm text-primary">{ex.series} series x {ex.reps} reps</p>
                         </div>
-                        <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${completedExercises[ex.id]
+                        <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${completedExercises[String(ex.id)]
                             ? 'bg-primary border-primary text-black'
                             : 'border-text-secondary/30 group-hover:border-primary'
                             }`}>
-                            {completedExercises[ex.id] && <Check size={18} strokeWidth={3} />}
+                            {completedExercises[String(ex.id)] && <Check size={18} strokeWidth={3} />}
                         </div>
                     </Card>
                 ))}
@@ -295,9 +296,9 @@ const TrainingView = ({ workout, onFinish }) => {
             {activeExercise && (
                 <ExerciseDetailModal
                     exercise={activeExercise}
-                    initialLog={exerciseLogs[activeExercise.id]}
-                    lastLog={lastExerciseLogs[activeExercise.id] ?? null}
-                    isCompleted={completedExercises[activeExercise.id]}
+                    initialLog={exerciseLogs[String(activeExercise.id)]}
+                    lastLog={lastExerciseLogs[String(activeExercise.id)] ?? null}
+                    isCompleted={completedExercises[String(activeExercise.id)]}
                     onClose={handleExerciseModalClose}
                     savedTimerState={timerStates[activeExercise.id]}
                     onTimerStateChange={(state) =>
