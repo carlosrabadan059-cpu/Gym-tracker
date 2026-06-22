@@ -357,6 +357,7 @@ const AuthenticatedApp = () => {
                                     alert('No se pudo guardar el entrenamiento. Comprueba tu conexión e inténtalo de nuevo.');
                                 }
                             }
+                            setCurrentWorkout(null);
                             setView('dashboard');
                         }}
                     />
@@ -368,6 +369,19 @@ const AuthenticatedApp = () => {
                 {view === 'profile' && <ProfileView />}
                 {view === 'notifications' && <NotificationsListView onClose={() => setView('dashboard')} />}
             </main>
+
+            {/* Banner de entrenamiento en curso */}
+            {currentWorkout && view !== 'training' && view !== 'setup' && (
+                <div className="fixed bottom-28 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+                    <button
+                        onClick={() => setView('training')}
+                        className="pointer-events-auto flex items-center gap-3 bg-primary text-black font-bold px-5 py-3 rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform"
+                    >
+                        <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
+                        Volver al entrenamiento
+                    </button>
+                </div>
+            )}
 
             {/* Bottom Navigation */}
             {view !== 'setup' && !view.startsWith('trainer') && (
