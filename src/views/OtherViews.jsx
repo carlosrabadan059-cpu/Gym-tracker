@@ -143,17 +143,24 @@ const TrainingView = ({ workout, onFinish }) => {
 
     const handleExerciseModalClose = (completed, logs) => {
         if (activeExercise) {
+            const exerciseId = String(activeExercise.id);
+            const newLogs = { ...exerciseLogs, [exerciseId]: logs };
+            const newCompleted = completed
+                ? { ...completedExercises, [exerciseId]: true }
+                : completedExercises;
+
             isLiveSessionRef.current = true;
-            setExerciseLogs(prev => ({
-                ...prev,
-                [String(activeExercise.id)]: logs
-            }));
-            if (completed) {
-                setCompletedExercises(prev => ({
-                    ...prev,
-                    [String(activeExercise.id)]: true
+
+            if (STORAGE_KEY) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    completedExercises: newCompleted,
+                    exerciseLogs: newLogs,
+                    workoutStartTime,
                 }));
             }
+
+            setExerciseLogs(newLogs);
+            setCompletedExercises(newCompleted);
             setActiveExercise(null);
         }
     };
