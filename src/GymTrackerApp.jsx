@@ -347,6 +347,7 @@ const AuthenticatedApp = () => {
                         workout={currentWorkout}
                         onFinish={async (logs) => {
                             if (currentWorkout) {
+                                localStorage.removeItem(`gymTracker_workout_${currentWorkout.id}`);
                                 setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
                                 try {
                                     await saveWorkoutLog(user?.id, currentWorkout.id, logs || {});

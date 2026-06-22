@@ -11,14 +11,29 @@ const TrainingView = ({ workout, onFinish }) => {
     const userWeight = profile?.weight || null;
 
     const activeWorkout = workout?.exercises ? workout : null;
+    const STORAGE_KEY = activeWorkout ? `gymTracker_workout_${activeWorkout.id}` : null;
+
+    const getSavedState = () => {
+        if (!STORAGE_KEY) return null;
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    };
 
     const [activeExercise, setActiveExercise] = useState(null);
+    const [resumedFromSave, setResumedFromSave] = useState(false);
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
     const [lastExerciseLogs, setLastExerciseLogs] = useState({});
     const [logsLoading, setLogsLoading] = useState(true);
     const [timerStates, setTimerStates] = useState({});
-    const [workoutStartTime] = useState(() => Date.now());
+    const [workoutStartTime] = useState(() => {
+        const saved = getSavedState();
+        return saved?.workoutStartTime ?? Date.now();
+    });
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
     useEffect(() => {
@@ -28,6 +43,21 @@ const TrainingView = ({ workout, onFinish }) => {
         }, 1000);
         return () => clearInterval(interval);
     }, [workoutStartTime, activeWorkout]);
+
+    useEffect(() => {
+        if (!STORAGE_KEY) return;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            completedExercises,
+            exerciseLogs,
+            workoutStartTime,
+        }));
+    }, [completedExercises, exerciseLogs, workoutStartTime, STORAGE_KEY]);
+
+    useEffect(() => {
+        if (!resumedFromSave) return;
+        const t = setTimeout(() => setResumedFromSave(false), 2500);
+        return () => clearTimeout(t);
+    }, [resumedFromSave]);
 
     const avgMET = useMemo(
         () => activeWorkout ? getAverageWorkoutMET(activeWorkout.exercises) : 0,
@@ -43,34 +73,42 @@ const TrainingView = ({ workout, onFinish }) => {
             if (!activeWorkout || !user?.id) return;
             setLogsLoading(true);
             try {
-                const allLogs = await loadWorkoutLogs(user.id);
-                const todayStr = new Date().toDateString();
-                const todaysLog = allLogs.find(l =>
-                    l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
-                );
+                const savedSession = getSavedState();
 
-                const weekStart = new Date();
-                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-                weekStart.setHours(0, 0, 0, 0);
-                const recentLog = todaysLog || allLogs
-                    .filter(l => l.routineId === activeWorkout.id && new Date(l.date) >= weekStart)
-                    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                if (savedSession) {
+                    setCompletedExercises(savedSession.completedExercises ?? {});
+                    setExerciseLogs(savedSession.exerciseLogs ?? {});
+                    setResumedFromSave(true);
+                } else {
+                    const allLogs = await loadWorkoutLogs(user.id);
+                    const todayStr = new Date().toDateString();
+                    const todaysLog = allLogs.find(l =>
+                        l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
+                    );
 
-                if (recentLog && recentLog.logs) {
-                    const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
-                    const filteredLogs = {};
-                    Object.entries(recentLog.logs).forEach(([id, log]) => {
-                        if (currentExerciseIds.has(String(id)) || id === 'workoutDuration' || id === 'cardio') {
-                            filteredLogs[id] = log;
-                        }
-                    });
+                    const weekStart = new Date();
+                    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                    weekStart.setHours(0, 0, 0, 0);
+                    const recentLog = todaysLog || allLogs
+                        .filter(l => l.routineId === activeWorkout.id && new Date(l.date) >= weekStart)
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
 
-                    setExerciseLogs(filteredLogs);
-                    const completed = {};
-                    activeWorkout.exercises?.forEach(ex => {
-                        if (filteredLogs[ex.id]) completed[ex.id] = true;
-                    });
-                    setCompletedExercises(completed);
+                    if (recentLog && recentLog.logs) {
+                        const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
+                        const filteredLogs = {};
+                        Object.entries(recentLog.logs).forEach(([id, log]) => {
+                            if (currentExerciseIds.has(String(id)) || id === 'workoutDuration' || id === 'cardio') {
+                                filteredLogs[id] = log;
+                            }
+                        });
+
+                        setExerciseLogs(filteredLogs);
+                        const completed = {};
+                        activeWorkout.exercises?.forEach(ex => {
+                            if (filteredLogs[ex.id]) completed[ex.id] = true;
+                        });
+                        setCompletedExercises(completed);
+                    }
                 }
 
                 if (activeWorkout.exercises?.length) {
@@ -130,6 +168,11 @@ const TrainingView = ({ workout, onFinish }) => {
 
     return (
         <div className="flex h-full flex-col items-center p-6 text-center space-y-6 relative">
+            {resumedFromSave && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-primary text-white text-sm font-medium px-4 py-2 rounded-xl shadow-lg animate-fade-in">
+                    Entrenamiento retomado
+                </div>
+            )}
             <Card className="w-full p-6 bg-surface border-l-4 border-primary flex items-center gap-4">
                 {routineIcon && (
                     <div className="h-20 w-20 rounded-3xl overflow-hidden bg-surface-highlight/50 border border-surface-highlight flex-shrink-0">
