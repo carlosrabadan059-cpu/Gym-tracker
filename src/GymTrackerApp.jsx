@@ -302,7 +302,7 @@ const AuthenticatedApp = () => {
                 />
             )}
 
-            <main className="flex-1 overflow-y-auto px-4 pb-32 pt-2 scrollbar-hide">
+            <main className={`flex-1 overflow-y-auto px-4 pb-32 scrollbar-hide ${['dashboard', 'progress', 'chat'].includes(view) ? 'pt-2' : 'pt-safe'}`}>
                 {/* Vistas exclusivas de entrenador */}
                 {isTrainer(profile) && view === 'trainer' && (
                     <TrainerDashboardView onNavigate={handleNavigate} />

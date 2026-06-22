@@ -47,7 +47,7 @@ input[type="password"]::-ms-clear {
   }
 
   .pt-safe {
-    padding-top: env(safe-area-inset-top);
+    padding-top: max(env(safe-area-inset-top), 16px);
   }
 
   .min-h-touch {
