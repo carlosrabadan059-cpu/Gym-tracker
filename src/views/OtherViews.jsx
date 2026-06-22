@@ -74,15 +74,19 @@ const TrainingView = ({ workout, onFinish }) => {
                 const savedSession = getSavedState();
 
                 if (savedSession) {
+                    console.log('[TrainingView] Restaurando sesión guardada en localStorage', savedSession);
                     setCompletedExercises(savedSession.completedExercises ?? {});
                     setExerciseLogs(savedSession.exerciseLogs ?? {});
                     setResumedFromSave(true);
                 } else {
                     const allLogs = await loadWorkoutLogs(user.id);
                     const todayStr = new Date().toDateString();
+                    console.log('[TrainingView] activeWorkout.id:', activeWorkout.id, 'buscando en', allLogs.length, 'logs');
+                    console.log('[TrainingView] routineIds en logs:', [...new Set(allLogs.map(l => l.routineId))]);
                     const todaysLog = allLogs.find(l =>
                         l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
                     );
+                    console.log('[TrainingView] log de hoy:', todaysLog);
 
                     const weekStart = new Date();
                     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
