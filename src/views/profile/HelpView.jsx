@@ -235,7 +235,7 @@ export function HelpView({ onBack }) {
 
                     <div className="flex flex-col items-center mt-12 space-y-2">
                         <p className="text-xs font-medium text-text-secondary opacity-40">
-                            Gym Tracker App • v1.0.0 (Beta)
+                            Rutinex • v1.0.0 (Beta)
                         </p>
                         <div className="h-1 w-12 bg-surface-highlight rounded-full"></div>
                     </div>

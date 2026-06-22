@@ -129,11 +129,11 @@ const LoginView = () => {
 
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-background px-6 text-center">
-            <div className="mb-8 p-4 bg-primary/10 rounded-full">
-                <Dumbbell className="h-12 w-12 text-primary" />
+            <div className="mb-8">
+                <img src="/rutinex-logo.svg" alt="Rutinex" className="h-24 w-24" />
             </div>
-            <h1 className="text-3xl font-black text-text-primary mb-2">Gym Tracker</h1>
-            <p className="text-text-secondary mb-8">Entrena inteligente, vive mejor.</p>
+            <h1 className="text-3xl font-black text-text-primary mb-2">Rutinex</h1>
+            <p className="text-text-secondary mb-8">Planifica. Entrena. Progresa.</p>
 
             <form onSubmit={handleAuth} className="w-full max-w-sm space-y-4">
                 <input

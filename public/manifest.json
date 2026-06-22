@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "GymTracker",
-  "short_name": "GymTracker",
+  "name": "Rutinex",
+  "short_name": "Rutinex",
   "description": "Tu entrenador personal - seguimiento de rutinas, series y progreso",
   "start_url": "/",
   "scope": "/",

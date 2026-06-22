@@ -1,0 +1,19 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" rx="220" fill="#0B0F14"/>
+  <g filter="url(#shadow)">
+    <path d="M285 344H545C635 344 694 400 694 480C694 548 654 595 592 612L707 768H565L462 626H414V768H285V344Z" fill="white"/>
+    <path d="M414 452H531C553 452 568 464 568 484C568 505 553 518 531 518H414V452Z" fill="#0B0F14"/>
+    <path d="M414 600H520L622 768H476L414 670V600Z" fill="#17E88F"/>
+    <path d="M186 487H285V541H186V487Z" fill="#17E88F"/>
+    <path d="M132 452H184C199 452 211 464 211 479V549C211 564 199 576 184 576H132V452Z" fill="#17E88F"/>
+    <path d="M92 482H130V546H92C78 546 66 534 66 520V508C66 494 78 482 92 482Z" fill="#17E88F"/>
+    <path d="M694 487H838V541H694V487Z" fill="#17E88F"/>
+    <path d="M838 452H890C905 452 917 464 917 479V549C917 564 905 576 890 576H838V452Z" fill="#17E88F"/>
+    <path d="M917 482H955C969 482 981 494 981 508V520C981 534 969 546 955 546H917V482Z" fill="#17E88F"/>
+  </g>
+  <defs>
+    <filter id="shadow" x="36" y="314" width="974" height="494" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+</svg>
