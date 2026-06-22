@@ -44,20 +44,17 @@ const TrainingView = ({ workout, onFinish }) => {
         return () => clearInterval(interval);
     }, [workoutStartTime, activeWorkout]);
 
+    const [sessionReady, setSessionReady] = useState(false);
+
     useEffect(() => {
-        if (!STORAGE_KEY) return;
+        if (!STORAGE_KEY || !sessionReady) return;
+        if (Object.keys(completedExercises).length === 0 && Object.keys(exerciseLogs).length === 0) return;
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
             completedExercises,
             exerciseLogs,
             workoutStartTime,
         }));
-    }, [completedExercises, exerciseLogs, workoutStartTime, STORAGE_KEY]);
-
-    useEffect(() => {
-        if (!resumedFromSave) return;
-        const t = setTimeout(() => setResumedFromSave(false), 2500);
-        return () => clearTimeout(t);
-    }, [resumedFromSave]);
+    }, [completedExercises, exerciseLogs, workoutStartTime, STORAGE_KEY, sessionReady]);
 
     const avgMET = useMemo(
         () => activeWorkout ? getAverageWorkoutMET(activeWorkout.exercises) : 0,
@@ -127,6 +124,7 @@ const TrainingView = ({ workout, onFinish }) => {
                 console.error("Failed to fetch logs:", error);
             } finally {
                 setLogsLoading(false);
+                setSessionReady(true);
             }
         };
         fetchExistingLogs();
@@ -166,13 +164,15 @@ const TrainingView = ({ workout, onFinish }) => {
 
     const routineIcon = getRoutineIcon(activeWorkout.name);
 
+    const handleResetSession = () => {
+        if (STORAGE_KEY) localStorage.removeItem(STORAGE_KEY);
+        setCompletedExercises({});
+        setExerciseLogs({});
+        setResumedFromSave(false);
+    };
+
     return (
         <div className="flex h-full flex-col items-center p-6 text-center space-y-6 relative">
-            {resumedFromSave && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-primary text-white text-sm font-medium px-4 py-2 rounded-xl shadow-lg animate-fade-in">
-                    Entrenamiento retomado
-                </div>
-            )}
             <Card className="w-full p-6 bg-surface border-l-4 border-primary flex items-center gap-4">
                 {routineIcon && (
                     <div className="h-20 w-20 rounded-3xl overflow-hidden bg-surface-highlight/50 border border-surface-highlight flex-shrink-0">
@@ -185,7 +185,19 @@ const TrainingView = ({ workout, onFinish }) => {
                 )}
                 <div className="text-left flex-1">
                     <h2 className="text-2xl font-bold text-black dark:text-white leading-tight">{activeWorkout?.name || 'Entrenamiento'}</h2>
-                    <p className="text-text-secondary">{activeWorkout?.exercises?.length || 0} Ejercicios</p>
+                    {resumedFromSave ? (
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Retomando entrenamiento</span>
+                            <button
+                                onClick={handleResetSession}
+                                className="text-xs text-text-secondary underline underline-offset-2"
+                            >
+                                Reiniciar
+                            </button>
+                        </div>
+                    ) : (
+                        <p className="text-text-secondary">{activeWorkout?.exercises?.length || 0} Ejercicios</p>
+                    )}
                     <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs font-mono font-bold text-primary">{displayTime}</span>
                         <span className="text-xs text-text-secondary">•</span>
