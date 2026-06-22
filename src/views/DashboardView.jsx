@@ -318,8 +318,13 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                             if (isCompleted) {
                                                 onStartDaily(routine);
                                             } else {
-                                                setPendingRoutine(routine);
-                                                setShowCardioSelector(true);
+                                                const hasSavedSession = !!localStorage.getItem(`gymTracker_workout_${routine.id}`);
+                                                if (hasSavedSession) {
+                                                    onStartDaily(routine);
+                                                } else {
+                                                    setPendingRoutine(routine);
+                                                    setShowCardioSelector(true);
+                                                }
                                             }
                                         }}
                                     >
