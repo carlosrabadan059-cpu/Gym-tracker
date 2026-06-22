@@ -45,16 +45,17 @@ const TrainingView = ({ workout, onFinish }) => {
     }, [workoutStartTime, activeWorkout]);
 
     const [sessionReady, setSessionReady] = useState(false);
+    const [isLiveSession, setIsLiveSession] = useState(false);
 
     useEffect(() => {
         if (!STORAGE_KEY || !sessionReady) return;
-        if (Object.keys(completedExercises).length === 0 && Object.keys(exerciseLogs).length === 0) return;
+        if (!isLiveSession && !resumedFromSave) return;
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
             completedExercises,
             exerciseLogs,
             workoutStartTime,
         }));
-    }, [completedExercises, exerciseLogs, workoutStartTime, STORAGE_KEY, sessionReady]);
+    }, [completedExercises, exerciseLogs, workoutStartTime, STORAGE_KEY, sessionReady, isLiveSession, resumedFromSave]);
 
     const avgMET = useMemo(
         () => activeWorkout ? getAverageWorkoutMET(activeWorkout.exercises) : 0,
@@ -102,7 +103,7 @@ const TrainingView = ({ workout, onFinish }) => {
                         setExerciseLogs(filteredLogs);
                         const completed = {};
                         activeWorkout.exercises?.forEach(ex => {
-                            if (filteredLogs[ex.id]) completed[ex.id] = true;
+                            if (filteredLogs[ex.id] || filteredLogs[String(ex.id)]) completed[ex.id] = true;
                         });
                         setCompletedExercises(completed);
                     }
@@ -134,6 +135,7 @@ const TrainingView = ({ workout, onFinish }) => {
 
     const handleExerciseModalClose = (completed, logs) => {
         if (activeExercise) {
+            setIsLiveSession(true);
             setExerciseLogs(prev => ({
                 ...prev,
                 [activeExercise.id]: logs
