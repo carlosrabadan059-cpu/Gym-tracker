@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useAppUpdate } from './hooks/useAppUpdate';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
 import { DashboardView } from './views/DashboardView';
@@ -184,7 +185,8 @@ const LoginView = () => {
 
 
 const AuthenticatedApp = () => {
-    useShakeToUndoPrevention(); // Prevenir "Shake to Undo" globalmente
+    useShakeToUndoPrevention();
+    const updateAvailable = useAppUpdate();
 
     const [view, setView] = useState('setup'); // setup, dashboard, training, progress, chat, profile, trainer
     const { user, profile, loading } = useAuth();
@@ -369,6 +371,19 @@ const AuthenticatedApp = () => {
                 {view === 'profile' && <ProfileView />}
                 {view === 'notifications' && <NotificationsListView onClose={() => setView('dashboard')} />}
             </main>
+
+            {/* Banner de actualización disponible */}
+            {updateAvailable && (
+                <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-safe px-4 pointer-events-none">
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="pointer-events-auto flex items-center gap-2 bg-surface border border-primary text-text-primary text-sm font-medium px-4 py-2.5 rounded-full shadow-lg mt-2 active:scale-95 transition-transform"
+                    >
+                        <span className="w-2 h-2 rounded-full bg-primary" />
+                        Nueva versión disponible — toca para actualizar
+                    </button>
+                </div>
+            )}
 
             {/* Banner de entrenamiento en curso */}
             {currentWorkout && view !== 'training' && view !== 'setup' && (
