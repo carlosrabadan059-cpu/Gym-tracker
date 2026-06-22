@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '../../components/ui/Card';
-import { Lock, Eye, CheckCircle } from 'lucide-react';
+import { Eye, CheckCircle } from 'lucide-react';
 
 export function PrivacyView({ onBack }) {
     return (
@@ -15,13 +15,6 @@ export function PrivacyView({ onBack }) {
             <div className="space-y-4">
                 <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider px-2">Seguridad</h3>
                 <Card className="p-1">
-                    <button className="w-full flex items-center justify-between p-4 hover:bg-surface-highlight rounded-lg transition-colors">
-                        <div className="flex items-center gap-3">
-                            <Lock size={20} className="text-purple-400" />
-                            <span className="text-text-primary font-medium">Cambiar Contraseña</span>
-                        </div>
-                    </button>
-                    <div className="h-px bg-surface-highlight mx-4" />
                     <button className="w-full flex items-center justify-between p-4 hover:bg-surface-highlight rounded-lg transition-colors">
                         <div className="flex items-center gap-3">
                             <CheckCircle size={20} className="text-green-400" />
