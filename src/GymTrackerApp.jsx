@@ -388,13 +388,25 @@ const AuthenticatedApp = () => {
             {/* Banner de entrenamiento en curso */}
             {currentWorkout && view !== 'training' && view !== 'setup' && (
                 <div className="fixed bottom-28 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-                    <button
-                        onClick={() => setView('training')}
-                        className="pointer-events-auto flex items-center gap-3 bg-primary text-black font-bold px-5 py-3 rounded-full shadow-lg shadow-primary/30 active:scale-95 transition-transform"
-                    >
-                        <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
-                        Volver al entrenamiento
-                    </button>
+                    <div className="pointer-events-auto flex items-center gap-2 bg-primary text-black font-bold px-5 py-3 rounded-full shadow-lg shadow-primary/30">
+                        <button
+                            onClick={() => setView('training')}
+                            className="flex items-center gap-3 active:scale-95 transition-transform"
+                        >
+                            <span className="w-2 h-2 rounded-full bg-black animate-pulse" />
+                            Volver al entrenamiento
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (currentWorkout) localStorage.removeItem(`gymTracker_workout_${currentWorkout.id}`);
+                                setCurrentWorkout(null);
+                            }}
+                            className="ml-2 w-6 h-6 rounded-full bg-black/20 flex items-center justify-center text-black hover:bg-black/40 transition-colors active:scale-95 flex-shrink-0"
+                            aria-label="Descartar entrenamiento"
+                        >
+                            ✕
+                        </button>
+                    </div>
                 </div>
             )}
 
