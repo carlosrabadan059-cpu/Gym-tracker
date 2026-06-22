@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Save, Loader2, Dumbbell, Flame, Activity, Heart, Shield, Scale } from 'lucide-react';
+import { Camera, Save, Loader2, Dumbbell, Flame, Activity, Heart, Shield, Scale, Lock, Eye, EyeOff } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { supabase } from '../../lib/supabase';
 
@@ -7,6 +7,36 @@ export function EditProfileView({ user, onBack, onSave }) {
     const [formData, setFormData] = useState(user);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
+
+    const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
+    const [showPassword, setShowPassword] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
+    const [savingPassword, setSavingPassword] = useState(false);
+
+    const handlePasswordChange = async () => {
+        setPasswordError('');
+        setPasswordSuccess('');
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('La contraseña debe tener al menos 6 caracteres.');
+            return;
+        }
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError('Las contraseñas no coinciden.');
+            return;
+        }
+        setSavingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({ password: passwordData.newPassword });
+            if (error) throw error;
+            setPasswordSuccess('Contraseña actualizada correctamente.');
+            setPasswordData({ newPassword: '', confirmPassword: '' });
+        } catch (error) {
+            setPasswordError(error.message || 'Error al cambiar la contraseña.');
+        } finally {
+            setSavingPassword(false);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -186,6 +216,45 @@ export function EditProfileView({ user, onBack, onSave }) {
                     />
                 </Card>
             </div>
+
+            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider px-2">Seguridad</h3>
+            <Card className="p-6 space-y-4">
+                <div className="space-y-2">
+                    <label className="text-sm text-text-secondary">Nueva contraseña</label>
+                    <div className="relative">
+                        <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={passwordData.newPassword}
+                            onChange={e => setPasswordData(p => ({ ...p, newPassword: e.target.value }))}
+                            placeholder="Mínimo 6 caracteres"
+                            className="w-full bg-surface rounded-lg p-3 pr-10 text-black dark:text-white border border-surface-highlight focus:border-primary outline-none transition-colors"
+                        />
+                        <button type="button" onClick={() => setShowPassword(v => !v)} className="absolute right-3 top-3.5 text-text-secondary">
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm text-text-secondary">Confirmar contraseña</label>
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={passwordData.confirmPassword}
+                        onChange={e => setPasswordData(p => ({ ...p, confirmPassword: e.target.value }))}
+                        placeholder="Repite la contraseña"
+                        className="w-full bg-surface rounded-lg p-3 text-black dark:text-white border border-surface-highlight focus:border-primary outline-none transition-colors"
+                    />
+                </div>
+                {passwordError && <p className="text-red-400 text-sm">{passwordError}</p>}
+                {passwordSuccess && <p className="text-green-400 text-sm">{passwordSuccess}</p>}
+                <button
+                    onClick={handlePasswordChange}
+                    disabled={savingPassword || !passwordData.newPassword}
+                    className="w-full bg-surface-highlight text-text-primary font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {savingPassword ? <Loader2 size={18} className="animate-spin" /> : <Lock size={18} />}
+                    Cambiar contraseña
+                </button>
+            </Card>
 
             <button
                 onClick={() => onSave(formData)}
