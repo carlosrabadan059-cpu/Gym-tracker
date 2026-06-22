@@ -78,14 +78,17 @@ const TrainingView = ({ workout, onFinish }) => {
                     (Object.keys(savedSession.completedExercises ?? {}).length > 0 ||
                      Object.keys(savedSession.exerciseLogs ?? {}).length > 0);
 
-                if (hasSessionData) {
+                // Una sesión activa es cualquier entrada en localStorage para esta rutina,
+                // aunque no tenga ejercicios completados aún (solo workoutStartTime).
+                const hasActiveSession = !!savedSession;
+
+                if (hasActiveSession) {
                     const normalizeKeys = obj => Object.fromEntries(Object.entries(obj).map(([k, v]) => [String(k), v]));
                     setCompletedExercises(normalizeKeys(savedSession.completedExercises ?? {}));
                     setExerciseLogs(normalizeKeys(savedSession.exerciseLogs ?? {}));
-                    setResumedFromSave(true);
+                    if (hasSessionData) setResumedFromSave(true);
                     isLiveSessionRef.current = true;
                 } else {
-                    if (savedSession && STORAGE_KEY) localStorage.removeItem(STORAGE_KEY);
                     const allLogs = await loadWorkoutLogs(user.id);
                     const todayStr = new Date().toDateString();
                     const todaysLog = allLogs.find(l =>
