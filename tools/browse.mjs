@@ -20,8 +20,23 @@
  *
  * Al terminar siempre imprime los errores de consola y de red que hubo.
  */
-import { chromium } from 'playwright';
 import path from 'node:path';
+
+// playwright NO es dependencia del proyecto a propósito: su postinstall
+// descarga ~150 MB de navegadores, y eso alargaría (o rompería, si el CDN va
+// lento) el build de producción en Vercel. Es una herramienta solo de
+// desarrollo, así que se instala a mano cuando hace falta.
+let chromium;
+try {
+    ({ chromium } = await import('playwright'));
+} catch {
+    console.error(
+        'Falta playwright (es intencionado, no es dependencia del proyecto).\n' +
+        'Instálalo solo en tu máquina con:\n\n' +
+        '  npm i --no-save playwright@1.62.1 && npx playwright install chromium\n'
+    );
+    process.exit(1);
+}
 
 const argv = process.argv.slice(2);
 if (!argv.length) {

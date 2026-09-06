@@ -62,10 +62,17 @@ Siempre imprime al final los errores de consola, de página y de red — mirar
 esa línea antes de dar nada por bueno. Opciones: `--shot`, `--click`,
 `--wait`, `--sleep`, `--text`, `--size 420x1000`, `--headed`.
 
-**`playwright` está fijado a 1.62.1 a propósito.** Las versiones nuevas
-quieren un Chromium que no está en caché y el CDN da timeout al bajarlo. Si
-alguien lo sube de versión y las capturas empiezan a fallar con
-"Executable doesn't exist", es eso.
+**`playwright` no es dependencia del proyecto a propósito** — su postinstall
+descarga ~150 MB de navegadores y eso alargaría o rompería el build de
+producción en Vercel. Si `npm run browse` dice que falta, instálalo solo en
+local:
+
+```bash
+npm i --no-save playwright@1.62.1 && npx playwright install chromium
+```
+
+La versión va fijada a 1.62.1 porque las nuevas piden un Chromium que el CDN
+suele no servir a tiempo ("Executable doesn't exist").
 
 ## Login: cuándo hace falta y cómo esquivarlo
 

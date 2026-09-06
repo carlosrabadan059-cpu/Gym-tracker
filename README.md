@@ -53,9 +53,16 @@ Opciones: `--shot`, `--click`, `--wait`, `--sleep`, `--text`, `--size 420x1000`,
 `--headed`. Al terminar siempre imprime los errores de consola, de página y de
 red que hubo.
 
-> `playwright` está fijado a **1.62.1** a propósito: las versiones más nuevas
-> descargan un Chromium distinto y el CDN suele dar timeout. Si al subirlo
-> aparece `Executable doesn't exist`, es por eso.
+> **`playwright` no es dependencia del proyecto a propósito.** Su `postinstall`
+> descarga ~150 MB de navegadores, lo que alargaría (o rompería, si el CDN va
+> lento) el build de producción. Instálalo solo en tu máquina la primera vez:
+>
+> ```bash
+> npm i --no-save playwright@1.62.1 && npx playwright install chromium
+> ```
+>
+> La versión va fijada a 1.62.1 porque las más nuevas piden un Chromium que el
+> CDN suele no servir a tiempo (`Executable doesn't exist`).
 
 ## Estructura
 
