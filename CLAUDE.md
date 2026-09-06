@@ -5,13 +5,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Start dev server (Vite)
+npm run dev       # Start dev server (Vite) — port 5173
 npm run build     # Production build
 npm run lint      # ESLint
 npm run preview   # Preview production build
+npm run browse    # Headless browser driver (screenshots, clicks, console errors)
 ```
 
 No test suite is configured.
+
+**`.env.local` is required to run the app at all.** `src/lib/supabase.js` calls
+`createClient()` at module import with `VITE_SUPABASE_URL` /
+`VITE_SUPABASE_ANON_KEY`. If they're missing, `createClient` throws before React
+mounts and the page renders **completely blank with no error** — the most
+confusing failure mode in this repo. See [README.md](README.md).
+
+To run and drive the app (screenshots, checking a change works), use the
+`run-rutinex` skill — it has the full startup sequence and the gotchas.
 
 ## Architecture Overview
 
@@ -68,7 +78,40 @@ Tailwind CSS with CSS variables for theming (light/dark). Theme state is in [The
 - iOS-specific handling: shake-to-undo prevention, safe area insets, mobile viewport meta
 - Pull-to-refresh on Dashboard is implemented with custom touch event handlers
 
+## Product planning
+
+Live plans live in `docs/`, versioned:
+
+- [docs/plan-apple-health-integration.md](docs/plan-apple-health-integration.md) — **v2**: Apple Health/Watch via Capacitor + HealthKit, cardio/strength detection, Live Activity. UI already decided (prototyped).
+- [docs/plan-gym-app-features.md](docs/plan-gym-app-features.md) — **v3**: plate calculator, 1RM + PR alerts, RPE/RIR, supersets, muscle recovery map.
+- [docs/plan-trainer-improvements.md](docs/plan-trainer-improvements.md) — trainer side: full prescription (weight, rest, tempo, RIR, notes), scheduling, adherence tracking.
+
+## UI prototypes
+
+Throwaway UI prototypes use a **standalone harness** so they run without a
+Supabase login: `prototype-<name>.html` at the repo root + a
+`src/prototype-<name>-main.jsx` entry that mounts only the component with mock
+data. Open at `http://localhost:5173/prototype-<name>.html`.
+
+Finished prototypes are kept on throwaway branches, not `main`:
+`prototype/statistics-health-ui`, `prototype/logging-ui`. Each has a `NOTES.md`
+with the verdict.
+
 ## Agent skills
+
+### Running the app
+
+`run-rutinex` — start the dev server and drive it in a browser. Covers the
+`.env.local` requirement, the standalone prototype harnesses, and the known
+gotchas (`npm run build` dirties the tracked `public/version.json`, macOS has no
+`timeout`, playwright is pinned).
+
+### Legacy skill copies
+
+`.agents/skills/prototype-legacy` and `.agents/skills/tdd-legacy` are older
+vendored copies of skills the `mattpocock-skills` plugin already provides. They
+were renamed because the bare names collided with the maintained plugin
+versions. Prefer `mattpocock-skills:prototype` and `mattpocock-skills:tdd`.
 
 ### Issue tracker
 
