@@ -1,6 +1,6 @@
 ---
-name: tdd
-description: Test-driven development with red-green-refactor loop. Use when user wants to build features or fix bugs using TDD, mentions "red-green-refactor", wants integration tests, or asks for test-first development.
+name: tdd-legacy
+description: Copia antigua vendorizada de la skill `tdd`. Úsala solo si se pide explícitamente por su nombre; para desarrollo dirigido por tests usa `mattpocock-skills:tdd`, que es la versión mantenida y se actualiza con el plugin.
 ---
 
 # Test-Driven Development

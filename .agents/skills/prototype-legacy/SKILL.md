@@ -1,6 +1,6 @@
 ---
-name: prototype
-description: Build a throwaway prototype to flesh out a design before committing to it. Routes between two branches — a runnable terminal app for state/business-logic questions, or several radically different UI variations toggleable from one route. Use when the user wants to prototype, sanity-check a data model or state machine, mock up a UI, explore design options, or says "prototype this", "let me play with it", "try a few designs".
+name: prototype-legacy
+description: Copia antigua vendorizada de la skill `prototype`. Úsala solo si se pide explícitamente por su nombre; para prototipar de forma normal usa `mattpocock-skills:prototype`, que es la versión mantenida. Se diferencia en el cierre - esta borra el prototipo al terminar, la mantenida lo conserva en una rama throwaway.
 ---
 
 # Prototype
