@@ -29,6 +29,48 @@ descanso, a qué intensidad, con qué técnica— queda fuera de la app.
 
 ---
 
+## Contexto de uso: el entrenador trabaja en iPad o escritorio
+
+El cliente entrena con el móvil en la mano; el entrenador monta rutinas
+sentado, en pantalla grande. **Son dos productos con ergonomías distintas
+dentro de la misma app**, y hoy eso no está reconocido en ninguna parte del
+código: las 7 vistas de `src/views/trainer/` tienen **cero breakpoints
+responsive** (ni un solo `md:`, `lg:` ni `xl:`), el `<main>` de
+`GymTrackerApp.jsx:307` es de ancho completo con padding móvil, y la
+navegación es la píldora inferior de `BottomNavigation.jsx` (`max-w-md`,
+fija abajo). En un iPad o en un portátil, la vista de entrenador es hoy una
+app de móvil estirada.
+
+Esto condiciona todo lo que viene después, así que se decide antes de
+construir nada:
+
+- **Layout maestro-detalle en pantalla ancha.** Lista de clientes a la
+  izquierda, cliente seleccionado a la derecha, sin perder el contexto al
+  navegar. Igual en el constructor: catálogo de ejercicios a un lado, rutina
+  en construcción al otro, arrastrando de uno a otro.
+- **La navegación inferior pasa a lateral** a partir de `md:`. Una píldora
+  flotante centrada es un patrón de pulgar, no de ratón.
+- **Densidad distinta.** El cliente necesita objetivos de toque de 44px; el
+  entrenador necesita ver 20 ejercicios de un vistazo, tablas en vez de
+  tarjetas apiladas, y edición en línea.
+- **Teclado.** En escritorio se espera tabular entre campos y confirmar con
+  Enter al montar una rutina, sin ir al ratón para cada serie.
+- **Sin cambios para el cliente.** Todo esto entra bajo breakpoints; el
+  layout móvil actual se queda exactamente como está. Y el shell nativo de
+  Capacitor de la v2 es solo para el cliente en iPhone — **el entrenador
+  sigue siendo web**, no necesita build nativo.
+
+**Cómo verlo mientras se desarrolla:** `npm run browse` arranca en 420x1000
+(móvil) por defecto. Para las vistas de entrenador hay que pasar el tamaño
+real de trabajo:
+
+```bash
+npm run browse -- http://localhost:5173 --size 1024x768 --shot ipad.png
+npm run browse -- http://localhost:5173 --size 1440x900 --shot desktop.png
+```
+
+---
+
 ## Fase 0 — Fundamentos que faltan (no debería esperar)
 
 **1. Relación entrenador ↔ cliente.**
@@ -59,13 +101,28 @@ subiendo. En la base de datos hay ahora mismo rutinas de 8 ejercicios con
 `ui_order` del 2 al 13.
 
 Qué hace falta:
-- Arrastrar para reordenar (o botones arriba/abajo, que en móvil suelen
-  funcionar mejor que el drag) en `RoutineAssignerView` y en la rutina
-  asignada dentro de `ClientProfileView`.
+- **Arrastrar para reordenar** en `RoutineAssignerView` y en la rutina
+  asignada dentro de `ClientProfileView`. Al montar rutinas en iPad o
+  escritorio el arrastre es el gesto natural (y iPadOS lo soporta bien);
+  dejar los botones arriba/abajo como alternativa accesible y para pantalla
+  estrecha, no como mecanismo principal.
 - Persistir el nuevo orden reescribiendo `ui_order` de todos los ejercicios
   de la rutina en un solo update, renumerando 1..n para eliminar los huecos.
 - El orden importa de verdad en entrenamiento (multiarticulares antes que
   aislamiento, por ejemplo), así que esto es prescripción, no cosmética.
+
+**4. Layout de iPad y escritorio.**
+Ver "Contexto de uso" arriba. Va en la Fase 0 porque construir las fases
+siguientes sobre el layout móvil actual significa construirlas dos veces:
+la pantalla de borrador de la IA (Fase 2), el calendario (Fase 3) y el panel
+de adherencia (Fase 4) son justo las que más se benefician de pantalla ancha.
+
+Alcance mínimo para cerrar esta fase:
+- Shell propio para las vistas de entrenador, con barra lateral a partir de
+  `md:` en vez de la navegación inferior.
+- Maestro-detalle en clientes: lista + detalle a la vez en pantalla ancha.
+- Constructor de rutinas a dos columnas: catálogo | rutina.
+- El layout móvil del cliente, intacto.
 
 ## Fase 1 — Prescripción completa
 
@@ -131,6 +188,11 @@ eso, es una caja negra que nadie con criterio va a usar dos veces.
 workflow de n8n, no en la app. La parte de React es una pantalla de borrador
 con "aceptar / editar / descartar" dentro de `RoutineAssignerView`.
 
+**En pantalla ancha esto gana mucho:** el borrador de la IA a un lado y la
+rutina actual al otro, comparables de un vistazo, aceptando o descartando
+ejercicio por ejercicio en vez de todo o nada. En móvil habría que resolverlo
+como pasos sucesivos; en iPad cabe entero.
+
 ## Fase 3 — Programación en el tiempo
 
 - **Calendario semanal**: qué rutina toca cada día. Hoy las rutinas son
@@ -176,8 +238,10 @@ Fase 0 → Fase 1 → Fase 2 → Fase 4 → Fase 3 → Fase 5.
 Razones del orden:
 
 - **La Fase 0 primero** porque hoy cualquier entrenador ve a todos los
-  clientes, y porque reordenar ejercicios es barato y desbloquea poder montar
-  rutinas bien desde ya.
+  clientes, porque reordenar ejercicios es barato y desbloquea poder montar
+  rutinas bien desde ya, y porque el layout de iPad/escritorio condiciona
+  cómo se construye todo lo demás: hacerlo después obliga a rehacer las
+  pantallas de las fases 2, 3 y 4.
 - **La Fase 2 (IA) justo después de la 1** porque una IA que solo puede
   proponer series y reps no produce nada que un profesional llame plan; con
   los campos de prescripción completos, sí.
