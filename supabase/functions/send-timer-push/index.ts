@@ -4,22 +4,27 @@
 // targetTime y manda un Web Push para que el aviso llegue aunque el iPhone
 // esté bloqueado.
 //
-// OJO — limitación conocida de este diseño: la espera vive dentro de un
-// background task (EdgeRuntime.waitUntil), y esos tienen un tope de duración.
-// Un descanso largo puede superarlo y morir antes de enviar nada, que es la
-// causa más probable de los fallos intermitentes reportados. Por eso ahora:
-//   1. Todo intento queda registrado en la tabla push_log (antes los errores
-//      solo iban a console.error de un background task que nadie mira).
-//   2. Se reintenta el envío ante fallos transitorios.
-//   3. Si la suscripción está muerta (404/410) se borra, para que el cliente
-//      vuelva a suscribirse en vez de fallar en silencio para siempre.
-//   4. Las esperas por encima de MAX_SAFE_WAIT_MS se marcan como 'too_long',
-//      para poder confirmar o descartar la hipótesis con datos reales.
+// Esta función NO es la causa de los avisos que fallaban. Se llegó a sospechar
+// que la espera moría por el tope de duración del background task
+// (EdgeRuntime.waitUntil), pero los logs del 7 de septiembre de 2026 lo
+// descartan: 30 envíos en una sesión, 30 respuestas 201 de Apple, cero fallos,
+// con descansos de ~60 s. El fallo estaba en public/sw.js, que recibía el push
+// y no mostraba ninguna notificación si la app estaba en primer plano.
 //
-// La solución de fondo es no depender de mantener viva una función durante
-// minutos: o un scheduler persistente (n8n tiene nodo Wait), o notificaciones
-// locales nativas cuando exista el shell de Capacitor (plan v2). Ver
-// docs/plan-apple-health-integration.md, fase 4.
+// Lo que sí aporta esta versión:
+//   1. La clave privada VAPID sale del código fuente y se lee del entorno.
+//   2. Todo intento queda registrado en push_log (antes los errores solo iban a
+//      console.error de un background task que nadie mira).
+//   3. Se reintenta el envío ante fallos transitorios.
+//   4. Si la suscripción está muerta (404/410) se borra, para que el cliente
+//      vuelva a suscribirse en vez de fallar en silencio para siempre. Esto
+//      importa más ahora: incumplir userVisibleOnly puede hacer que iOS revoque
+//      la suscripción, y conviene detectarlo.
+//
+// Sigue en pie que mantener viva una función durante minutos es frágil. Si
+// alguna vez hacen falta descansos largos, la salida es un scheduler
+// persistente (n8n tiene nodo Wait) o notificaciones locales nativas con el
+// shell de Capacitor. Ver docs/plan-apple-health-integration.md, fase 4.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import webPush from "npm:web-push@3.6.7";
@@ -31,7 +36,8 @@ const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-// Margen por debajo del tope de duración del background task.
+// Margen por debajo del tope de duración del background task. Con descansos de
+// ~60 s no se alcanza nunca; queda como aviso por si algún día se alargan.
 const MAX_SAFE_WAIT_MS = 140_000;
 const SEND_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 1_000;

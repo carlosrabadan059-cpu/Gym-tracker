@@ -8,21 +8,25 @@ let lastNotificationTime = 0; // For deduplication
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
 
+const REST_NOTIFICATION_OPTIONS = {
+  icon: '/icon-192.png',
+  badge: '/icon-192.png',
+  vibrate: [500, 200, 500, 200, 800],
+};
+
 /**
- * Shows a notification only if another one hasn't been shown recently.
- * This prevents double-notifications from local timer + server push.
+ * Shows the rest-timer notification.
+ *
+ * Every notification shares one tag, so showing it twice replaces the first
+ * instead of stacking two alerts on screen. That collapsing is what lets the
+ * push handler show unconditionally without risking a duplicate.
  */
-async function showDeduplicatedNotification(title, options) {
-  const now = Date.now();
-  // 2-second window to catch duplicates
-  if (now - lastNotificationTime < 2000) {
-    console.log('[SW] Suppressing duplicate notification');
-    return;
-  }
-  lastNotificationTime = now;
+async function showRestNotification(title, options) {
+  lastNotificationTime = Date.now();
   return self.registration.showNotification(title, {
+    ...REST_NOTIFICATION_OPTIONS,
     ...options,
-    tag: 'gym-rest-timer', // Ensure consistent tag for collapsing
+    tag: 'gym-rest-timer',
     renotify: true,
     requireInteraction: true,
   });
@@ -44,24 +48,24 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     (async () => {
-      // Check if any client is visible
+      // Se muestra siempre, también con la app abierta, por dos motivos.
+      //
+      // El primero es que antes no se mostraba: esto estaba dentro de un
+      // `if (!isClientVisible)`, así que teniendo la app en pantalla no llegaba
+      // ningún aviso y todo dependía del pitido de Web Audio.
+      //
+      // El segundo es que la suscripción se crea con `userVisibleOnly: true`
+      // (ver src/lib/pushNotifications.js), que obliga a mostrar una
+      // notificación por cada push recibido. Consumir pushes en silencio puede
+      // acabar con la suscripción revocada por iOS.
+      await showRestNotification(data.title || '¡Recuperación completada! 💪', {
+        body: data.body || '¡Es hora de tu siguiente serie!',
+        icon: data.icon || '/icon-192.png',
+        badge: data.badge || '/icon-192.png',
+      });
+
+      // Avisa a la app abierta, si la hay, para que reponga el temporizador
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const isClientVisible = clients.some(c => c.visibilityState === 'visible');
-
-      // Only show notification if app is in background
-      if (!isClientVisible) {
-        await showDeduplicatedNotification(
-          data.title || '¡Recuperación completada! 💪',
-          {
-            body: data.body || '¡Es hora de tu siguiente serie!',
-            icon: data.icon || '/icon-192.png',
-            badge: data.badge || '/icon-192.png',
-            vibrate: [500, 200, 500, 200, 800],
-          }
-        );
-      }
-
-      // Always notify client to reset timer UI if open
       clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED' }));
     })()
   );
@@ -69,30 +73,23 @@ self.addEventListener('push', (event) => {
 
 
 async function fireCompletionNotification(title, body) {
-  let isClientVisible = false;
-
   try {
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
-      if (client.visibilityState === 'visible') isClientVisible = true;
       client.postMessage({ type: 'TIMER_FIRED' });
     }
   } catch (e) {}
 
-  // Local timer fallback: wait a moment to see if a Push notification arrives first.
-  // This helps deduplication if both fire at the same time.
+  // Este es el camino local, que no tiene la obligación de `userVisibleOnly`.
+  // Se le da un margen al push para que gane, y si ya avisó, aquí no se repite.
   await new Promise(r => setTimeout(r, 800));
+  if (Date.now() - lastNotificationTime < 2000) return;
 
-  if (!isClientVisible) {
-    try {
-      await showDeduplicatedNotification(title || '¡Recuperación completada! 💪', {
-        body: body || '¡Es hora de tu siguiente serie!',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: [500, 200, 500, 200, 800],
-      });
-    } catch (e) {}
-  }
+  try {
+    await showRestNotification(title || '¡Recuperación completada! 💪', {
+      body: body || '¡Es hora de tu siguiente serie!',
+    });
+  } catch (e) {}
 }
 
 function cancelActiveTimer() {

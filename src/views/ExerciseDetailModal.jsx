@@ -54,6 +54,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     const audioCtxRef = useRef(null);
     const beepFiredRef = useRef(false);
     const scheduledEndNodesRef = useRef([]);
+    // Instante del reloj de audio en el que debe sonar el pitido final. Sirve
+    // para saber si llegó a sonar: si iOS suspendió el contexto, su reloj se
+    // queda congelado por debajo de este valor.
+    const endBeepAtRef = useRef(null);
     const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
     const onTimerStateChangeRef = useRef(onTimerStateChange);
     useEffect(() => { onTimerStateChangeRef.current = onTimerStateChange; }, [onTimerStateChange]);
@@ -136,6 +140,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (!ctx || ctx.state === 'closed') return;
 
         const baseTime = ctx.currentTime + delaySec;
+        endBeepAtRef.current = baseTime;
         const makeNote = (startTime, freq, dur, waveType = 'square') => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -275,6 +280,26 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         }
     }, []);
 
+    // El pitido final se programa al empezar el descanso, hasta 60 s antes de
+    // que suene. Si iOS suspende el AudioContext en ese intervalo (pantalla
+    // bloqueada, cambio de app, llamada entrante) su reloj se congela y el
+    // pitido no llega nunca. Aquí se comprueba al vuelo y se repone en directo.
+    const ensureEndBeepPlayed = useCallback(() => {
+        const ctx = audioCtxRef.current;
+        const due = endBeepAtRef.current;
+        endBeepAtRef.current = null;
+
+        if (!ctx || ctx.state === 'closed') {
+            playBeep('end');
+            return;
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        if (due !== null && ctx.currentTime < due) {
+            cancelScheduledEndBeep();
+            playBeep('end');
+        }
+    }, [cancelScheduledEndBeep, playBeep]);
+
     useEffect(() => {
         let interval = null;
 
@@ -289,8 +314,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     setTimerActive(false);
                     setTargetTime(null);
         
-                    // End beep was pre-scheduled via Web Audio at timer start.
-                    // Vibrate as additional feedback (Android only).
+                    ensureEndBeepPlayed();
                     if ('vibrate' in navigator) {
                         navigator.vibrate([500, 200, 500, 200, 800]);
                     }
@@ -302,7 +326,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         return () => {
             clearInterval(interval);
         };
-    }, [timerActive, targetTime, playBeep]);
+    }, [timerActive, targetTime, ensureEndBeepPlayed]);
 
     useEffect(() => {
         const handleSWMessage = (event) => {
@@ -314,16 +338,24 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTargetTime(null);
             setTimeLeft(0);
 
+            ensureEndBeepPlayed();
             if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
         navigator.serviceWorker?.addEventListener('message', handleSWMessage);
         return () => navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
-    }, [playBeep]);
+    }, [ensureEndBeepPlayed]);
 
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState !== 'visible') return;
+
+            // iOS suspende el AudioContext al salir de la app. Si no se reanuda
+            // al volver, su reloj sigue congelado y el pitido ya programado no
+            // suena nunca.
+            const ctx = audioCtxRef.current;
+            if (ctx && ctx.state === 'suspended') ctx.resume();
+
             const { timerActive, targetTime, selectedDuration } = timerStateRef.current;
             if (!timerActive || !targetTime) return;
             if (Date.now() >= targetTime) {
@@ -332,14 +364,15 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
-    
+
+                ensureEndBeepPlayed();
                 if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [playBeep]);
+    }, [ensureEndBeepPlayed]);
 
     const toggleTimer = () => {
         unlockAudio();
