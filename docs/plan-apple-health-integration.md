@@ -33,13 +33,37 @@ HealthKit es un framework nativo de iOS. No existe ni ha existido nunca una API 
 - Instalación en el propio iPhone vía Xcode + cable, cuenta Apple gratuita: **$0**, pero el certificado expira cada 7 días → hay que reabrir Xcode y reinstalar semanalmente.
 - Para evitar esa fricción (instalar y olvidar, o usar TestFlight): entitlement HealthKit exige **Apple Developer Program, $99/año** — no disponible en cuenta personal gratuita para builds persistentes. Decisión pendiente, no bloquea el arranque del plan.
 
-### Riesgo técnico principal — verificar antes de construir el resto
+### Riesgo técnico principal — confirmado, no solo sospechado
 
-El plugin confirma soporte de `workoutEvents` (laps con duración/distancia) en `queryWorkouts()`, pero **no está confirmado que exponga el tipo de actividad por segmento** dentro de un mismo workout. Esto importa porque el uso real del usuario en el Watch es: una sola sesión con como máximo dos segmentos — trabajo aeróbico (el tipo que elija ese día: andar/correr en cinta, elíptica, bici) y trabajo de fuerza (`functionalStrengthTraining`) — cambiando entre ambos sin parar la grabación.
+**Actualización 2026-09-07:** ya no es una duda. Se instaló
+`@capgo/capacitor-health` (versión 8.10.5) y se leyó su código, tanto la
+interfaz TypeScript (`node_modules/@capgo/capacitor-health/dist/esm/definitions.d.ts`)
+como el nativo (`.../ios/Sources/HealthPlugin/Health.swift`), sin necesidad de
+dispositivo:
 
-HealthKit sí soporta esto a nivel de API (`HKWorkoutActivity`, iOS 16 / watchOS 9+, un `HKWorkout` puede tener varios sub-segmentos con tipo, duración y kcal propios), y el Watch distingue explícitamente indoor run / indoor walk / elíptica / ciclismo indoor vía `HKMetadataKeyIndoorWorkout`, así que el mapeo tipo→etiqueta de la app es fiable si el dato llega. La duda es si `@capgo/capacitor-health` ya lo expone o si haría falta código nativo Swift adicional (extensión pequeña dentro del proyecto Capacitor iOS) para leer `workoutActivities` directamente.
+- `Workout` (lo que devuelve `queryWorkouts()`) tiene `workoutEvents` — laps,
+  pausas, marcadores — pero **no tiene ningún campo con el tipo de actividad
+  por segmento**.
+- El Swift del plugin lee `workout.workoutActivityType`: el tipo **único** de
+  todo el `HKWorkout`. **Nunca lee `workout.workoutActivities`**, el array de
+  `HKWorkoutActivity` con el tipo por segmento que introdujo iOS 16/watchOS 9.
 
-**Antes de avanzar a la Fase 2:** probar `queryWorkouts()` contra un entreno real del usuario (con los dos segmentos, aeróbico + fuerza) y confirmar qué estructura de datos devuelve.
+Con el uso real del usuario en el Watch — una sola sesión con segmento
+aeróbico + segmento de fuerza (`functionalStrengthTraining`), cambiando entre
+ambos sin parar la grabación — `queryWorkouts()` devuelve **un solo workout
+con un solo `workoutType`**. No hay forma de distinguir los dos segmentos con
+este plugin tal cual está, en ninguna versión de su API.
+
+**Conclusión, ya no condicional:** hace falta una extensión Swift pequeña
+dentro del proyecto Capacitor iOS que lea `workoutActivities` directamente
+sobre el objeto `HKWorkout` — el dato existe en HealthKit, el plugin
+simplemente no lo expone. Esto entra en la Fase 2 (detección de cardio/fuerza
+por segmento), no bloquea el resto de la Fase 0.
+
+Sigue pendiente, y esa parte sí necesita dispositivo: confirmar contra un
+entreno real que `workoutActivityType` (el que el plugin sí lee) no rompe
+nada mientras tanto — es decir, qué tipo único devuelve HealthKit para una
+sesión mixta hasta que exista la extensión Swift.
 
 ---
 
@@ -59,10 +83,37 @@ Mapeo directo, sin heurística de "asumir cinta" — el Watch ya distingue indoo
 ## Roadmap por fases
 
 ### Fase 0 — Cimiento
-- Setup de Capacitor + plugin + capability HealthKit (ver componentes arriba).
-- **Validar el riesgo técnico** (segmentos por tipo en `queryWorkouts()`) antes de seguir.
-- Tabla nueva en Supabase `health_metrics` (user_id, date, steps, weight, active_energy, resting_hr, source) + migración en `supabase/migrations/` + política RLS siguiendo el patrón de `workout_logs`.
-- Módulo `src/lib/appleHealth.js`, activo solo cuando `Capacitor.isNativePlatform()` es cierto — el build web/PWA no cambia de comportamiento.
+
+**Estado (2026-09-07): parcialmente hecho.** Lo que es puro código de
+servidor/JS está construido y desplegado; lo que exige Xcode no puede
+avanzar más en este entorno — no tiene `Xcode.app` instalado (solo las
+Command Line Tools), así que `npx cap add ios` no se ha ejecutado.
+
+Hecho:
+- `@capacitor/core`, `@capacitor/cli` y `@capgo/capacitor-health` instalados
+  (`package.json`). `capacitor.config.ts` creado — **su `appId`
+  (`com.rutinex.app`) es un placeholder, hay que confirmarlo o cambiarlo antes
+  de `cap add ios`**, porque debe coincidir con lo que se registre en el
+  Apple Developer Program.
+- Tabla `health_metrics` (user_id, date, steps, weight, active_energy,
+  resting_hr, source) creada en Supabase, con RLS y migración en
+  `supabase/migrations/20260907_create_health_metrics.sql`.
+- Módulo `src/lib/appleHealth.js`: `requestHealthAuthorization`,
+  `getTodayMetrics`, `getMostRecentWorkout`, `writeWorkoutToHealth` — todo
+  gateado por `Capacitor.isNativePlatform()`, así que hoy son no-ops y el
+  build web/PWA no cambia de comportamiento (verificado: `npm run build` sin
+  cambios de tamaño de bundle relevantes).
+- **Riesgo técnico de `queryWorkouts()` confirmado por lectura de código**
+  (ver sección de arriba) — ya no hace falta un dispositivo para saberlo.
+
+Bloqueado, necesita el Mac del usuario con GUI:
+- Instalar `Xcode.app` (App Store, gratis, ~15 GB) — sin esto no existe
+  `npx cap add ios`, ni capability HealthKit, ni compilar nada para iPhone.
+- Una vez instalado: `npx cap add ios`, añadir la capability HealthKit +
+  `NSHealthShareUsageDescription`/`NSHealthUpdateUsageDescription` en
+  Info.plist, y decidir el `appId` real.
+- Decisión pendiente y explícitamente no bloqueante: Apple Developer Program
+  ($99/año) para no reinstalar cada 7 días.
 
 ### Fase 1 — Conexión visible
 - Pantalla "Conectar Apple Health" dentro de perfil/ajustes: solicitar permisos, mostrar estado de conexión, última sincronización, botón para desconectar.
