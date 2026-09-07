@@ -1,11 +1,33 @@
 # Plan: mejoras del lado entrenador
 
 **Fecha:** 2026-09-07
-**Estado:** propuesta, nada decidido ni implementado. No está asignado a una
-versión concreta todavía — la Fase 0 no debería esperar a ninguna (ver abajo),
-el resto puede intercalarse con la versión 2
+**Estado:** planteamiento aprobado, nada implementado todavía. No está
+asignado a una versión concreta — la Fase 0 no debería esperar a ninguna (ver
+abajo), el resto puede intercalarse con la versión 2
 ([Apple Health](plan-apple-health-integration.md)) o la 3
 ([funciones de gimnasio](plan-gym-app-features.md)).
+
+## Decisiones tomadas (2026-09-07)
+
+No son propuestas abiertas: se discutieron y quedaron cerradas. Lo que venga
+después se construye asumiéndolas.
+
+1. **La IA propone, el entrenador dispone.** Todo lo que genere la IA entra
+   como borrador editable y solo llega al cliente cuando el entrenador lo
+   aprueba. Nunca se asigna nada solo. Es lo que separa una herramienta
+   profesional de un generador de rutinas, y evita que la responsabilidad de
+   una prescripción recaiga en un modelo. Detalle en la Fase 2.
+2. **El entrenador trabaja en iPad o escritorio**, el cliente en el móvil.
+   Son dos ergonomías distintas dentro de la misma app. Detalle en "Contexto
+   de uso".
+3. **El entrenador sigue siendo web.** El shell nativo de Capacitor de la v2
+   es solo para el cliente en iPhone; la vista de entrenador no necesita
+   build nativo.
+4. **El layout móvil del cliente no se toca.** Todo el trabajo de pantalla
+   ancha entra bajo breakpoints, sin regresión para quien entrena con el
+   móvil en la mano.
+5. **El orden de los ejercicios es prescripción, no cosmética**, y debe poder
+   cambiarse arrastrando después de crear la rutina. Detalle en la Fase 0.3.
 
 ---
 
