@@ -23,21 +23,46 @@ import { TrainerLibraryView } from './views/trainer/TrainerLibraryView';
 
 /**
  * Previene el diálogo nativo de iOS "Shake to Undo" (Deshacer escritura).
- * Detecta el movimiento del dispositivo y desenfoca el input activo ANTES
- * de que iOS alcance su propio umbral de detección (~15 m/s²).
- * Umbral de 8 m/s² da margen suficiente para evitar el diálogo sin
- * interferir con el uso normal del móvil.
+ * Desenfoca el input activo ANTES de que iOS alcance su propio umbral de
+ * detección (~15 m/s²): sin campo enfocado, iOS no tiene nada que deshacer
+ * y no muestra el diálogo.
+ *
+ * Para adelantarse a iOS el umbral tiene que estar POR DEBAJO del suyo, pero
+ * un umbral bajo y un solo pico bastaban para desenfocar con cualquier golpe
+ * (el móvil en el bolsillo, dejarlo en el banco). De ahí que antes se subiera
+ * a 22 — con el efecto de que dejó de adelantarse a iOS y el diálogo volvió a
+ * salir entrenando.
+ *
+ * La solución no es el número, es el criterio: una sacudida real oscila, así
+ * que se exigen varios picos seguidos en una ventana corta. Eso permite bajar
+ * el umbral por debajo del de iOS sin disparar con un golpe suelto.
  */
 function useShakeToUndoPrevention() {
     useEffect(() => {
         if (!window.DeviceMotionEvent) return;
 
-        const BLUR_THRESHOLD = 22;   // m/s² sin gravedad — umbral alto para evitar bolsillo
+        const PEAK_THRESHOLD = 12;   // m/s² sin gravedad — por debajo del umbral de iOS (~15)
+        const PEAKS_NEEDED   = 3;    // una sacudida real oscila; un golpe suelto no
+        const PEAK_WINDOW_MS = 600;  // ventana en la que deben caer esos picos
+        const PEAK_GAP_MS    = 60;   // ignora lecturas consecutivas del mismo pico
         const COOLDOWN_MS    = 2500; // evita disparos múltiples consecutivos
+
         let lastBlurTime = 0;
+        let peaks = [];
         let registered = false;
 
+        const isEditing = () => {
+            const el = document.activeElement;
+            return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+        };
+
         const handleMotion = (event) => {
+            // Sin campo enfocado no hay diálogo que prevenir: ni medimos.
+            if (!isEditing()) {
+                if (peaks.length) peaks = [];
+                return;
+            }
+
             const acc = event.acceleration;
             if (!acc) return;
 
@@ -46,14 +71,19 @@ function useShakeToUndoPrevention() {
                 (acc.y || 0) ** 2 +
                 (acc.z || 0) ** 2
             );
+            if (magnitude <= PEAK_THRESHOLD) return;
 
             const now = Date.now();
-            if (magnitude > BLUR_THRESHOLD && now - lastBlurTime > COOLDOWN_MS) {
+            if (now - lastBlurTime <= COOLDOWN_MS) return;
+            if (peaks.length && now - peaks[peaks.length - 1] < PEAK_GAP_MS) return;
+
+            peaks.push(now);
+            peaks = peaks.filter(t => now - t <= PEAK_WINDOW_MS);
+
+            if (peaks.length >= PEAKS_NEEDED) {
                 lastBlurTime = now;
-                const active = document.activeElement;
-                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-                    active.blur();
-                }
+                peaks = [];
+                document.activeElement.blur();
             }
         };
 
