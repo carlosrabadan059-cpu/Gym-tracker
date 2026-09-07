@@ -91,7 +91,8 @@ Command Line Tools), así que `npx cap add ios` no se ha ejecutado.
 
 Hecho:
 - `@capacitor/core`, `@capacitor/cli` y `@capgo/capacitor-health` instalados
-  (`package.json`). `capacitor.config.ts` creado — **su `appId`
+  (`package.json`). `capacitor.config.json` creado (JSON y no `.ts`: el
+  proyecto no usa TypeScript en ningún otro sitio) — **su `appId`
   (`com.rutinex.app`) es un placeholder, hay que confirmarlo o cambiarlo antes
   de `cap add ios`**, porque debe coincidir con lo que se registre en el
   Apple Developer Program.

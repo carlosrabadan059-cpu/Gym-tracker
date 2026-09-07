@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
     "@capgo/capacitor-health": "^8.10.5",
     "@supabase/supabase-js": "^2.95.3",
     "clsx": "^2.1.1",
