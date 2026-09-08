@@ -98,18 +98,34 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         const fetchHistory = async () => {
             if (!client?.user_id) { setHistoryLoading(false); return; }
             try {
+                // Dos consultas, no un embed `routines(name)`: PostgREST no
+                // tiene una FK entre workout_logs.routine_id y routines.id
+                // (routine_id también puede ser un id de rutina estática
+                // tipo "day1", que ni siquiera existe como fila en
+                // `routines`), así que el embed automático siempre fallaba
+                // con PGRST200. Mismo patrón que trainer_clients/profiles.
                 const { data: logs, error } = await supabase
                     .from('workout_logs')
-                    .select('id, routine_id, date, logs, routines(name)')
+                    .select('id, routine_id, date, logs')
                     .eq('user_id', client.user_id)
                     .order('date', { ascending: false })
                     .limit(20);
 
                 if (error) throw error;
 
+                const routineIds = [...new Set((logs || []).map(l => l.routine_id).filter(Boolean))];
+                let nameById = {};
+                if (routineIds.length > 0) {
+                    const { data: routinesData } = await supabase
+                        .from('routines')
+                        .select('id, name')
+                        .in('id', routineIds);
+                    nameById = Object.fromEntries((routinesData || []).map(r => [r.id, r.name]));
+                }
+
                 setWorkoutHistory((logs || []).map(log => ({
                     ...log,
-                    routineName: log.routines?.name || log.routine_id,
+                    routineName: nameById[log.routine_id] || log.routine_id,
                     exerciseCount: log.logs ? Object.keys(log.logs).length : 0,
                 })));
             } catch (e) {

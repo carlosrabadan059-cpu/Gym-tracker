@@ -162,12 +162,16 @@ confirmando que el update a `exercises.ui_order` llega a Supabase, no solo
 al estado local. Probado también el panel de seleccionados al crear una
 rutina nueva. Sin errores de consola nuevos.
 
-**Bug preexistente encontrado de paso, sin relación con este cambio**: el
-historial de entrenamientos de `ClientProfileView.jsx` falla siempre (`Could
-not find a relationship between 'workout_logs' and 'routines'`) — mismo
-patrón que el hallazgo de `trainer_clients`/`profiles`: PostgREST no puede
-hacer embed automático sin FK directa. Necesita dos consultas separadas,
-como ya se hizo ahí. No corregido en este cambio.
+**Bug preexistente encontrado de paso y arreglado**: el historial de
+entrenamientos de `ClientProfileView.jsx` fallaba siempre (`Could not find a
+relationship between 'workout_logs' and 'routines'`) — mismo patrón que el
+hallazgo de `trainer_clients`/`profiles`: PostgREST no puede hacer embed
+automático sin FK directa (y `routine_id` a veces es una rutina estática
+tipo "day1", que ni existe como fila en `routines`). Sustituido el embed por
+dos consultas + mapa en cliente, como ya se hizo ahí. Verificado en real
+contra el cliente real (Carlos, el único usuario con datos reales en el
+proyecto): tenía **20 sesiones ocultas** por este bug — ahora aparecen con
+fecha y nombre de rutina correctos.
 
 **4. Layout de iPad y escritorio.**
 Ver "Contexto de uso" arriba. Va en la Fase 0 porque construir las fases
