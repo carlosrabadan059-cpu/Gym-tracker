@@ -95,14 +95,44 @@ npm run browse -- http://localhost:5173 --size 1440x900 --shot desktop.png
 
 ## Fase 0 — Fundamentos que faltan (no debería esperar)
 
-**1. Relación entrenador ↔ cliente.**
-Hoy `ClientsListView.jsx` hace `supabase.from('profiles').select('*')` y
-filtra en cliente los que no son entrenadores: **cualquier entrenador ve a
-todos los clientes de la plataforma**. `routines` sí tiene `trainer_id` y
-`assigned_routines` tiene `assigned_by`, pero `profiles` no tiene dueño.
-Hace falta una tabla `trainer_clients` (o columna `trainer_id` en
-`profiles`) + políticas RLS que lo respeten. Cualquier mejora que se
-construya encima multiplica este problema, por eso va primero.
+**1. Relación entrenador ↔ cliente. ✅ Hecho (2026-09-08).**
+
+Era peor de lo que parecía al leer solo el código de `ClientsListView.jsx`:
+revisando las políticas RLS antes de tocar nada, seguía activa una política
+heredada `"Public profiles are viewable by everyone."` (`qual: true`) junto
+a la más nueva `"Trainers can read all profiles"`. En RLS de Postgres las
+políticas permisivas se combinan con OR, así que la antigua anulaba a la
+nueva: **cualquier usuario autenticado, no solo entrenadores, podía leer
+todos los perfiles.** Y la propia política nueva también era demasiado
+ancha — cualquier entrenador veía a cualquier cliente, no solo a los suyos.
+
+Construido:
+- Tabla `trainer_clients` (`trainer_id`, `client_id`), con
+  `unique(client_id)` — un cliente tiene un único entrenador ("entrenador
+  personal", no varios). RLS: cada entrenador ve/añade/quita solo sus
+  propias filas; un cliente ve la fila que lo vincula a su entrenador.
+- Backfill desde `assigned_routines.assigned_by` (siempre un entrenador,
+  ya lo exigía su RLS de insert) — 1 relación real recuperada sin pérdida.
+- `profiles`: fuera las dos políticas de SELECT demasiado anchas,
+  sustituidas por "cada uno ve el suyo" + "un entrenador ve los perfiles de
+  sus propios clientes" + "un cliente ve el perfil de su propio
+  entrenador".
+- Función `search_addable_clients(search_term)` (`security definer`,
+  gateada por `is_trainer()`): permite buscar clientes **sin entrenador
+  todavía** por username, sin reabrir `profiles`. Necesaria porque, una vez
+  cerrada la RLS, un entrenador no podría ver el perfil de nadie nuevo para
+  poder añadirlo — este es el único hueco intencionadamente abierto, y solo
+  expone `user_id`/`username`/`avatar_url` de clientes sin vincular.
+- `ClientsListView.jsx`: lista solo los clientes propios (dos consultas —
+  `trainer_clients` no tiene FK directa a `profiles`, ambas referencian
+  `auth.users`, así que no hay embed automático de PostgREST) + modal
+  "Añadir cliente" con buscador en vivo sobre la RPC de arriba.
+- Migración: `supabase/migrations/20260908_create_trainer_clients_and_fix_profiles_rls.sql`.
+
+Verificado con datos reales (no solo lint/build): la consulta de "mis
+clientes" del entrenador real devuelve exactamente su único cliente
+backfillado; la búsqueda de clientes añadibles excluye a ese cliente y
+devuelve los dos que siguen sin entrenador.
 
 **2. Plantillas de rutina reutilizables.**
 Hoy cada rutina se crea dentro de una asignación; no hay forma de reutilizar
