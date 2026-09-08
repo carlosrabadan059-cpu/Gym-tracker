@@ -155,9 +155,19 @@ iPad/escritorio, per el plan original — se dejó para cuando llegue la Fase 0
 punto 4 (layout iPad/escritorio), evitando construir dos mecanismos de
 reorden. Las flechas ya cubren la necesidad funcional en móvil.
 
-Sin verificar con la app real (no hay cuenta de prueba en el repo para
-navegador headless) — solo build/lint limpios y revisión manual. Pendiente
-de que el usuario lo compruebe con su cuenta de entrenador.
+Verificado en real con la cuenta admin (headless, Playwright): reordené y
+restauré el orden de los 8 ejercicios de "Dia 1 - Pecho / Hombro" de Carlos
+— el intercambio persistió entre dos ejecuciones separadas del script,
+confirmando que el update a `exercises.ui_order` llega a Supabase, no solo
+al estado local. Probado también el panel de seleccionados al crear una
+rutina nueva. Sin errores de consola nuevos.
+
+**Bug preexistente encontrado de paso, sin relación con este cambio**: el
+historial de entrenamientos de `ClientProfileView.jsx` falla siempre (`Could
+not find a relationship between 'workout_logs' and 'routines'`) — mismo
+patrón que el hallazgo de `trainer_clients`/`profiles`: PostgREST no puede
+hacer embed automático sin FK directa. Necesita dos consultas separadas,
+como ya se hizo ahí. No corregido en este cambio.
 
 **4. Layout de iPad y escritorio.**
 Ver "Contexto de uso" arriba. Va en la Fase 0 porque construir las fases
