@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Scale, Ruler, Calendar, Sparkles } from 'lucide-react';
+import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Scale, Ruler, Calendar, Sparkles, Heart } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { EditProfileView } from './profile/EditProfileView';
 import { NotificationSettingsView } from './profile/NotificationSettingsView';
 import { PrivacyView } from './profile/PrivacyView';
 import { SettingsView } from './profile/SettingsView';
 import { HelpView } from './profile/HelpView';
+import { AppleHealthView } from './profile/AppleHealthView';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationsContext';
 import { supabase } from '../lib/supabase';
@@ -58,6 +59,7 @@ export function ProfileView() {
 
     const menuItems = [
         { icon: Bell, label: 'Notificaciones', badge: unreadCount > 0 ? String(unreadCount) : null, view: 'notifications' },
+        { icon: Heart, label: 'Apple Health', view: 'health' },
         { icon: Shield, label: 'Privacidad y Seguridad', view: 'privacy' },
         { icon: Settings, label: 'Configuración General', view: 'settings' },
         { icon: CircleHelp, label: 'Ayuda y Soporte', view: 'help' },
@@ -66,6 +68,7 @@ export function ProfileView() {
     // Render Sub-views
     if (currentView === 'edit') return <EditProfileView user={user} onBack={() => setCurrentView('main')} onSave={handleSaveProfile} />;
     if (currentView === 'notifications') return <NotificationSettingsView onBack={() => setCurrentView('main')} />;
+    if (currentView === 'health') return <AppleHealthView onBack={() => setCurrentView('main')} />;
     if (currentView === 'privacy') return <PrivacyView onBack={() => setCurrentView('main')} />;
     if (currentView === 'settings') return <SettingsView onBack={() => setCurrentView('main')} />;
     if (currentView === 'help') return <HelpView onBack={() => setCurrentView('main')} />;

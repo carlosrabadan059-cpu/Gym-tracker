@@ -120,8 +120,32 @@ No bloquea nada de la Fase 0, pero queda anotado por si se retoma en otra
 máquina: instalar `Xcode.app` completo (no solo las Command Line Tools) es
 obligatorio para `npx cap add ios` y para compilar/firmar.
 
-### Fase 1 — Conexión visible
-- Pantalla "Conectar Apple Health" dentro de perfil/ajustes: solicitar permisos, mostrar estado de conexión, última sincronización, botón para desconectar.
+### Fase 1 — Conexión visible ✅ Hecho (2026-09-08)
+
+Pantalla "Conectar Apple Health" en Perfil → nueva entrada de menú.
+`src/views/profile/AppleHealthView.jsx`, enlazada desde `ProfileView.jsx`.
+
+- Fuera de la app nativa (web/PWA): tarjeta explicando que Health es nativo
+  de iOS, sin CTA que no pueda funcionar.
+- Sin conectar: CTA "Conectar con Apple Health" → `requestHealthAuthorization()`
+  + una primera sincronización de prueba.
+- Conectado: card con pasos/kcal activas/FC en reposo de hoy, última
+  sincronización, botón "Sincronizar ahora" y "Desconectar".
+- **Decisión de diseño importante:** HealthKit no permite saber si el
+  usuario denegó la lectura de un tipo concreto — es privacidad por diseño
+  de Apple (el estado de denegación solo es consultable para permisos de
+  escritura, nunca de lectura). Por eso "conectado" aquí significa
+  "completó el diálogo de permiso alguna vez" (guardado en `localStorage`,
+  es un estado de este iPhone, no de la cuenta), no "dio el sí a todo". Si
+  el usuario denegó todo, simplemente no llegan datos y se muestra un
+  aviso explicando dónde comprobar los permisos manualmente.
+- `src/lib/appleHealth.js` ganó `checkHealthAuthorization()` (comprobar sin
+  disparar el diálogo del sistema) — construida pero sin consumidor
+  todavía; queda para cuando Fase 3 quiera saber el estado sin que el
+  usuario tenga que entrar a esta pantalla.
+- "Desconectar" es solo una preferencia de la app (deja de llamar a
+  Health) — revocar el permiso de verdad se hace desde Ajustes del iPhone,
+  y la propia pantalla lo explica al confirmar.
 
 ### Fase 2 — La función que motivó el plan
 - Modal "Añadir Cardio Previo" (`src/views/DashboardView.jsx`, líneas ~351-440): al abrirlo, detectar el segmento aeróbico del workout de Watch más reciente y mostrar un banner tipo "Detectado: Correr en cinta · 22 min · 245 kcal" con opción de usar el dato o ignorarlo y seguir con el flujo manual actual. Sustituye la estimación de `calculateCardioCalories` (`src/lib/routineUtils.js`, línea ~109) por las kcal reales del Watch cuando el usuario acepta.
