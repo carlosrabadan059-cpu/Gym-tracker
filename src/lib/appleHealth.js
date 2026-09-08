@@ -1,0 +1,96 @@
+// Puente a Apple Health/Watch (v2 Fase 0). Ver docs/plan-apple-health-integration.md.
+//
+// Todo lo que exporta este módulo es un no-op fuera del shell nativo de
+// Capacitor — el build web/PWA no cambia de comportamiento. Cuando exista el
+// proyecto iOS (`npx cap add ios`, bloqueado hoy por no tener Xcode.app
+// instalado), `Capacitor.isNativePlatform()` empieza a devolver `true` ahí y
+// estas funciones pasan a hablar con HealthKit de verdad.
+import { Capacitor } from '@capacitor/core';
+import { Health } from '@capgo/capacitor-health';
+
+export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform();
+
+/**
+ * Pide permiso de lectura para lo que necesita el Dashboard/Estadísticas
+ * (pasos, peso, kcal activas, FC en reposo, workouts). Ver Fase 1 del plan
+ * para la pantalla "Conectar Apple Health" que llama a esto.
+ */
+export async function requestHealthAuthorization() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+    return Health.requestAuthorization({
+        read: ['steps', 'weight', 'totalCalories', 'restingHeartRate', 'workouts'],
+    });
+}
+
+/**
+ * Pasos, kcal activas y FC en reposo de hoy, para la card "Salud (7 días)"
+ * del Dashboard (Fase 3). Usa queryAggregated en vez de leer muestra a
+ * muestra: es lo que recomienda la propia documentación del plugin para
+ * rangos de más de un día.
+ */
+export async function getTodayMetrics() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const range = { startDate: startOfDay.toISOString(), endDate: new Date().toISOString() };
+
+    const [steps, calories, restingHr] = await Promise.all([
+        Health.queryAggregated({ ...range, dataType: 'steps', aggregation: 'sum' }),
+        Health.queryAggregated({ ...range, dataType: 'totalCalories', aggregation: 'sum' }),
+        Health.queryAggregated({ ...range, dataType: 'restingHeartRate', aggregation: 'average' }),
+    ]);
+
+    return {
+        steps: steps.samples[0]?.value ?? 0,
+        activeCalories: calories.samples[0]?.value ?? 0,
+        restingHr: restingHr.samples[0]?.value ?? null,
+    };
+}
+
+/**
+ * El workout de Watch más reciente que solape con el rango dado. Pensado
+ * para el modal "Añadir Cardio Previo" (Fase 2): al abrirlo se pide el rango
+ * de la última hora y, si hay un workout, se ofrece usar sus kcal reales en
+ * vez de la estimación MET.
+ *
+ * ⚠️ Límite conocido, confirmado en el código del plugin instalado
+ * (@capgo/capacitor-health 8.10.5) y no solo sospechado: `queryWorkouts()`
+ * lee `workout.workoutActivityType`, el tipo ÚNICO de todo el HKWorkout —
+ * nunca `workout.workoutActivities`, el array de HKWorkoutActivity con el
+ * tipo POR SEGMENTO que introdujo iOS 16/watchOS 9. Con el uso real descrito
+ * en el plan (una sola sesión de Watch con segmento aeróbico + segmento de
+ * fuerza, sin parar de grabar), esta llamada devuelve un solo workout con un
+ * solo `workoutType` — no hay forma de distinguir los dos segmentos con este
+ * plugin tal cual está. Para eso hace falta una extensión Swift pequeña
+ * dentro del proyecto Capacitor iOS que lea `workoutActivities` directamente
+ * (ver "Riesgo técnico principal" en el plan). Mientras no exista, esta
+ * función sirve para detectar UN tipo de workout por sesión (válido para el
+ * caso simple: solo cardio, o solo fuerza, sin cambiar en el Watch).
+ */
+export async function getMostRecentWorkout({ sinceMinutesAgo = 90 } = {}) {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    const startDate = new Date(Date.now() - sinceMinutesAgo * 60_000).toISOString();
+    const { workouts } = await Health.queryWorkouts({
+        startDate,
+        endDate: new Date().toISOString(),
+        limit: 1,
+        ascending: false,
+    });
+    return workouts[0] ?? null;
+}
+
+/**
+ * Escribe el entreno completado de Rutinex de vuelta a Health, para que
+ * aparezca en los anillos de Actividad (Fase 2). `calories` en kcal.
+ */
+export async function writeWorkoutToHealth({ startDate, endDate, calories }) {
+    if (!isHealthAvailableOnThisPlatform()) return;
+    await Health.saveSample({
+        dataType: 'totalCalories',
+        value: calories,
+        startDate,
+        endDate,
+    });
+}
