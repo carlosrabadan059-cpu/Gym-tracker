@@ -139,29 +139,25 @@ Hoy cada rutina se crea dentro de una asignación; no hay forma de reutilizar
 "Día 2 · Empuje" con otro cliente sin rehacerla. Marcar rutinas como
 plantilla (`is_template`) y poder clonarlas a un cliente concreto.
 
-**3. Reordenar los ejercicios de una rutina.**
-La columna `ui_order` **ya existe** en `exercises` y todas las lecturas la
-respetan (`DashboardView.jsx:63`, `ClientProfileView.jsx:70`,
-`RoutineAssignerView.jsx:123`, `ChatView.jsx:257`). El problema es que solo se
-escribe al insertar (`AddExercisePanel.jsx:96` usa `maxOrder + i + 1`) y
-**no hay ninguna UI para cambiarla después**: ni arrastrar, ni mover
-arriba/abajo. Para reordenar hoy hay que borrar el ejercicio y volver a
-añadirlo, por eso el orden acaba siendo simplemente el de creación.
+**3. Reordenar los ejercicios de una rutina. ✅ Hecho (2026-09-08), versión botones.**
 
-Además, los huecos se acumulan: al borrar ejercicios el contador sigue
-subiendo. En la base de datos hay ahora mismo rutinas de 8 ejercicios con
-`ui_order` del 2 al 13.
+Construido:
+- `ClientProfileView.jsx` (rutina ya asignada): flechas ↑↓ por ejercicio,
+  `handleReorderExercise` intercambia posiciones y renumera 1..n, persiste
+  con un `update` por ejercicio a `exercises.ui_order` (cierra los huecos
+  que dejaba borrar ejercicios).
+- `RoutineAssignerView.jsx` (rutina nueva): mismas flechas en el panel de
+  "seleccionados" antes de guardar — reordena el array en memoria,
+  `handleSave` ya usa el índice como `ui_order` al insertar.
 
-Qué hace falta:
-- **Arrastrar para reordenar** en `RoutineAssignerView` y en la rutina
-  asignada dentro de `ClientProfileView`. Al montar rutinas en iPad o
-  escritorio el arrastre es el gesto natural (y iPadOS lo soporta bien);
-  dejar los botones arriba/abajo como alternativa accesible y para pantalla
-  estrecha, no como mecanismo principal.
-- Persistir el nuevo orden reescribiendo `ui_order` de todos los ejercicios
-  de la rutina en un solo update, renumerando 1..n para eliminar los huecos.
-- El orden importa de verdad en entrenamiento (multiarticulares antes que
-  aislamiento, por ejemplo), así que esto es prescripción, no cosmética.
+**Pendiente, no bloqueante**: arrastrar (drag) como gesto principal en
+iPad/escritorio, per el plan original — se dejó para cuando llegue la Fase 0
+punto 4 (layout iPad/escritorio), evitando construir dos mecanismos de
+reorden. Las flechas ya cubren la necesidad funcional en móvil.
+
+Sin verificar con la app real (no hay cuenta de prueba en el repo para
+navegador headless) — solo build/lint limpios y revisión manual. Pendiente
+de que el usuario lo compruebe con su cuenta de entrenador.
 
 **4. Layout de iPad y escritorio.**
 Ver "Contexto de uso" arriba. Va en la Fase 0 porque construir las fases
