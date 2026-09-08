@@ -10,7 +10,11 @@ import { Health } from '@capgo/capacitor-health';
 
 export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform();
 
-const READ_TYPES = ['steps', 'weight', 'totalCalories', 'restingHeartRate', 'workouts'];
+// 'calories' (no 'totalCalories') a propósito: el plugin instalado mapea
+// ambos al mismo dato nativo (activeEnergyBurned) pero solo permite
+// agregación (sum) sobre 'calories' — 'totalCalories' solo vale con
+// readSamples. Ver getTodayMetrics().
+const READ_TYPES = ['steps', 'weight', 'calories', 'restingHeartRate', 'workouts'];
 
 /**
  * Pide permiso de lectura para lo que necesita el Dashboard/Estadísticas
@@ -48,7 +52,7 @@ export async function getTodayMetrics() {
 
     const [steps, calories, restingHr] = await Promise.all([
         Health.queryAggregated({ ...range, dataType: 'steps', aggregation: 'sum' }),
-        Health.queryAggregated({ ...range, dataType: 'totalCalories', aggregation: 'sum' }),
+        Health.queryAggregated({ ...range, dataType: 'calories', aggregation: 'sum' }),
         Health.queryAggregated({ ...range, dataType: 'restingHeartRate', aggregation: 'average' }),
     ]);
 
