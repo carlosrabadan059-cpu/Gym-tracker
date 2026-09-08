@@ -10,6 +10,8 @@ import { Health } from '@capgo/capacitor-health';
 
 export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform();
 
+const READ_TYPES = ['steps', 'weight', 'totalCalories', 'restingHeartRate', 'workouts'];
+
 /**
  * Pide permiso de lectura para lo que necesita el Dashboard/Estadísticas
  * (pasos, peso, kcal activas, FC en reposo, workouts). Ver Fase 1 del plan
@@ -17,9 +19,18 @@ export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform(
  */
 export async function requestHealthAuthorization() {
     if (!isHealthAvailableOnThisPlatform()) return null;
-    return Health.requestAuthorization({
-        read: ['steps', 'weight', 'totalCalories', 'restingHeartRate', 'workouts'],
-    });
+    return Health.requestAuthorization({ read: READ_TYPES });
+}
+
+/**
+ * Comprueba el estado de permiso actual SIN mostrar el diálogo del sistema.
+ * Pensado para saber, al abrir la pantalla de ajustes, si hace falta pedir
+ * permiso o ya se pidió antes — requestHealthAuthorization() no distingue
+ * eso, siempre puede disparar el diálogo si aún no se había respondido.
+ */
+export async function checkHealthAuthorization() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+    return Health.checkAuthorization({ read: READ_TYPES });
 }
 
 /**
