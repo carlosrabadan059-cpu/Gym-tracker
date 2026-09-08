@@ -74,8 +74,14 @@ export async function subscribeToPush(userId) {
  * Schedules a push notification to fire at the given targetTime (epoch ms).
  * Calls the Supabase Edge Function which sleeps until targetTime, then
  * sends the Web Push notification to wake the SW even on a locked iPhone.
+ *
+ * sessionId identifica el descanso que pidió este push (lo genera el
+ * cliente en ExerciseDetailModal.jsx). Viaja tal cual hasta el payload del
+ * push y de vuelta al mensaje que recibe la app, para que un push que
+ * llegue tarde de un descanso ya cancelado no se confunda con el de uno
+ * nuevo que esté en marcha.
  */
-export async function scheduleServerPush(userId, targetTime) {
+export async function scheduleServerPush(userId, targetTime, sessionId = null) {
     try {
         console.log('[Push] Scheduling server push for', new Date(targetTime).toLocaleTimeString());
         const { data: { session } } = await supabase.auth.getSession();
@@ -93,7 +99,7 @@ export async function scheduleServerPush(userId, targetTime) {
                 'Authorization': `Bearer ${session.access_token}`,
                 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
             },
-            body: JSON.stringify({ userId, targetTime }),
+            body: JSON.stringify({ userId, targetTime, sessionId }),
         });
 
         const result = await response.json();

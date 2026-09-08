@@ -48,6 +48,9 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     (async () => {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const isClientVisible = clients.some(c => c.visibilityState === 'visible');
+
       // Se muestra siempre, también con la app abierta, por dos motivos.
       //
       // El primero es que antes no se mostraba: esto estaba dentro de un
@@ -57,26 +60,34 @@ self.addEventListener('push', (event) => {
       // El segundo es que la suscripción se crea con `userVisibleOnly: true`
       // (ver src/lib/pushNotifications.js), que obliga a mostrar una
       // notificación por cada push recibido. Consumir pushes en silencio puede
-      // acabar con la suscripción revocada por iOS.
+      // acabar con la suscripción revocada por iOS. Por eso esta llamada nunca
+      // se salta — lo único que cambia con la app visible es el vibrate: la
+      // página ya vibra por su cuenta al reproducir el pitido local
+      // (ExerciseDetailModal.jsx), así que aquí se omite para no doblar el
+      // golpe físico. El aviso visual se queda, es un coste menor que un
+      // segundo vibrado encima del que ya sintió el usuario.
       await showRestNotification(data.title || '¡Recuperación completada! 💪', {
         body: data.body || '¡Es hora de tu siguiente serie!',
         icon: data.icon || '/icon-192.png',
         badge: data.badge || '/icon-192.png',
+        // Solo se sobreescribe cuando SÍ está visible; si no, el objeto no
+        // lleva la clave y showRestNotification usa el vibrate por defecto
+        // (un `vibrate: undefined` explícito lo pisaría igualmente vacío).
+        ...(isClientVisible ? { vibrate: [] } : {}),
       });
 
       // Avisa a la app abierta, si la hay, para que reponga el temporizador
-      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED' }));
+      clients.forEach(c => c.postMessage({ type: 'TIMER_FIRED', sessionId: data.sessionId ?? null }));
     })()
   );
 });
 
 
-async function fireCompletionNotification(title, body) {
+async function fireCompletionNotification(title, body, sessionId) {
   try {
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
-      client.postMessage({ type: 'TIMER_FIRED' });
+      client.postMessage({ type: 'TIMER_FIRED', sessionId: sessionId ?? null });
     }
   } catch (e) {}
 
@@ -101,7 +112,7 @@ function cancelActiveTimer() {
 }
 
 self.addEventListener('message', (event) => {
-  const { type, targetTime, title, body, isStart } = event.data || {};
+  const { type, targetTime, title, body, isStart, sessionId } = event.data || {};
 
   if (type === 'SCHEDULE_NOTIFICATION') {
     cancelActiveTimer();
@@ -120,13 +131,13 @@ self.addEventListener('message', (event) => {
           clearInterval(activeTimer.intervalId);
         }
         activeTimer = null;
-        await fireCompletionNotification(title, body);
+        await fireCompletionNotification(title, body, sessionId);
         resolve();
       };
 
       // Handle immediate start notification if delay is < 1s
       if (isStart && delay < 1000) {
-        await fireCompletionNotification(title, body);
+        await fireCompletionNotification(title, body, sessionId);
       }
 
       // Primary timer

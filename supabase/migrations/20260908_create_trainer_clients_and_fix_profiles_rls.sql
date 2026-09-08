@@ -45,10 +45,20 @@ create index if not exists trainer_clients_client_id_idx on public.trainer_clien
 -- Backfill: la única fuente fiable de "quién es cliente de quién" hoy es
 -- quién le asignó una rutina a quién. assigned_by es siempre un entrenador
 -- (la RLS de insert en assigned_routines ya lo exige).
+--
+-- distinct on (client_id), no distinct a secas: un cliente solo puede tener
+-- un entrenador (más abajo se añade unique(client_id)), así que si el
+-- histórico tuviera algún client_id con assigned_by de dos entrenadores
+-- distintos, un `select distinct` insertaría las dos filas y esa constraint
+-- reventaría a mitad de la migración, dejando sin aplicar todo lo que viene
+-- después (el cierre de las políticas de profiles). distinct on se queda
+-- con una sola fila por cliente — la más reciente — y no puede violar la
+-- constraint pase lo que pase en los datos.
 insert into public.trainer_clients (trainer_id, client_id)
-select distinct assigned_by, client_id
+select distinct on (client_id) assigned_by, client_id
 from public.assigned_routines
 where assigned_by is not null and client_id is not null
+order by client_id, assigned_at desc
 on conflict (trainer_id, client_id) do nothing;
 
 -- Cierra el agujero real: fuera la política heredada que dejaba a

@@ -20,6 +20,9 @@
 //      vuelva a suscribirse en vez de fallar en silencio para siempre. Esto
 //      importa más ahora: incumplir userVisibleOnly puede hacer que iOS revoque
 //      la suscripción, y conviene detectarlo.
+//   5. sessionId viaja del cliente al payload del push y de vuelta al
+//      mensaje que recibe la app — así un push que llegue tarde de un
+//      descanso ya cancelado no se confunde con el de uno nuevo en marcha.
 //
 // Sigue en pie que mantener viva una función durante minutos es frágil. Si
 // alguna vez hacen falta descansos largos, la salida es un scheduler
@@ -57,7 +60,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
     try {
-        const { userId, targetTime } = await req.json();
+        const { userId, targetTime, sessionId = null } = await req.json();
         if (!userId || !targetTime) return json({ error: 'Missing userId or targetTime' }, 400);
 
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -81,6 +84,14 @@ Deno.serve(async (req: Request) => {
             .single();
         const logId = logRow?.id;
 
+        // too_long no es solo una anotación: si la espera ya se sabe insegura,
+        // no tiene sentido intentarla. Antes esto se registraba y se seguía
+        // esperando igual, que es justo el escenario que el comentario de
+        // MAX_SAFE_WAIT_MS decía querer evitar.
+        if (waitMs > MAX_SAFE_WAIT_MS) {
+            return json({ scheduled: false, targetTime, logId, error: 'wait exceeds safe background-task window' }, 422);
+        }
+
         const updateLog = async (patch: Record<string, unknown>) => {
             if (!logId) return;
             await supabase.from('push_log').update(patch).eq('id', logId);
@@ -88,16 +99,19 @@ Deno.serve(async (req: Request) => {
 
         const bgWork = (async () => {
             try {
+                // El propio setTimeout ya mantiene el bucle activo; no hace
+                // falta ningún ping a la base de datos solo para simular
+                // actividad — eso solo añadía carga real a Postgres por cada
+                // descanso en marcha, sin aportar nada.
                 while (Date.now() < targetTime) {
                     const timeToWait = Math.min(targetTime - Date.now(), 5000);
                     if (timeToWait > 0) await new Promise(r => setTimeout(r, timeToWait));
-                    // Heartbeat: evita que el hipervisor de Deno pause la función por inactividad.
-                    try { await supabase.from('push_subscriptions').select('user_id').limit(1); } catch { /* ignorar */ }
                 }
 
                 const payload = JSON.stringify({
                     title: '¡Recuperación completada! 💪',
                     body: '¡Es hora de tu siguiente serie!',
+                    sessionId,
                 });
 
                 let lastError: unknown = null;
@@ -145,7 +159,7 @@ Deno.serve(async (req: Request) => {
 
         EdgeRuntime.waitUntil(bgWork);
 
-        return json({ scheduled: true, targetTime, logId, warning: waitMs > MAX_SAFE_WAIT_MS ? 'wait exceeds safe background-task window' : undefined });
+        return json({ scheduled: true, targetTime, logId });
     } catch (err: any) {
         return json({ error: err.message }, 500);
     }

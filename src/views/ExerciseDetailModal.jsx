@@ -58,6 +58,13 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     // para saber si llegó a sonar: si iOS suspendió el contexto, su reloj se
     // queda congelado por debajo de este valor.
     const endBeepAtRef = useRef(null);
+    // Cada descanso (empezado o cancelado) sube este contador. El push del
+    // servidor y el mensaje local del SW viajan con el id de su momento; si
+    // llegan tarde (el descanso ya se canceló, o empezó otro distinto) el id
+    // ya no coincide con el actual y se ignoran — sin esto, un push huérfano
+    // de un descanso cancelado puede cortar en corto uno nuevo que sí está
+    // en marcha.
+    const timerSessionIdRef = useRef(0);
     const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
     const onTimerStateChangeRef = useRef(onTimerStateChange);
     useEffect(() => { onTimerStateChangeRef.current = onTimerStateChange; }, [onTimerStateChange]);
@@ -104,7 +111,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
     // Se eliminó el auto-subscribe y los logs de depuración (ya no son necesarios en UI)
 
-    const scheduleSWNotification = (targetTime, isStart = false) => {
+    const scheduleSWNotification = (targetTime, isStart = false, sessionId = null) => {
         if (!('serviceWorker' in navigator)) return;
         const msg = targetTime !== null
             ? {
@@ -112,7 +119,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 targetTime,
                 title: isStart ? '¡Descanso iniciado! ⏱️' : '¡Recuperación completada! 💪',
                 body: isStart ? 'El temporizador ha comenzado.' : '¡Es hora de tu siguiente serie!',
-                isStart
+                isStart,
+                sessionId
               }
             : { type: 'CANCEL_NOTIFICATION' };
 
@@ -140,7 +148,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (!ctx || ctx.state === 'closed') return;
 
         const baseTime = ctx.currentTime + delaySec;
-        endBeepAtRef.current = baseTime;
+        endBeepAtRef.current = { due: baseTime, sessionId: timerSessionIdRef.current };
         const makeNote = (startTime, freq, dur, waveType = 'square') => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -227,15 +235,16 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (isCompleting) {
             const dur = selectedDuration;
             const target = Date.now() + dur * 1000;
+            const sessionId = ++timerSessionIdRef.current;
             setTargetTime(target);
             setTimeLeft(dur);
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
-            scheduleSWNotification(target, false); // Schedule END notification
+            scheduleSWNotification(target, false, sessionId); // Schedule END notification
             if (user?.id) {
                 subscribeToPush(user.id)
-                    .then(() => scheduleServerPush(user.id, target))
+                    .then(() => scheduleServerPush(user.id, target, sessionId))
                     .catch(e => console.error('[Push] Repair failed on toggle', e));
             }
         }
@@ -284,9 +293,17 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     // que suene. Si iOS suspende el AudioContext en ese intervalo (pantalla
     // bloqueada, cambio de app, llamada entrante) su reloj se congela y el
     // pitido no llega nunca. Aquí se comprueba al vuelo y se repone en directo.
-    const ensureEndBeepPlayed = useCallback(() => {
+    //
+    // messageSessionId es el id que traía el aviso (push del servidor o
+    // mensaje local del SW) que disparó esta llamada; null cuando el disparo
+    // viene del propio setInterval de la sesión activa, que por construcción
+    // ya es el de ahora mismo. Si no coincide con la sesión activa, el aviso
+    // es de un descanso cancelado o ya terminado y se ignora sin más.
+    const ensureEndBeepPlayed = useCallback((messageSessionId = null) => {
+        if (messageSessionId !== null && messageSessionId !== timerSessionIdRef.current) return;
+
         const ctx = audioCtxRef.current;
-        const due = endBeepAtRef.current;
+        const stored = endBeepAtRef.current;
         endBeepAtRef.current = null;
 
         if (!ctx || ctx.state === 'closed') {
@@ -294,7 +311,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             return;
         }
         if (ctx.state === 'suspended') ctx.resume();
-        if (due !== null && ctx.currentTime < due) {
+        if (stored !== null && ctx.currentTime < stored.due) {
             cancelScheduledEndBeep();
             playBeep('end');
         }
@@ -331,6 +348,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     useEffect(() => {
         const handleSWMessage = (event) => {
             if (event.data?.type !== 'TIMER_FIRED') return;
+            // Mensaje huérfano de un descanso ya cancelado o distinto del que
+            // está activo ahora mismo: no toca nada del estado actual.
+            if (event.data.sessionId !== timerSessionIdRef.current) return;
             if (beepFiredRef.current) return;
             beepFiredRef.current = true;
             const { selectedDuration } = timerStateRef.current;
@@ -338,7 +358,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTargetTime(null);
             setTimeLeft(0);
 
-            ensureEndBeepPlayed();
+            ensureEndBeepPlayed(event.data.sessionId);
             if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
@@ -379,18 +399,24 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (!timerActive) {
             const dur = selectedDuration;
             const t = Date.now() + dur * 1000;
+            const sessionId = ++timerSessionIdRef.current;
             setTargetTime(t);
             setTimeLeft(dur);
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
 
-            scheduleSWNotification(t, false); // Schedule END notification
-            if (user?.id) scheduleServerPush(user.id, t);
+            scheduleSWNotification(t, false, sessionId); // Schedule END notification
+            if (user?.id) scheduleServerPush(user.id, t, sessionId);
         } else {
             setTimerActive(false);
             setTargetTime(null);
             cancelScheduledEndBeep();
+            endBeepAtRef.current = null;
+            // Sube el id de sesión aunque no arranque otro descanso ahora
+            // mismo: cualquier push o mensaje local que ya estuviera en
+            // vuelo para este descanso deja de coincidir con el id activo.
+            timerSessionIdRef.current += 1;
 
             scheduleSWNotification(null);
         }
