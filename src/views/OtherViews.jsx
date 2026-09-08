@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../components/ui/Card';
 import { Check } from 'lucide-react';
-import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET } from '../lib/routineUtils';
+import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET, resolveCardioCalories } from '../lib/routineUtils';
 import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
 
 const TrainingView = ({ workout, onFinish }) => {
     const { user, profile } = useAuth();
@@ -35,6 +36,7 @@ const TrainingView = ({ workout, onFinish }) => {
         return saved?.workoutStartTime ?? Date.now();
     });
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [finishing, setFinishing] = useState(false);
 
     useEffect(() => {
         if (!activeWorkout) return;
@@ -271,10 +273,32 @@ const TrainingView = ({ workout, onFinish }) => {
             </div>
 
             <button
-                onClick={() => {
+                onClick={async () => {
+                    setFinishing(true);
                     const endTime = Date.now();
                     const durationMinutes = Math.round((endTime - workoutStartTime) / 60000);
-                    const realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
+                    let realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
+                    let caloriesSource = 'estimated';
+
+                    // v2 Fase 2: si hubo un entreno de fuerza en el Watch que
+                    // cubre esta sesión, sus kcal reales sustituyen la
+                    // estimación MET. Best-effort — si Health falla, se sigue
+                    // con la estimación de siempre.
+                    if (isHealthAvailableOnThisPlatform()) {
+                        try {
+                            const watchWorkout = await getMostRecentWorkout({ sinceMinutesAgo: durationMinutes + 15 });
+                            if (isStrengthWorkout(watchWorkout) && watchWorkout.totalEnergyBurned) {
+                                realCalories = Math.round(watchWorkout.totalEnergyBurned);
+                                caloriesSource = 'health';
+                            }
+                        } catch (err) {
+                            console.error('[Health] No se pudo leer el entreno de fuerza del Watch:', err);
+                        }
+                    }
+
+                    const cardioCalories = resolveCardioCalories(activeWorkout?.cardio, userWeight);
+                    const totalCalories = realCalories + cardioCalories;
+
                     const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
                     const filteredExerciseLogs = {};
                     Object.entries(exerciseLogs).forEach(([id, log]) => {
@@ -289,23 +313,40 @@ const TrainingView = ({ workout, onFinish }) => {
                             startTime: workoutStartTime,
                             endTime,
                             durationMinutes,
-                            realCalories
+                            realCalories,
+                            caloriesSource,
+                            totalCalories
                         }
                     };
                     if (activeWorkout?.cardio) {
-                        finalLogs.cardio = activeWorkout.cardio;
+                        finalLogs.cardio = { ...activeWorkout.cardio, calories: cardioCalories };
                     }
+
+                    // Cierra el círculo con Health: el entreno completado aparece en
+                    // los anillos de Actividad. Best-effort, nunca bloquea terminar.
+                    if (isHealthAvailableOnThisPlatform()) {
+                        try {
+                            await writeWorkoutToHealth({
+                                startDate: new Date(workoutStartTime).toISOString(),
+                                endDate: new Date(endTime).toISOString(),
+                                calories: totalCalories,
+                            });
+                        } catch (err) {
+                            console.error('[Health] No se pudo escribir el entreno en Salud:', err);
+                        }
+                    }
+
                     onFinish(finalLogs);
                 }}
-                disabled={!allExercisesCompleted}
+                disabled={!allExercisesCompleted || finishing}
                 className={cn(
                     "w-full py-4 font-bold rounded-xl transition-all duration-300",
-                    allExercisesCompleted
+                    allExercisesCompleted && !finishing
                         ? "bg-primary text-black active:scale-95 shadow-lg shadow-primary/20"
                         : "bg-surface-highlight text-text-secondary opacity-50 grayscale cursor-not-allowed"
                 )}
             >
-                Terminar Entrenamiento
+                {finishing ? 'Guardando…' : 'Terminar Entrenamiento'}
             </button>
 
             {activeExercise && (

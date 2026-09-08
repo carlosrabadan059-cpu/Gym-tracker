@@ -116,3 +116,13 @@ export const calculateCardioCalories = (type, minutes, userWeightKg) => {
     const scaleFactor = weight / 75;
     return Math.round(calsPerMin * scaleFactor * minutes);
 };
+
+/**
+ * Kcal del cardio previo a la rutina: reales del Watch si el usuario aceptó
+ * el dato detectado por Health (v2 Fase 2), estimación MET si no.
+ */
+export const resolveCardioCalories = (cardio, userWeightKg) => {
+    if (!cardio) return 0;
+    if (cardio.source === 'health' && typeof cardio.calories === 'number') return cardio.calories;
+    return calculateCardioCalories(cardio.type, cardio.duration, userWeightKg);
+};

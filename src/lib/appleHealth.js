@@ -83,6 +83,32 @@ export async function getTodayMetrics() {
  * función sirve para detectar UN tipo de workout por sesión (válido para el
  * caso simple: solo cardio, o solo fuerza, sin cambiar en el Watch).
  */
+// El plugin no expone el flag "indoor" del workout (HKMetadataKeyIndoorWorkout
+// del plan), así que no se puede distinguir cinta/interior de exterior como
+// planeaba el mapeo original — se asume contexto de gimnasio (cinta/interior)
+// para los 4 tipos que ya maneja la app. Ver "Mapeo de tipos de cardio" en el
+// plan.
+const CARDIO_WORKOUT_TYPE_MAP = {
+    walking: 'Andar en cinta',
+    running: 'Correr en cinta',
+    elliptical: 'Elíptica',
+    cycling: 'Bicicleta',
+};
+
+// Cómo reporta HealthKit (via el plugin) un entreno de fuerza del Watch.
+// funcional y tradicional llegan como dos `workoutType` distintos.
+const STRENGTH_WORKOUT_TYPES = ['strengthTraining', 'functionalStrengthTraining'];
+
+/** Traduce el `workoutType` de un workout de Watch a un tipo de `CARDIO_TYPES` de la app, o null si no es uno de los 4 reconocidos. */
+export function mapWorkoutToCardioType(workout) {
+    return CARDIO_WORKOUT_TYPE_MAP[workout?.workoutType] ?? null;
+}
+
+/** Si el workout de Watch es un entreno de fuerza (funcional o tradicional). */
+export function isStrengthWorkout(workout) {
+    return !!workout && STRENGTH_WORKOUT_TYPES.includes(workout.workoutType);
+}
+
 export async function getMostRecentWorkout({ sinceMinutesAgo = 90 } = {}) {
     if (!isHealthAvailableOnThisPlatform()) return null;
 

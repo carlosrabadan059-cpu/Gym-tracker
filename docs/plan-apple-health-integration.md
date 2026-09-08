@@ -148,9 +148,38 @@ Pantalla "Conectar Apple Health" en Perfil → nueva entrada de menú.
   y la propia pantalla lo explica al confirmar.
 
 ### Fase 2 — La función que motivó el plan
-- Modal "Añadir Cardio Previo" (`src/views/DashboardView.jsx`, líneas ~351-440): al abrirlo, detectar el segmento aeróbico del workout de Watch más reciente y mostrar un banner tipo "Detectado: Correr en cinta · 22 min · 245 kcal" con opción de usar el dato o ignorarlo y seguir con el flujo manual actual. Sustituye la estimación de `calculateCardioCalories` (`src/lib/routineUtils.js`, línea ~109) por las kcal reales del Watch cuando el usuario acepta.
-- En `onFinish` (`src/GymTrackerApp.jsx`): sustituir la estimación MET del entreno de fuerza por las kcal reales del segmento de fuerza del Watch, cuando exista.
-- Escribir el entreno completado de Rutinex de vuelta a Apple Health, para que aparezca en los anillos de Actividad — cierra el círculo entre la app y el ecosistema nativo de Apple, y es la pieza que más aporta a la sensación de integración cuidada.
+
+**🟡 Hecho — versión simple (2026-09-08).** Cubre el caso de un tipo de
+workout por sesión de Watch (cardio grabado aparte de fuerza). No cubre
+sesión continua multideporte — sigue haciendo falta la extensión Swift de
+`workoutActivities` para eso (ver "Riesgo técnico principal").
+
+- Modal "Añadir Cardio Previo" (`src/views/DashboardView.jsx`): al abrirlo, un
+  `useEffect` busca el workout de Watch más reciente (últimos 90 min,
+  `getMostRecentWorkout`) y si mapea a uno de los 4 tipos reconocidos
+  (`mapWorkoutToCardioType`, `src/lib/appleHealth.js`) muestra un banner
+  "Detectado en tu Watch: Correr en cinta · 22 min · 245 kcal" — un toque lo
+  usa (`cardio.source = 'health'`), si no sigue el flujo manual de siempre.
+  `resolveCardioCalories` (`src/lib/routineUtils.js`) decide real vs.
+  estimado según ese `source`.
+- En el botón "Terminar Entrenamiento" (`src/views/OtherViews.jsx`): si hay un
+  workout de Watch tipo fuerza (`isStrengthWorkout`) que cubre la duración de
+  la sesión, sus kcal reales sustituyen `calculateRealCalories` — se guarda
+  `caloriesSource: 'health' | 'estimated'` en `workoutDuration` para saber
+  cuál se usó.
+- El entreno completado (kcal totales = fuerza + cardio, reales o estimadas)
+  se escribe de vuelta a Health con `writeWorkoutToHealth`. Best-effort en
+  los tres puntos — si Health falla, el flujo manual/estimado de siempre
+  sigue funcionando sin bloquear nada.
+- **Límite de plugin encontrado al implementar**: `queryWorkouts()` no expone
+  el flag `HKMetadataKeyIndoorWorkout` que asumía la tabla de mapeo original
+  — no se puede distinguir cinta/interior de exterior. Se asume contexto de
+  gimnasio (interior) para los 4 tipos, documentado en el código
+  (`CARDIO_WORKOUT_TYPE_MAP`, `appleHealth.js`).
+- **Pendiente de validar**: no se puede probar sin una sesión Watch real
+  (cardio y/o fuerza) durante un entreno — queda para la próxima sesión de
+  gimnasio real, vía el puente Capacitor→dev-server usado también para
+  validar Fase 0/1.
 
 ### Fase 3 — Superficie de datos
 - Dashboard: card de salud con pasos del día, kcal activas, última sincronización.
