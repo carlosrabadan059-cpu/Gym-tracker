@@ -382,12 +382,22 @@ Activity (Fase 4). **Fase 0 cerrada y verificada en dispositivo real
 (2026-09-08)**; el push actual ya se arregló (ver "Notas fuera del alcance
 de Health" — desplegado y confirmado con logs reales, no solo teoría).
 
-Antes de construir el resto de la Fase 2: hacer un entreno real con el
-Watch cambiando entre segmento aeróbico y de fuerza (el uso real descrito
-arriba) y consultar qué `workoutType` único devuelve HealthKit para esa
-sesión — ya se sabe que el plugin no distingue los dos segmentos (ver
-"Riesgo técnico principal"), falta ver con qué se queda mientras no exista
-la extensión Swift.
+**Validado contra un entreno real (2026-09-08).** Primer entreno con la app
+nativa: andar 8 min (41,8 kcal) + fuerza con máquinas 1h10 (298 kcal), total
+339 kcal. En la app Salud aparece como un único card "Entrenos" con los dos
+segmentos desglosados debajo — la firma visual de un `HKWorkout` multideporte
+con dos `HKWorkoutActivity` dentro, no dos sesiones sueltas — y lo confirma
+el gráfico de frecuencia cardiaca: un único bloque continuo de 11:00 a 12:12,
+sin corte entre segmentos, propio de una sola sesión grabada de principio a
+fin.
+
+Esto cierra la validación del riesgo técnico: confirmado por lectura de
+código (el plugin no lee `workoutActivities`) **y** confirmado con datos
+reales (HealthKit sí graba esta sesión como una sola, con dos segmentos
+dentro). Construir el desglose por segmento en Rutinex sigue necesitando la
+extensión Swift ya anotada arriba — sin ella, `queryWorkouts()` solo daría
+la sesión completa como un tipo único, perdiendo el desglose 41,8/298 kcal
+que si importa mostrar.
 
 Ver también [docs/plan-gym-app-features.md](plan-gym-app-features.md) —
 estudio de funciones de las apps de gimnasio mejor valoradas y propuesta de
