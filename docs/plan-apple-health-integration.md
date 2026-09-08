@@ -84,10 +84,10 @@ Mapeo directo, sin heurística de "asumir cinta" — el Watch ya distingue indoo
 
 ### Fase 0 — Cimiento
 
-**Estado (2026-09-07): parcialmente hecho.** Lo que es puro código de
-servidor/JS está construido y desplegado; lo que exige Xcode no puede
-avanzar más en este entorno — no tiene `Xcode.app` instalado (solo las
-Command Line Tools), así que `npx cap add ios` no se ha ejecutado.
+**Estado (2026-09-08): cerrada.** Verificada de extremo a extremo: compila
+sin firma en simulador, instalada y firmada con Team personal, y **abierta
+en el iPhone físico del usuario** — pantalla de login real, conectando a
+Supabase.
 
 Hecho:
 - `@capacitor/core`, `@capacitor/cli` y `@capgo/capacitor-health` instalados
@@ -107,14 +107,18 @@ Hecho:
 - **Riesgo técnico de `queryWorkouts()` confirmado por lectura de código**
   (ver sección de arriba) — ya no hace falta un dispositivo para saberlo.
 
-Bloqueado, necesita el Mac del usuario con GUI:
-- Instalar `Xcode.app` (App Store, gratis, ~15 GB) — sin esto no existe
-  `npx cap add ios`, ni capability HealthKit, ni compilar nada para iPhone.
-- Una vez instalado: `npx cap add ios`, añadir la capability HealthKit +
-  `NSHealthShareUsageDescription`/`NSHealthUpdateUsageDescription` en
-  Info.plist, y decidir el `appId` real.
-- Decisión pendiente y explícitamente no bloqueante: Apple Developer Program
-  ($99/año) para no reinstalar cada 7 días.
+- Capability HealthKit activada en Xcode (Signing & Capabilities), generó
+  `App.entitlements` y quedó enlazada en Debug/Release. Team de firma:
+  cuenta Apple personal gratuita del usuario — certificado caduca cada 7
+  días, hay que repetir el Run desde Xcode cada semana mientras no se pague
+  el Developer Program ($99/año, sigue como decisión pendiente y no
+  bloqueante).
+- `appId` sigue siendo el placeholder `com.rutinex.app` — el usuario no lo
+  ha cambiado, y no hace falta para seguir probando en local.
+
+No bloquea nada de la Fase 0, pero queda anotado por si se retoma en otra
+máquina: instalar `Xcode.app` completo (no solo las Command Line Tools) es
+obligatorio para `npx cap add ios` y para compilar/firmar.
 
 ### Fase 1 — Conexión visible
 - Pantalla "Conectar Apple Health" dentro de perfil/ajustes: solicitar permisos, mostrar estado de conexión, última sincronización, botón para desconectar.
@@ -374,10 +378,16 @@ rama para el detalle de cada variante.
 
 Documento de planificación + diseño de UI decidido para Dashboard (Variante
 B) y Estadísticas (Variante B + chips de C) + mapeo de eventos para la Live
-Activity (Fase 4). Nada de lo descrito aquí se ha implementado contra datos
-reales ni ejecutado en producción todavía — falta la Fase 0 (Capacitor,
-plugin, tabla Supabase, validar el riesgo técnico de `queryWorkouts()`) y,
-antes de la Fase 4, arreglar la fiabilidad del push actual.
+Activity (Fase 4). **Fase 0 cerrada y verificada en dispositivo real
+(2026-09-08)**; el push actual ya se arregló (ver "Notas fuera del alcance
+de Health" — desplegado y confirmado con logs reales, no solo teoría).
+
+Antes de construir el resto de la Fase 2: hacer un entreno real con el
+Watch cambiando entre segmento aeróbico y de fuerza (el uso real descrito
+arriba) y consultar qué `workoutType` único devuelve HealthKit para esa
+sesión — ya se sabe que el plugin no distingue los dos segmentos (ver
+"Riesgo técnico principal"), falta ver con qué se queda mientras no exista
+la extensión Swift.
 
 Ver también [docs/plan-gym-app-features.md](plan-gym-app-features.md) —
 estudio de funciones de las apps de gimnasio mejor valoradas y propuesta de
