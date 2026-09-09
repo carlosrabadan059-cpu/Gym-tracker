@@ -99,8 +99,66 @@ export async function getWeeklyHealthSummary() {
     return {
         avgSteps: Math.round(totalSteps / daysWithSteps),
         weeklyActiveCalories: Math.round(weeklyActiveCalories),
-        restingHr: restingHrToday.samples[0]?.value ?? null,
+        restingHr: restingHrToday.samples[0]?.value != null ? Math.round(restingHrToday.samples[0].value) : null,
     };
+}
+
+const WEEKDAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+
+/**
+ * Peso corporal (promedio semanal) de las últimas `weeks` semanas, para la
+ * card "Peso corporal" de Estadísticas (Fase 3, Progresión) — distinto del
+ * peso LEVANTADO en un ejercicio, que ya tiene su propia gráfica.
+ */
+export async function getBodyWeightHistory({ weeks = 12 } = {}) {
+    if (!isHealthAvailableOnThisPlatform()) return [];
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - weeks * 7);
+
+    const { samples } = await Health.queryAggregated({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        dataType: 'weight',
+        bucket: 'week',
+        aggregation: 'average',
+    });
+
+    return samples
+        .filter(s => s.value != null)
+        .map(s => ({
+            date: new Date(s.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+            peso: Math.round(s.value * 10) / 10,
+        }));
+}
+
+/**
+ * FC en reposo por día de los últimos `days` días, para la card "FC en
+ * reposo" de Estadísticas (Fase 3, Actividad).
+ */
+export async function getRestingHrHistory({ days = 7 } = {}) {
+    if (!isHealthAvailableOnThisPlatform()) return [];
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    const { samples } = await Health.queryAggregated({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        dataType: 'restingHeartRate',
+        bucket: 'day',
+        aggregation: 'average',
+    });
+
+    return samples
+        .filter(s => s.value != null)
+        .map(s => ({
+            date: WEEKDAY_LABELS[new Date(s.startDate).getDay()],
+            bpm: Math.round(s.value),
+        }));
 }
 
 /**

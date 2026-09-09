@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer, BarChart, Bar
+    Tooltip, ResponsiveContainer, BarChart, Bar, Cell
 } from 'recharts';
 import {
     Trophy, TrendingUp, Calendar, Search,
-    Flame, Zap, Target, ChevronRight, Star
+    Flame, Zap, Target, ChevronRight, Star, Activity, HeartPulse
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog } from '../lib/utils';
+import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog, loadRecentCaloriesComparison } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { routines as staticRoutines } from '../data/routines';
+import {
+    isHealthAvailableOnThisPlatform, getWeeklyHealthSummary, getBodyWeightHistory, getRestingHrHistory,
+} from '../lib/appleHealth';
 
 const STATIC_ID_TO_NAME = {};
 staticRoutines.forEach(r => r.exercises.forEach(ex => {
@@ -125,6 +128,23 @@ function CustomTooltip({ active, payload, label }) {
     );
 }
 
+// Tooltip para las gráficas de Health (Fase 3): a diferencia de
+// CustomTooltip, muestra el nombre de cada serie — hace falta cuando hay
+// más de una línea/barra en la misma gráfica (kcal reales vs. estimadas).
+function HealthTooltip({ active, payload, label, unit = '' }) {
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="bg-surface border border-surface-highlight rounded-xl px-3 py-2 shadow-xl text-sm">
+            <p className="text-text-secondary font-medium mb-1">{label}</p>
+            {payload.map((p) => (
+                <p key={p.dataKey} className="font-bold" style={{ color: p.color }}>
+                    {p.name}: {p.value}{unit}
+                </p>
+            ))}
+        </div>
+    );
+}
+
 // ─────────────────────────────────────────────────────────
 // Funciones puras de cálculo (fuera del componente → no se
 // re-crean en cada render)
@@ -235,6 +255,13 @@ export function StatisticsView() {
     const [heatmapData, setHeatmapData] = useState([]);
     const [weekdayData, setWeekdayData] = useState([]);
 
+    // ── v2 Fase 3 — Apple Health ──
+    const [weeklyHealth, setWeeklyHealth] = useState(null);
+    const [bodyWeightData, setBodyWeightData] = useState([]);
+    const [showBodyWeight, setShowBodyWeight] = useState(false);
+    const [caloriesComparison, setCaloriesComparison] = useState([]);
+    const [restingHrData, setRestingHrData] = useState([]);
+
     // ─── Carga inicial de datos ────────────────────────────
     useEffect(() => {
         if (!user?.id) return;
@@ -289,6 +316,23 @@ export function StatisticsView() {
                 setLoading(false);
             }
         })();
+    }, [user]);
+
+    // ─── v2 Fase 3 — Apple Health + comparativa de kcal ───
+    // Kcal reales vs. estimadas viene de workout_logs (Supabase), funciona
+    // igual en la PWA. El resto (pasos, peso corporal, FC en reposo) solo en
+    // la app nativa — no-op en la PWA, las cards simplemente no aparecen.
+    useEffect(() => {
+        if (!user?.id) return;
+        loadRecentCaloriesComparison(user.id).then(setCaloriesComparison);
+
+        if (!isHealthAvailableOnThisPlatform()) return;
+        getWeeklyHealthSummary().then(setWeeklyHealth).catch(err =>
+            console.error('[Health] No se pudo cargar el resumen semanal:', err));
+        getBodyWeightHistory().then(setBodyWeightData).catch(err =>
+            console.error('[Health] No se pudo cargar el histórico de peso:', err));
+        getRestingHrHistory().then(setRestingHrData).catch(err =>
+            console.error('[Health] No se pudo cargar la FC en reposo:', err));
     }, [user]);
 
     // ─── Cerrar dropdown al hacer clic fuera ──────────────
@@ -421,6 +465,29 @@ export function StatisticsView() {
                             <p className="text-[11px] text-text-secondary uppercase tracking-wider mt-0.5">kg totales</p>
                         </div>
                     </div>
+
+                    {/* Salud (7 días) — Apple Health, Fase 3 */}
+                    {weeklyHealth && (
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                            <h3 className="font-semibold text-text-primary mb-3 flex items-center gap-2">
+                                <Activity size={16} className="text-primary" /> Salud (7 días)
+                            </h3>
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                                <div>
+                                    <p className="text-lg font-bold text-text-primary">{weeklyHealth.avgSteps.toLocaleString('es-ES')}</p>
+                                    <p className="text-[10px] text-text-secondary">pasos/día</p>
+                                </div>
+                                <div>
+                                    <p className="text-lg font-bold text-text-primary">{weeklyHealth.weeklyActiveCalories}</p>
+                                    <p className="text-[10px] text-text-secondary">kcal activas</p>
+                                </div>
+                                <div>
+                                    <p className="text-lg font-bold text-text-primary">{weeklyHealth.restingHr ?? '—'}</p>
+                                    <p className="text-[10px] text-text-secondary">FC reposo (bpm)</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Racha visual */}
                     <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
@@ -560,6 +627,66 @@ export function StatisticsView() {
                         )}
                     </div>
 
+                    {/* Peso corporal — Apple Health, Fase 3. Distinto del peso
+                        LEVANTADO de la gráfica de abajo (kg de barra). */}
+                    {bodyWeightData.length > 0 && (
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                                    <Activity size={16} className="text-primary" /> Peso corporal
+                                </h3>
+                                <button
+                                    onClick={() => setShowBodyWeight(s => !s)}
+                                    className="text-xs text-primary font-semibold"
+                                >
+                                    {showBodyWeight ? 'Ocultar' : 'Mostrar'}
+                                </button>
+                            </div>
+                            {showBodyWeight && (
+                                <div className="h-40 animate-fadeIn">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={bodyWeightData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
+                                            <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 10 }} />
+                                            <YAxis stroke="#6b7280" tick={{ fontSize: 10 }} unit=" kg" domain={['auto', 'auto']} />
+                                            <Tooltip content={<HealthTooltip unit=" kg" />} />
+                                            <Line type="monotone" dataKey="peso" name="Peso corporal" stroke="#60a5fa" strokeWidth={2.5} dot={{ r: 4, fill: '#60a5fa', strokeWidth: 0 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Kcal reales vs. estimadas — de workout_logs, funciona
+                        también en la PWA (no depende de Health). */}
+                    {caloriesComparison.length > 0 && (
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                            <h3 className="font-semibold text-text-primary mb-1 flex items-center gap-2">
+                                <Flame size={16} className="text-orange-400" /> Kcal de fuerza: reales vs. estimadas
+                            </h3>
+                            <div className="flex items-center gap-4 text-[10px] text-text-secondary mb-3">
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary inline-block" /> Reales (Watch)</span>
+                                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-surface-highlight border border-text-secondary inline-block" /> Estimadas (MET)</span>
+                            </div>
+                            <div className="h-40">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={caloriesComparison} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                                        <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 10 }} />
+                                        <YAxis stroke="#6b7280" tick={{ fontSize: 10 }} />
+                                        <Tooltip content={<HealthTooltip unit=" kcal" />} />
+                                        <Bar dataKey="calories" name="Kcal" radius={[4, 4, 0, 0]}>
+                                            {caloriesComparison.map((entry, i) => (
+                                                <Cell key={i} fill={entry.source === 'health' ? 'var(--primary)' : '#4b5563'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+
                     {!selectedExercise && (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <TrendingUp size={48} className="text-surface-highlight mb-4" />
@@ -674,6 +801,26 @@ export function StatisticsView() {
                             <ActivityHeatmap heatmapData={heatmapData} />
                         )}
                     </div>
+
+                    {/* FC en reposo — Apple Health, Fase 3 */}
+                    {restingHrData.length > 0 && (
+                        <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                            <h3 className="font-semibold text-text-primary mb-3 flex items-center gap-2">
+                                <HeartPulse size={16} className="text-red-400" /> FC en reposo
+                            </h3>
+                            <div className="h-32">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={restingHrData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+                                        <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 10 }} />
+                                        <YAxis stroke="#6b7280" tick={{ fontSize: 10 }} unit=" bpm" domain={['auto', 'auto']} allowDecimals={false} width={45} />
+                                        <Tooltip content={<HealthTooltip unit=" bpm" />} />
+                                        <Line type="monotone" dataKey="bpm" name="FC reposo" stroke="#ef4444" strokeWidth={2.5} dot={{ r: 3, fill: '#ef4444' }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Frecuencia por día de la semana */}
                     <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">

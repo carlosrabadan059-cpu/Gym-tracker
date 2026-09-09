@@ -236,6 +236,45 @@ export async function loadLastRoutineSummary(userId, routineId) {
 }
 
 /**
+ * Kcal de fuerza de las últimas `limit` sesiones con dato de duración
+ * (solo las hechas con la app tras v2 Fase 2), para la card "Kcal reales
+ * vs. estimadas" de Estadísticas. Viene de `workout_logs`, no de Health —
+ * funciona igual en la PWA y en la app nativa.
+ *
+ * @param {string} userId
+ * @param {number} limit
+ * @returns {Array<{ date: string, calories: number, source: 'health' | 'estimated' }>} Cronológico (antiguo → reciente)
+ */
+export async function loadRecentCaloriesComparison(userId, limit = 8) {
+    if (!userId) return [];
+
+    try {
+        const { data, error } = await supabase
+            .from('workout_logs')
+            .select('logs, date')
+            .eq('user_id', userId)
+            .order('date', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        const withDuration = (data || [])
+            .filter(row => row.logs?.workoutDuration?.realCalories != null)
+            .slice(0, limit)
+            .reverse();
+
+        return withDuration.map(row => ({
+            date: new Date(row.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+            calories: Math.round(row.logs.workoutDuration.realCalories),
+            source: row.logs.workoutDuration.caloriesSource === 'health' ? 'health' : 'estimated',
+        }));
+    } catch (e) {
+        console.error("Error loading calories comparison from Supabase:", e);
+        return [];
+    }
+}
+
+/**
  * Fallback global: busca el último log de un ejercicio por NOMBRE en TODAS las rutinas.
  * Se usa cuando el usuario cambia de rutina y el ejercicio tiene un ID nuevo.
  *
