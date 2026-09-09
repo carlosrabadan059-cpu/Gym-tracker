@@ -1,12 +1,41 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Save, Loader2, Dumbbell, Flame, Activity, Heart, Shield, Scale, Lock, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Save, Loader2, Dumbbell, Flame, Activity, Heart, Shield, Scale, Lock, Eye, EyeOff, Watch, RefreshCw } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { supabase } from '../../lib/supabase';
+import { isHealthAvailableOnThisPlatform, getLatestBodyWeight } from '../../lib/appleHealth';
 
 export function EditProfileView({ user, onBack, onSave }) {
     const [formData, setFormData] = useState(user);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
+
+    // v2 Fase 3 — peso corporal recogido de Health en vez de pedirlo siempre
+    // a mano. Solo autorrellena si el campo está vacío; sigue editable, y
+    // "Sincronizar" lo vuelve a pedir cuando se quiera.
+    const [weightFromHealth, setWeightFromHealth] = useState(false);
+    const [syncingWeight, setSyncingWeight] = useState(false);
+
+    const syncWeightFromHealth = async () => {
+        setSyncingWeight(true);
+        try {
+            const weight = await getLatestBodyWeight();
+            if (weight != null) {
+                setFormData(f => ({ ...f, stats: { ...f.stats, weight } }));
+                setWeightFromHealth(true);
+            }
+        } catch (err) {
+            console.error('[Health] No se pudo leer el peso corporal:', err);
+        } finally {
+            setSyncingWeight(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isHealthAvailableOnThisPlatform() && !user.stats.weight) {
+            syncWeightFromHealth();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar, con el peso inicial
+    }, []);
 
     const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
     const [showPassword, setShowPassword] = useState(false);
@@ -40,6 +69,7 @@ export function EditProfileView({ user, onBack, onSave }) {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        if (name === 'weight') setWeightFromHealth(false);
         if (name in formData.stats) {
             setFormData({
                 ...formData,
@@ -183,7 +213,19 @@ export function EditProfileView({ user, onBack, onSave }) {
             <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider px-2">Estadísticas Físicas</h3>
             <div className="grid grid-cols-3 gap-3">
                 <Card className="p-4 space-y-2">
-                    <label className="text-xs text-text-secondary">Peso</label>
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs text-text-secondary">Peso</label>
+                        {isHealthAvailableOnThisPlatform() && (
+                            <button
+                                onClick={syncWeightFromHealth}
+                                disabled={syncingWeight}
+                                className="text-text-secondary disabled:opacity-40"
+                                title="Sincronizar desde Apple Health"
+                            >
+                                <RefreshCw size={12} className={syncingWeight ? 'animate-spin' : ''} />
+                            </button>
+                        )}
+                    </div>
                     <input
                         name="weight"
                         type="number"
@@ -192,6 +234,11 @@ export function EditProfileView({ user, onBack, onSave }) {
                         placeholder="0"
                         className="w-full bg-transparent text-lg font-bold text-black dark:text-white outline-none border-b border-surface-highlight focus:border-primary"
                     />
+                    {weightFromHealth && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wide">
+                            <Watch size={10} /> Health
+                        </span>
+                    )}
                 </Card>
                 <Card className="p-4 space-y-2">
                     <label className="text-xs text-text-secondary">Altura</label>

@@ -106,6 +106,31 @@ export async function getWeeklyHealthSummary() {
 const WEEKDAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
 /**
+ * Último peso corporal registrado en Health (últimos 30 días), para
+ * autorrellenar el campo "Peso" de Editar Perfil (Fase 3) en vez de pedirlo
+ * siempre a mano. Sigue siendo editable — esto solo propone un valor.
+ */
+export async function getLatestBodyWeight() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+
+    const { samples } = await Health.queryAggregated({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        dataType: 'weight',
+        bucket: 'day',
+        aggregation: 'average',
+    });
+
+    if (samples.length === 0) return null;
+    const latest = samples.slice().sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0];
+    return latest.value != null ? Math.round(latest.value * 10) / 10 : null;
+}
+
+/**
  * Peso corporal (promedio semanal) de las últimas `weeks` semanas, para la
  * card "Peso corporal" de Estadísticas (Fase 3, Progresión) — distinto del
  * peso LEVANTADO en un ejercicio, que ya tiene su propia gráfica.

@@ -199,9 +199,34 @@ sesión continua multideporte — sigue haciendo falta la extensión Swift de
   cardio en el modal previo al entreno.
 
 ### Fase 3 — Superficie de datos
-- Dashboard: card de salud con pasos del día, kcal activas, última sincronización.
-- Estadísticas (`src/views/StatisticsView.jsx`): gráfica de peso corporal en el tiempo, tendencia de frecuencia cardiaca en reposo, comparativa histórica de kcal reales vs estimadas.
-- Peso corporal recogido automáticamente desde Health en vez de pedirlo por input manual.
+
+**✅ Hecho (2026-09-09).** UI decidida en el prototipo `prototype/statistics-health-ui`
+(Variante B — secciones dedicadas, veredicto en su `NOTES.md`), llevada a
+código real conectado a HealthKit/`workout_logs` (sin mock data):
+
+- **Dashboard** (`src/views/DashboardView.jsx`): card "Salud de hoy" — pasos
+  y kcal activas de hoy (`getTodayMetrics`, ya existía desde Fase 1) + hora
+  de última sincronización.
+- **Estadísticas** (`src/views/StatisticsView.jsx`), las 3 piezas de la
+  Variante B:
+  - Resumen: card "Salud (7 días)" — pasos/día promedio, kcal activas
+    semana, FC en reposo (`getWeeklyHealthSummary`, appleHealth.js).
+  - Progresión: card "Peso corporal" con mostrar/ocultar, distinta de la
+    gráfica de peso LEVANTADO que ya existía (`getBodyWeightHistory`); card
+    "Kcal de fuerza: reales vs. estimadas" — **no viene de Health**, viene de
+    `workout_logs` (`loadRecentCaloriesComparison`, utils.js), así que
+    funciona igual en la PWA. Es una barra por sesión coloreada por
+    `caloriesSource` (no dos barras real/estimado por sesión como en el mock
+    del prototipo — ese dato doble no existe: al sustituir por kcal reales
+    del Watch se pierde la estimación MET de esa misma sesión, no se guardan
+    las dos).
+  - Actividad: card "FC en reposo" bajo el heatmap (`getRestingHrHistory`).
+- **Peso corporal automático**: `EditProfileView.jsx` autorrellena el campo
+  "Peso" desde Health si está vacío (`getLatestBodyWeight`), con botón de
+  resincronizar y badge "Health" — sigue editable a mano, esto solo propone
+  un valor en vez de pedirlo siempre en blanco.
+- Todo lo anclado a Health (todo excepto la comparativa de kcal) es no-op en
+  la PWA — las cards simplemente no aparecen, sin romper nada.
 
 ### Fase 4 — Live Activity durante el entreno
 
