@@ -14,17 +14,26 @@ export function EditProfileView({ user, onBack, onSave }) {
     // "Sincronizar" lo vuelve a pedir cuando se quiera.
     const [weightFromHealth, setWeightFromHealth] = useState(false);
     const [syncingWeight, setSyncingWeight] = useState(false);
+    const [weightSyncMessage, setWeightSyncMessage] = useState('');
 
-    const syncWeightFromHealth = async () => {
+    // `manual`: si viene del botón, avisa cuando no hay dato en Health en
+    // vez de quedarse en silencio (parecería que el botón no hizo nada). El
+    // intento automático al montar sí se queda callado — no tiene sentido
+    // avisar de "sin datos" nada más abrir la pantalla.
+    const syncWeightFromHealth = async (manual = false) => {
         setSyncingWeight(true);
+        setWeightSyncMessage('');
         try {
             const weight = await getLatestBodyWeight();
             if (weight != null) {
                 setFormData(f => ({ ...f, stats: { ...f.stats, weight } }));
                 setWeightFromHealth(true);
+            } else if (manual) {
+                setWeightSyncMessage('Sin peso registrado en Salud');
             }
         } catch (err) {
             console.error('[Health] No se pudo leer el peso corporal:', err);
+            if (manual) setWeightSyncMessage('No se pudo leer Salud ahora mismo');
         } finally {
             setSyncingWeight(false);
         }
@@ -217,7 +226,7 @@ export function EditProfileView({ user, onBack, onSave }) {
                         <label className="text-xs text-text-secondary">Peso</label>
                         {isHealthAvailableOnThisPlatform() && (
                             <button
-                                onClick={syncWeightFromHealth}
+                                onClick={() => syncWeightFromHealth(true)}
                                 disabled={syncingWeight}
                                 className="text-text-secondary disabled:opacity-40"
                                 title="Sincronizar desde Apple Health"
@@ -238,6 +247,9 @@ export function EditProfileView({ user, onBack, onSave }) {
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wide">
                             <Watch size={10} /> Health
                         </span>
+                    )}
+                    {weightSyncMessage && (
+                        <p className="text-[10px] text-text-secondary leading-tight">{weightSyncMessage}</p>
                     )}
                 </Card>
                 <Card className="p-4 space-y-2">
