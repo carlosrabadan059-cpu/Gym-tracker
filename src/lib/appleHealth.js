@@ -64,6 +64,129 @@ export async function getTodayMetrics() {
 }
 
 /**
+ * Pasos promedio/día y kcal activas de los últimos 7 días, y FC en reposo de
+ * hoy — para la card "Salud (7 días)" del Dashboard (Fase 3).
+ * `bucket: 'day'` le pide al plugin un total por día en vez de uno para todo
+ * el rango, así se puede promediar del lado del cliente.
+ */
+export async function getWeeklyHealthSummary() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
+    const weekRange = { startDate: startDate.toISOString(), endDate: endDate.toISOString(), bucket: 'day' };
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [stepsByDay, caloriesByDay, restingHrToday] = await Promise.all([
+        Health.queryAggregated({ ...weekRange, dataType: 'steps', aggregation: 'sum' }),
+        Health.queryAggregated({ ...weekRange, dataType: 'calories', aggregation: 'sum' }),
+        Health.queryAggregated({
+            startDate: todayStart.toISOString(),
+            endDate: endDate.toISOString(),
+            dataType: 'restingHeartRate',
+            aggregation: 'average',
+        }),
+    ]);
+
+    const daysWithSteps = stepsByDay.samples.length || 1;
+    const totalSteps = stepsByDay.samples.reduce((sum, s) => sum + (s.value ?? 0), 0);
+    const weeklyActiveCalories = caloriesByDay.samples.reduce((sum, s) => sum + (s.value ?? 0), 0);
+
+    return {
+        avgSteps: Math.round(totalSteps / daysWithSteps),
+        weeklyActiveCalories: Math.round(weeklyActiveCalories),
+        restingHr: restingHrToday.samples[0]?.value != null ? Math.round(restingHrToday.samples[0].value) : null,
+    };
+}
+
+const WEEKDAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+
+/**
+ * Último peso corporal registrado en Health (últimos 30 días), para
+ * autorrellenar el campo "Peso" de Editar Perfil (Fase 3) en vez de pedirlo
+ * siempre a mano. Sigue siendo editable — esto solo propone un valor.
+ */
+export async function getLatestBodyWeight() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+
+    const { samples } = await Health.queryAggregated({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        dataType: 'weight',
+        bucket: 'day',
+        aggregation: 'average',
+    });
+
+    if (samples.length === 0) return null;
+    const latest = samples.slice().sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0];
+    return latest.value != null ? Math.round(latest.value * 10) / 10 : null;
+}
+
+/**
+ * Peso corporal (promedio semanal) de las últimas `weeks` semanas, para la
+ * card "Peso corporal" de Estadísticas (Fase 3, Progresión) — distinto del
+ * peso LEVANTADO en un ejercicio, que ya tiene su propia gráfica.
+ */
+export async function getBodyWeightHistory({ weeks = 12 } = {}) {
+    if (!isHealthAvailableOnThisPlatform()) return [];
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - weeks * 7);
+
+    const { samples } = await Health.queryAggregated({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        dataType: 'weight',
+        bucket: 'week',
+        aggregation: 'average',
+    });
+
+    return samples
+        .filter(s => s.value != null)
+        .map(s => ({
+            date: new Date(s.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+            peso: Math.round(s.value * 10) / 10,
+        }));
+}
+
+/**
+ * FC en reposo por día de los últimos `days` días, para la card "FC en
+ * reposo" de Estadísticas (Fase 3, Actividad).
+ */
+export async function getRestingHrHistory({ days = 7 } = {}) {
+    if (!isHealthAvailableOnThisPlatform()) return [];
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    const { samples } = await Health.queryAggregated({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        dataType: 'restingHeartRate',
+        bucket: 'day',
+        aggregation: 'average',
+    });
+
+    return samples
+        .filter(s => s.value != null)
+        .map(s => ({
+            date: WEEKDAY_LABELS[new Date(s.startDate).getDay()],
+            bpm: Math.round(s.value),
+        }));
+}
+
+/**
  * El workout de Watch más reciente que solape con el rango dado. Pensado
  * para el modal "Añadir Cardio Previo" (Fase 2): al abrirlo se pide el rango
  * de la última hora y, si hay un workout, se ofrece usar sus kcal reales en
