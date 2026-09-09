@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
-import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
 
@@ -98,18 +98,34 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         const fetchHistory = async () => {
             if (!client?.user_id) { setHistoryLoading(false); return; }
             try {
+                // Dos consultas, no un embed `routines(name)`: PostgREST no
+                // tiene una FK entre workout_logs.routine_id y routines.id
+                // (routine_id también puede ser un id de rutina estática
+                // tipo "day1", que ni siquiera existe como fila en
+                // `routines`), así que el embed automático siempre fallaba
+                // con PGRST200. Mismo patrón que trainer_clients/profiles.
                 const { data: logs, error } = await supabase
                     .from('workout_logs')
-                    .select('id, routine_id, date, logs, routines(name)')
+                    .select('id, routine_id, date, logs')
                     .eq('user_id', client.user_id)
                     .order('date', { ascending: false })
                     .limit(20);
 
                 if (error) throw error;
 
+                const routineIds = [...new Set((logs || []).map(l => l.routine_id).filter(Boolean))];
+                let nameById = {};
+                if (routineIds.length > 0) {
+                    const { data: routinesData } = await supabase
+                        .from('routines')
+                        .select('id, name')
+                        .in('id', routineIds);
+                    nameById = Object.fromEntries((routinesData || []).map(r => [r.id, r.name]));
+                }
+
                 setWorkoutHistory((logs || []).map(log => ({
                     ...log,
-                    routineName: log.routines?.name || log.routine_id,
+                    routineName: nameById[log.routine_id] || log.routine_id,
                     exerciseCount: log.logs ? Object.keys(log.logs).length : 0,
                 })));
             } catch (e) {
@@ -139,6 +155,33 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
             if (editingExercise?.id === exerciseId) setEditingExercise(null);
         } catch (error) {
             console.error('Error deleting exercise:', error);
+        }
+    };
+
+    // Fase 0 del plan de entrenador: no había forma de reordenar ejercicios
+    // ya asignados salvo borrar y volver a añadir. Mueve un puesto arriba/abajo
+    // y renumera 1..n para cerrar los huecos que deja borrar ejercicios.
+    const handleReorderExercise = async (assignmentId, exerciseId, direction) => {
+        const assignment = assignedRoutines.find(a => a.id === assignmentId);
+        if (!assignment) return;
+        const exercises = [...assignment.routine.exercises];
+        const index = exercises.findIndex(ex => ex.id === exerciseId);
+        const targetIndex = index + direction;
+        if (index === -1 || targetIndex < 0 || targetIndex >= exercises.length) return;
+
+        [exercises[index], exercises[targetIndex]] = [exercises[targetIndex], exercises[index]];
+        exercises.forEach((ex, i) => { ex.ui_order = i + 1; });
+
+        setAssignedRoutines(prev => prev.map(a =>
+            a.id === assignmentId ? { ...a, routine: { ...a.routine, exercises } } : a
+        ));
+
+        try {
+            await Promise.all(exercises.map(ex =>
+                supabase.from('exercises').update({ ui_order: ex.ui_order }).eq('id', ex.id)
+            ));
+        } catch (error) {
+            console.error('Error reordering exercises:', error);
         }
     };
 
@@ -410,7 +453,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                     {routine.exercises.length === 0 ? (
                                                         <p className="text-xs text-text-secondary">Sin ejercicios.</p>
                                                     ) : (
-                                                        routine.exercises.map((ex) => {
+                                                        routine.exercises.map((ex, idx) => {
                                                             const isEditing = editingExercise?.id === ex.id;
                                                             return (
                                                                 <div
@@ -418,6 +461,22 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                     onClick={(e) => e.stopPropagation()}
                                                                     className="flex items-center gap-3 bg-background/40 rounded-xl px-2 py-2"
                                                                 >
+                                                                    <div className="flex flex-col flex-shrink-0 -my-1">
+                                                                        <button
+                                                                            onClick={() => handleReorderExercise(assignment.id, ex.id, -1)}
+                                                                            disabled={idx === 0}
+                                                                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                                                                        >
+                                                                            <ChevronUp size={13} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleReorderExercise(assignment.id, ex.id, 1)}
+                                                                            disabled={idx === routine.exercises.length - 1}
+                                                                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                                                                        >
+                                                                            <ChevronDown size={13} />
+                                                                        </button>
+                                                                    </div>
                                                                     <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-surface-highlight flex items-center justify-center">
                                                                         {ex.image_url ? (
                                                                             <img src={ex.image_url} alt={ex.name} className="h-full w-full object-contain" loading="lazy" />

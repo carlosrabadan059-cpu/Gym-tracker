@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil } from 'lucide-react';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -439,6 +439,20 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
         );
     };
 
+    // El orden de esta lista es el ui_order con el que se guarda la rutina
+    // (handleSave usa el índice del array) — sin esto, el único orden posible
+    // era el orden en que se tocaron los ejercicios en el catálogo.
+    const moveSelected = (catalogId, direction) => {
+        setSelectedExercises(prev => {
+            const index = prev.findIndex(s => s.catalog_id === catalogId);
+            const targetIndex = index + direction;
+            if (index === -1 || targetIndex < 0 || targetIndex >= prev.length) return prev;
+            const next = [...prev];
+            [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+            return next;
+        });
+    };
+
     const toggleGroup = (group) => {
         setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
     };
@@ -673,8 +687,24 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
 
                     {showSelected && (
                         <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-                            {selectedExercises.map((ex) => (
+                            {selectedExercises.map((ex, idx) => (
                                 <div key={ex.catalog_id} className="flex items-center gap-3 bg-background rounded-xl px-3 py-2">
+                                    <div className="flex flex-col flex-shrink-0 -my-1">
+                                        <button
+                                            onClick={() => moveSelected(ex.catalog_id, -1)}
+                                            disabled={idx === 0}
+                                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                                        >
+                                            <ChevronUp size={13} />
+                                        </button>
+                                        <button
+                                            onClick={() => moveSelected(ex.catalog_id, 1)}
+                                            disabled={idx === selectedExercises.length - 1}
+                                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                                        >
+                                            <ChevronDown size={13} />
+                                        </button>
+                                    </div>
                                     {ex.image_url ? (
                                         <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
                                     ) : (

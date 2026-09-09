@@ -196,6 +196,46 @@ export async function loadLastExerciseLog(userId, routineId, exerciseId) {
 }
 
 /**
+ * Carga la duración y kcal de la última vez que se completó una rutina,
+ * para mostrarla como referencia hasta que se vuelva a hacer (tarjeta de
+ * "última sesión"). Incluye la de hoy si es la única — se actualiza sola
+ * en cuanto se registra una nueva.
+ *
+ * @param {string} userId
+ * @param {string} routineId
+ * @returns {{ durationMinutes: number, totalCalories: number, caloriesSource: string, date: string } | null}
+ */
+export async function loadLastRoutineSummary(userId, routineId) {
+    if (!userId || !routineId) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('workout_logs')
+            .select('logs, date')
+            .eq('user_id', userId)
+            .eq('routine_id', routineId)
+            .order('date', { ascending: false })
+            .limit(1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) return null;
+
+        const summary = data[0].logs?.workoutDuration;
+        if (!summary) return null;
+
+        return {
+            durationMinutes: summary.durationMinutes,
+            totalCalories: summary.totalCalories,
+            caloriesSource: summary.caloriesSource,
+            date: data[0].date,
+        };
+    } catch (e) {
+        console.error("Error loading last routine summary from Supabase:", e);
+        return null;
+    }
+}
+
+/**
  * Fallback global: busca el último log de un ejercicio por NOMBRE en TODAS las rutinas.
  * Se usa cuando el usuario cambia de rutina y el ejercicio tiene un ID nuevo.
  *

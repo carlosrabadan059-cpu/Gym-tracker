@@ -3,22 +3,26 @@ import { Play, TrendingUp, ChevronRight, Check, ClockArrowUp } from 'lucide-reac
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
-import { enrichExercisesWithCatalog } from '../lib/utils';
+import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType } from '../lib/appleHealth';
 
 const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const { profile, user } = useAuth();
     const [expandedRoutine, setExpandedRoutine] = useState(null);
     const [routines, setRoutines] = useState([]);
+    const [lastSummaries, setLastSummaries] = useState({});
     const [loading, setLoading] = useState(true);
     const [showRetroModal, setShowRetroModal] = useState(false);
 
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
+    const [detectedCardio, setDetectedCardio] = useState(null);
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const touchStartY = useRef(0);
@@ -27,6 +31,31 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const isRefreshingRef = useRef(false);
 
     const userWeight = profile?.weight || null;
+
+    // v2 Fase 2 — al abrir el selector, mira si hay un workout de cardio
+    // reciente en el Watch (última hora y media) para ofrecer kcal reales en
+    // vez de la estimación MET manual. Best-effort: si Health falla o no hay
+    // nada, el flujo manual de siempre sigue intacto.
+    useEffect(() => {
+        if (!showCardioSelector || !isHealthAvailableOnThisPlatform()) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const workout = await getMostRecentWorkout({ sinceMinutesAgo: 90 });
+                const type = mapWorkoutToCardioType(workout);
+                if (!cancelled && type && workout.totalEnergyBurned) {
+                    setDetectedCardio({
+                        type,
+                        duration: Math.max(1, Math.round(workout.duration / 60)),
+                        calories: Math.round(workout.totalEnergyBurned),
+                    });
+                }
+            } catch (err) {
+                console.error('[Health] No se pudo detectar cardio reciente:', err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [showCardioSelector]);
 
     const fetchRoutines = useCallback(async () => {
         if (!user || !profile) return;
@@ -99,6 +128,17 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             });
 
             setRoutines(mergedRoutines);
+
+            // Tarjeta de "última sesión": duración/kcal de la última vez que se
+            // hizo cada rutina, hasta que se vuelva a completar (entonces se
+            // sustituye sola, misma query siempre trae la más reciente).
+            Promise.all(
+                mergedRoutines.map(routine =>
+                    loadLastRoutineSummary(user.id, routine.id).then(summary => [routine.id, summary])
+                )
+            ).then(entries => {
+                setLastSummaries(Object.fromEntries(entries.filter(([, summary]) => summary)));
+            });
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -273,6 +313,12 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                     </div>
                                 </div>
 
+                                {lastSummaries[routine.id] && (
+                                    <div className="mt-3">
+                                        <LastSessionCard summary={lastSummaries[routine.id]} />
+                                    </div>
+                                )}
+
                                 <div className="space-y-3">
                                     {visibleExercises.map((ex) => (
                                         <div key={ex.id} className="flex items-center gap-3 animate-fadeIn">
@@ -358,6 +404,28 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                             ¿Vas a calentar antes de empezar?
                         </p>
 
+                        {detectedCardio && (
+                            <button
+                                onClick={() => setPendingRoutine({
+                                    ...pendingRoutine,
+                                    cardio: { ...detectedCardio, source: 'health' },
+                                })}
+                                className={cn(
+                                    "w-full text-left mb-4 p-3 rounded-xl border-2 transition-all animate-fadeIn",
+                                    pendingRoutine.cardio?.source === 'health'
+                                        ? "border-primary bg-primary/10"
+                                        : "border-surface-highlight bg-background hover:border-primary/50"
+                                )}
+                            >
+                                <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-0.5">
+                                    Detectado en tu Watch
+                                </p>
+                                <p className="text-sm text-text-primary font-medium">
+                                    {detectedCardio.type} · {detectedCardio.duration} min · {detectedCardio.calories} kcal
+                                </p>
+                            </button>
+                        )}
+
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             {[
                                 { name: 'Andar en cinta', img: '/exercises/cardio-andar.png' },
@@ -403,7 +471,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                             key={mins}
                                             variant="outline"
                                             className="flex-1 border-surface-highlight hover:border-primary transition-colors bg-background"
-                                            onClick={() => setPendingRoutine({ ...pendingRoutine, cardio: { ...pendingRoutine.cardio, duration: mins } })}
+                                            onClick={() => setPendingRoutine({ ...pendingRoutine, cardio: { type: pendingRoutine.cardio.type, duration: mins } })}
                                             style={{
                                                 borderColor: pendingRoutine.cardio?.duration === mins ? 'var(--primary)' : '',
                                                 backgroundColor: pendingRoutine.cardio?.duration === mins ? 'rgba(var(--primary-rgb), 0.1)' : ''
@@ -425,6 +493,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                     onStartDaily(pendingRoutine);
                                     setShowCardioSelector(false);
                                     setPendingRoutine(null);
+                                    setDetectedCardio(null);
                                 }}
                             >
                                 {pendingRoutine.cardio?.duration ? 'Guardar e Iniciar' : 'Empezar sin Cardio'}
@@ -435,6 +504,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                 onClick={() => {
                                     setShowCardioSelector(false);
                                     setPendingRoutine(null);
+                                    setDetectedCardio(null);
                                 }}
                             >
                                 Cancelar

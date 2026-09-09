@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../components/ui/Card';
-import { Check } from 'lucide-react';
-import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET } from '../lib/routineUtils';
-import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal } from '../lib/utils';
+import { Check, Flame, Clock, Watch } from 'lucide-react';
+import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET, resolveCardioCalories } from '../lib/routineUtils';
+import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
+import { LastSessionCard } from '../components/ui/LastSessionCard';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
 
 const TrainingView = ({ workout, onFinish }) => {
     const { user, profile } = useAuth();
@@ -35,6 +37,14 @@ const TrainingView = ({ workout, onFinish }) => {
         return saved?.workoutStartTime ?? Date.now();
     });
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [finishing, setFinishing] = useState(false);
+    const [finishSummary, setFinishSummary] = useState(null);
+    const [lastSummary, setLastSummary] = useState(null);
+
+    useEffect(() => {
+        if (!activeWorkout?.id || !user?.id) return;
+        loadLastRoutineSummary(user.id, activeWorkout.id).then(setLastSummary);
+    }, [activeWorkout?.id, user?.id]);
 
     useEffect(() => {
         if (!activeWorkout) return;
@@ -229,6 +239,8 @@ const TrainingView = ({ workout, onFinish }) => {
                 </div>
             </Card>
 
+            {lastSummary && <LastSessionCard summary={lastSummary} />}
+
             <div className="w-full space-y-4 flex-1 overflow-y-auto pb-20">
                 {logsLoading ? (
                     <div className="flex justify-center items-center py-12">
@@ -271,10 +283,32 @@ const TrainingView = ({ workout, onFinish }) => {
             </div>
 
             <button
-                onClick={() => {
+                onClick={async () => {
+                    setFinishing(true);
                     const endTime = Date.now();
                     const durationMinutes = Math.round((endTime - workoutStartTime) / 60000);
-                    const realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
+                    let realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
+                    let caloriesSource = 'estimated';
+
+                    // v2 Fase 2: si hubo un entreno de fuerza en el Watch que
+                    // cubre esta sesión, sus kcal reales sustituyen la
+                    // estimación MET. Best-effort — si Health falla, se sigue
+                    // con la estimación de siempre.
+                    if (isHealthAvailableOnThisPlatform()) {
+                        try {
+                            const watchWorkout = await getMostRecentWorkout({ sinceMinutesAgo: durationMinutes + 15 });
+                            if (isStrengthWorkout(watchWorkout) && watchWorkout.totalEnergyBurned) {
+                                realCalories = Math.round(watchWorkout.totalEnergyBurned);
+                                caloriesSource = 'health';
+                            }
+                        } catch (err) {
+                            console.error('[Health] No se pudo leer el entreno de fuerza del Watch:', err);
+                        }
+                    }
+
+                    const cardioCalories = resolveCardioCalories(activeWorkout?.cardio, userWeight);
+                    const totalCalories = realCalories + cardioCalories;
+
                     const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
                     const filteredExerciseLogs = {};
                     Object.entries(exerciseLogs).forEach(([id, log]) => {
@@ -289,23 +323,41 @@ const TrainingView = ({ workout, onFinish }) => {
                             startTime: workoutStartTime,
                             endTime,
                             durationMinutes,
-                            realCalories
+                            realCalories,
+                            caloriesSource,
+                            totalCalories
                         }
                     };
                     if (activeWorkout?.cardio) {
-                        finalLogs.cardio = activeWorkout.cardio;
+                        finalLogs.cardio = { ...activeWorkout.cardio, calories: cardioCalories };
                     }
-                    onFinish(finalLogs);
+
+                    // Cierra el círculo con Health: el entreno completado aparece en
+                    // los anillos de Actividad. Best-effort, nunca bloquea terminar.
+                    if (isHealthAvailableOnThisPlatform()) {
+                        try {
+                            await writeWorkoutToHealth({
+                                startDate: new Date(workoutStartTime).toISOString(),
+                                endDate: new Date(endTime).toISOString(),
+                                calories: totalCalories,
+                            });
+                        } catch (err) {
+                            console.error('[Health] No se pudo escribir el entreno en Salud:', err);
+                        }
+                    }
+
+                    setFinishing(false);
+                    setFinishSummary(finalLogs);
                 }}
-                disabled={!allExercisesCompleted}
+                disabled={!allExercisesCompleted || finishing}
                 className={cn(
                     "w-full py-4 font-bold rounded-xl transition-all duration-300",
-                    allExercisesCompleted
+                    allExercisesCompleted && !finishing
                         ? "bg-primary text-black active:scale-95 shadow-lg shadow-primary/20"
                         : "bg-surface-highlight text-text-secondary opacity-50 grayscale cursor-not-allowed"
                 )}
             >
-                Terminar Entrenamiento
+                {finishing ? 'Guardando…' : 'Terminar Entrenamiento'}
             </button>
 
             {activeExercise && (
@@ -320,6 +372,78 @@ const TrainingView = ({ workout, onFinish }) => {
                         setTimerStates(prev => ({ ...prev, [activeExercise.id]: state }))
                     }
                 />
+            )}
+
+            {finishSummary && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-surface border border-surface-highlight w-full max-w-sm rounded-[2rem] p-6 shadow-2xl">
+                        <div className="flex justify-center mb-4">
+                            <div className="h-14 w-14 rounded-full bg-primary/15 flex items-center justify-center">
+                                <Check size={28} className="text-primary" strokeWidth={3} />
+                            </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-text-primary text-center mb-1">
+                            Entrenamiento completado
+                        </h3>
+                        <p className="text-sm text-text-secondary text-center mb-6">
+                            Resumen de la sesión
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div className="bg-background rounded-xl p-3 flex flex-col items-center gap-1">
+                                <Clock size={18} className="text-text-secondary" />
+                                <p className="text-lg font-bold text-text-primary">
+                                    {finishSummary.workoutDuration.durationMinutes} min
+                                </p>
+                                <p className="text-[11px] text-text-secondary">Duración</p>
+                            </div>
+                            <div className="bg-background rounded-xl p-3 flex flex-col items-center gap-1">
+                                <Flame size={18} className="text-primary" />
+                                <p className="text-lg font-bold text-text-primary">
+                                    {finishSummary.workoutDuration.totalCalories} kcal
+                                </p>
+                                <p className="text-[11px] text-text-secondary">Total</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 mb-6">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-text-secondary">Fuerza</span>
+                                <span className="text-text-primary font-medium flex items-center gap-1.5">
+                                    {finishSummary.workoutDuration.realCalories} kcal
+                                    {finishSummary.workoutDuration.caloriesSource === 'health' ? (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wide">
+                                            <Watch size={11} /> Watch
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wide">
+                                            estimado
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+                            {finishSummary.cardio && (
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-text-secondary">Cardio ({finishSummary.cardio.type})</span>
+                                    <span className="text-text-primary font-medium">
+                                        {finishSummary.cardio.calories} kcal
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                const logsToSave = finishSummary;
+                                setFinishSummary(null);
+                                onFinish(logsToSave);
+                            }}
+                            className="w-full py-4 font-bold rounded-xl bg-primary text-black active:scale-95 shadow-lg shadow-primary/20 transition-all"
+                        >
+                            Continuar
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
     );
