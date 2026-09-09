@@ -149,7 +149,7 @@ Pantalla "Conectar Apple Health" en Perfil → nueva entrada de menú.
 
 ### Fase 2 — La función que motivó el plan
 
-**🟡 Hecho — versión simple (2026-09-08).** Cubre el caso de un tipo de
+**✅ Hecho y validado en real (2026-09-09).** Cubre el caso de un tipo de
 workout por sesión de Watch (cardio grabado aparte de fuerza). No cubre
 sesión continua multideporte — sigue haciendo falta la extensión Swift de
 `workoutActivities` para eso (ver "Riesgo técnico principal").
@@ -176,10 +176,21 @@ sesión continua multideporte — sigue haciendo falta la extensión Swift de
   — no se puede distinguir cinta/interior de exterior. Se asume contexto de
   gimnasio (interior) para los 4 tipos, documentado en el código
   (`CARDIO_WORKOUT_TYPE_MAP`, `appleHealth.js`).
-- **Pendiente de validar**: no se puede probar sin una sesión Watch real
-  (cardio y/o fuerza) durante un entreno — queda para la próxima sesión de
-  gimnasio real, vía el puente Capacitor→dev-server usado también para
-  validar Fase 0/1.
+- **Validado en real (2026-09-09)**, entreno real de gimnasio con build
+  standalone de Xcode (no dev-server bridge, red distinta al Mac): banner de
+  cardio detectado y kcal reales de fuerza sustituyendo la estimación MET,
+  ambos confirmados en la sesión de esa misma mañana
+  (`caloriesSource: "health"`, kcal de fuerza reales ≈ kcal del entreno en
+  Salud). Primer intento en el gimnasio salió en falso porque el build
+  standalone se había quedado desincronizado (`npm run build && npx cap sync
+  ios` pendiente tras el último commit) — nada que ver con la lógica.
+- **Extra pedido tras la validación**: tarjeta-resumen al terminar el
+  entreno (duración, kcal total, desglose fuerza real/estimado con badge
+  "Watch", cardio) antes de volver al Dashboard, y tarjeta "Última sesión"
+  (duración/kcal de la vez anterior) en el Dashboard y en la ficha del
+  entrenamiento — se actualiza sola al completar la rutina de nuevo
+  (`LastSessionCard`, `src/components/ui/LastSessionCard.jsx`;
+  `loadLastRoutineSummary`, `src/lib/utils.js`).
 
 ### Fase 3 — Superficie de datos
 - Dashboard: card de salud con pasos del día, kcal activas, última sincronización.
@@ -451,6 +462,13 @@ dentro). Construir el desglose por segmento en Rutinex sigue necesitando la
 extensión Swift ya anotada arriba — sin ella, `queryWorkouts()` solo daría
 la sesión completa como un tipo único, perdiendo el desglose 41,8/298 kcal
 que si importa mostrar.
+
+**Fase 2 (versión simple) cerrada y validada en real (2026-09-09)** —
+grabando cardio y fuerza como dos entrenos separados en el Watch (no la
+sesión continua multideporte de arriba, que sigue sin desglose posible sin
+la extensión Swift): banner de cardio detectado y sustitución de kcal
+reales de fuerza, ambos confirmados en una sesión real de gimnasio con el
+build standalone de Xcode. Ver detalle en "Fase 2" arriba.
 
 Ver también [docs/plan-gym-app-features.md](plan-gym-app-features.md) —
 estudio de funciones de las apps de gimnasio mejor valoradas y propuesta de
