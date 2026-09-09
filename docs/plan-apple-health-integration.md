@@ -191,6 +191,12 @@ sesión continua multideporte — sigue haciendo falta la extensión Swift de
   entrenamiento — se actualiza sola al completar la rutina de nuevo
   (`LastSessionCard`, `src/components/ui/LastSessionCard.jsx`;
   `loadLastRoutineSummary`, `src/lib/utils.js`).
+- **Distinción visual fuerza/cardio en la tarjeta-resumen**: icono de
+  mancuerna (violeta) en la fila "Fuerza", de corazón (azul) en la fila
+  "Cardio" (`src/views/OtherViews.jsx`). **Pendiente de comprobar en real**
+  con un entreno que incluya cardio previo — solo se ha visto en el
+  prototipo con datos mock; la fila "Cardio" solo aparece si se añadió
+  cardio en el modal previo al entreno.
 
 ### Fase 3 — Superficie de datos
 - Dashboard: card de salud con pasos del día, kcal activas, última sincronización.
