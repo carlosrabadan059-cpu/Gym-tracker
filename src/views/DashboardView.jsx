@@ -3,10 +3,11 @@ import { Play, TrendingUp, ChevronRight, Check, ClockArrowUp } from 'lucide-reac
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
-import { enrichExercisesWithCatalog } from '../lib/utils';
+import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType } from '../lib/appleHealth';
@@ -15,6 +16,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const { profile, user } = useAuth();
     const [expandedRoutine, setExpandedRoutine] = useState(null);
     const [routines, setRoutines] = useState([]);
+    const [lastSummaries, setLastSummaries] = useState({});
     const [loading, setLoading] = useState(true);
     const [showRetroModal, setShowRetroModal] = useState(false);
 
@@ -126,6 +128,17 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
             });
 
             setRoutines(mergedRoutines);
+
+            // Tarjeta de "última sesión": duración/kcal de la última vez que se
+            // hizo cada rutina, hasta que se vuelva a completar (entonces se
+            // sustituye sola, misma query siempre trae la más reciente).
+            Promise.all(
+                mergedRoutines.map(routine =>
+                    loadLastRoutineSummary(user.id, routine.id).then(summary => [routine.id, summary])
+                )
+            ).then(entries => {
+                setLastSummaries(Object.fromEntries(entries.filter(([, summary]) => summary)));
+            });
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -299,6 +312,12 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                         />
                                     </div>
                                 </div>
+
+                                {lastSummaries[routine.id] && (
+                                    <div className="mt-3">
+                                        <LastSessionCard summary={lastSummaries[routine.id]} />
+                                    </div>
+                                )}
 
                                 <div className="space-y-3">
                                     {visibleExercises.map((ex) => (
