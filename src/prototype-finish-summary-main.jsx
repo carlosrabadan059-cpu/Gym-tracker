@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- entry de prototipo, no HMR de producción */
 import { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Check, Flame, Clock, Watch } from 'lucide-react';
+import { Check, Flame, Clock, Watch, Dumbbell, HeartPulse } from 'lucide-react';
 import './index.css';
 
 // PROTOTIPO — no toca Supabase ni Health. Reproduce la tarjeta-resumen que
@@ -66,8 +66,11 @@ function FinishSummaryCard({ finishSummary, onContinue }) {
                 </div>
 
                 <div className="space-y-2 mb-6">
-                    <div className="flex items-center justify-between text-sm">
-                        <span className="text-text-secondary">Fuerza</span>
+                    <div className="flex items-center gap-2.5 text-sm">
+                        <div className="h-7 w-7 rounded-full bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+                            <Dumbbell size={14} className="text-violet-500" />
+                        </div>
+                        <span className="text-text-secondary flex-1">Fuerza</span>
                         <span className="text-text-primary font-medium flex items-center gap-1.5">
                             {finishSummary.workoutDuration.realCalories} kcal
                             {finishSummary.workoutDuration.caloriesSource === 'health' ? (
@@ -82,8 +85,11 @@ function FinishSummaryCard({ finishSummary, onContinue }) {
                         </span>
                     </div>
                     {finishSummary.cardio && (
-                        <div className="flex items-center justify-between text-sm">
-                            <span className="text-text-secondary">Cardio ({finishSummary.cardio.type})</span>
+                        <div className="flex items-center gap-2.5 text-sm">
+                            <div className="h-7 w-7 rounded-full bg-sky-500/15 flex items-center justify-center flex-shrink-0">
+                                <HeartPulse size={14} className="text-sky-500" />
+                            </div>
+                            <span className="text-text-secondary flex-1">Cardio ({finishSummary.cardio.type})</span>
                             <span className="text-text-primary font-medium">
                                 {finishSummary.cardio.calories} kcal
                             </span>
