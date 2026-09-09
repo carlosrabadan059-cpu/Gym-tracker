@@ -64,6 +64,46 @@ export async function getTodayMetrics() {
 }
 
 /**
+ * Pasos promedio/día y kcal activas de los últimos 7 días, y FC en reposo de
+ * hoy — para la card "Salud (7 días)" del Dashboard (Fase 3).
+ * `bucket: 'day'` le pide al plugin un total por día en vez de uno para todo
+ * el rango, así se puede promediar del lado del cliente.
+ */
+export async function getWeeklyHealthSummary() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 6);
+    startDate.setHours(0, 0, 0, 0);
+    const weekRange = { startDate: startDate.toISOString(), endDate: endDate.toISOString(), bucket: 'day' };
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [stepsByDay, caloriesByDay, restingHrToday] = await Promise.all([
+        Health.queryAggregated({ ...weekRange, dataType: 'steps', aggregation: 'sum' }),
+        Health.queryAggregated({ ...weekRange, dataType: 'calories', aggregation: 'sum' }),
+        Health.queryAggregated({
+            startDate: todayStart.toISOString(),
+            endDate: endDate.toISOString(),
+            dataType: 'restingHeartRate',
+            aggregation: 'average',
+        }),
+    ]);
+
+    const daysWithSteps = stepsByDay.samples.length || 1;
+    const totalSteps = stepsByDay.samples.reduce((sum, s) => sum + (s.value ?? 0), 0);
+    const weeklyActiveCalories = caloriesByDay.samples.reduce((sum, s) => sum + (s.value ?? 0), 0);
+
+    return {
+        avgSteps: Math.round(totalSteps / daysWithSteps),
+        weeklyActiveCalories: Math.round(weeklyActiveCalories),
+        restingHr: restingHrToday.samples[0]?.value ?? null,
+    };
+}
+
+/**
  * El workout de Watch más reciente que solape con el rango dado. Pensado
  * para el modal "Añadir Cardio Previo" (Fase 2): al abrirlo se pide el rango
  * de la última hora y, si hay un workout, se ofrece usar sus kcal reales en

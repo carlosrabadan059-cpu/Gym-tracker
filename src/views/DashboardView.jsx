@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, TrendingUp, ChevronRight, Check, ClockArrowUp } from 'lucide-react';
+import { Play, TrendingUp, ChevronRight, Check, ClockArrowUp, Activity, Flame, Footprints } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -10,7 +10,7 @@ import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
 import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
-import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType } from '../lib/appleHealth';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
 
 const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const { profile, user } = useAuth();
@@ -19,6 +19,8 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const [lastSummaries, setLastSummaries] = useState({});
     const [loading, setLoading] = useState(true);
     const [showRetroModal, setShowRetroModal] = useState(false);
+    const [healthSummary, setHealthSummary] = useState(null);
+    const [healthSyncedAt, setHealthSyncedAt] = useState(null);
 
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
@@ -56,6 +58,22 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
         })();
         return () => { cancelled = true; };
     }, [showCardioSelector]);
+
+    // v2 Fase 3 — card "Salud" del Dashboard: pasos/kcal activas de hoy desde
+    // HealthKit. No-op fuera de la app nativa (la PWA no tiene acceso a
+    // Health), la card simplemente no se muestra ahí.
+    useEffect(() => {
+        if (!isHealthAvailableOnThisPlatform()) return;
+        let cancelled = false;
+        getTodayMetrics()
+            .then(metrics => {
+                if (cancelled || !metrics) return;
+                setHealthSummary(metrics);
+                setHealthSyncedAt(new Date());
+            })
+            .catch(err => console.error('[Health] No se pudieron cargar las métricas de hoy:', err));
+        return () => { cancelled = true; };
+    }, []);
 
     const fetchRoutines = useCallback(async () => {
         if (!user || !profile) return;
@@ -237,6 +255,37 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                     />
                 </div>
             )}
+            {healthSummary && (
+                <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                            <Activity size={16} className="text-primary" /> Salud de hoy
+                        </h3>
+                        {healthSyncedAt && (
+                            <span className="text-[11px] text-text-secondary">
+                                Actualizado {healthSyncedAt.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                        <div className="flex flex-col items-center gap-1">
+                            <Footprints size={16} className="text-sky-400" />
+                            <p className="text-lg font-bold text-text-primary">
+                                {healthSummary.steps.toLocaleString('es-ES')}
+                            </p>
+                            <p className="text-[10px] text-text-secondary">pasos hoy</p>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                            <Flame size={16} className="text-orange-400" />
+                            <p className="text-lg font-bold text-text-primary">
+                                {Math.round(healthSummary.activeCalories)}
+                            </p>
+                            <p className="text-[10px] text-text-secondary">kcal activas</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Daily Routines */}
             <div>
                 <div className="mb-4 flex items-center justify-between">
