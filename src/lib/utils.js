@@ -216,20 +216,23 @@ export async function loadLastRoutineSummary(userId, routineId) {
             .eq('user_id', userId)
             .eq('routine_id', routineId)
             .order('date', { ascending: false })
-            .limit(1);
+            .limit(10);
 
         if (error) throw error;
         if (!data || data.length === 0) return null;
 
-        const summary = data[0].logs?.workoutDuration;
-        if (!summary) return null;
+        // Salta las sesiones marcadas completadas sin cronómetro
+        // (durationMinutes 0) — no son una "última vez" útil como referencia.
+        const row = data.find(r => (r.logs?.workoutDuration?.durationMinutes ?? 0) > 0);
+        if (!row) return null;
+        const summary = row.logs.workoutDuration;
 
         return {
             durationMinutes: summary.durationMinutes,
             // Filas antiguas guardaban realCalories pero no totalCalories.
             totalCalories: summary.totalCalories ?? summary.realCalories ?? null,
             caloriesSource: summary.caloriesSource,
-            date: data[0].date,
+            date: row.date,
         };
     } catch (e) {
         console.error("Error loading last routine summary from Supabase:", e);
