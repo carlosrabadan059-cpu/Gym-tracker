@@ -362,7 +362,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                     </div>
                                 </div>
 
-                                {lastSummaries[routine.id] && (
+                                {!isCompleted && lastSummaries[routine.id] && (
                                     <div className="mt-3">
                                         <LastSessionCard summary={lastSummaries[routine.id]} />
                                     </div>

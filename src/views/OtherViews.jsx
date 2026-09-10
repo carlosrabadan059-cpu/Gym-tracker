@@ -320,6 +320,28 @@ const TrainingView = ({ workout, onFinish }) => {
                 onClick={async () => {
                     setFinishing(true);
                     const endTime = Date.now();
+
+                    // Al "Revisar Entrenamiento" de una rutina ya completada,
+                    // workoutStartTime se reinicia a ahora → duración ~0. Si no
+                    // es una sesión en vivo y ya hay un workoutDuration real
+                    // guardado, se conserva tal cual en vez de machacarlo.
+                    const prevDuration = exerciseLogs.workoutDuration;
+                    if (!isLiveSessionRef.current && prevDuration?.durationMinutes > 0) {
+                        const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
+                        const filteredExerciseLogs = {};
+                        Object.entries(exerciseLogs).forEach(([id, log]) => {
+                            if (currentExerciseIds.has(String(id))) filteredExerciseLogs[id] = log;
+                        });
+                        const finalLogs = { ...filteredExerciseLogs, workoutDuration: prevDuration };
+                        if (activeWorkout?.cardio || exerciseLogs.cardio) {
+                            finalLogs.cardio = exerciseLogs.cardio ?? activeWorkout.cardio;
+                        }
+                        endWorkoutActivity();
+                        setFinishing(false);
+                        setFinishSummary(finalLogs);
+                        return;
+                    }
+
                     const durationMinutes = Math.round((endTime - workoutStartTime) / 60000);
                     let realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
                     let caloriesSource = 'estimated';
