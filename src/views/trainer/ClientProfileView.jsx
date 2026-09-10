@@ -233,6 +233,12 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             assignmentId,
             series: Number(ex.series) || 3,
             reps: Number(ex.reps) || 10,
+            // Prescripción (Fase 1). Cadenas vacías = sin prescribir.
+            target_weight: ex.target_weight ?? '',
+            target_rir: ex.target_rir ?? '',
+            rest_seconds: ex.rest_seconds ?? '',
+            tempo: ex.tempo ?? '',
+            notes: ex.notes ?? '',
         });
     };
 
@@ -241,10 +247,19 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         if (!editingExercise) return;
         setSavingEdit(true);
         try {
-            const { error } = await supabase
-                .from('exercises')
-                .update({ series: String(editingExercise.series), reps: String(editingExercise.reps) })
-                .eq('id', editingExercise.id);
+            const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
+            const strOrNull = (v) => (v?.trim() ? v.trim() : null);
+            const patch = {
+                series: String(editingExercise.series),
+                reps: String(editingExercise.reps),
+                target_weight: numOrNull(editingExercise.target_weight),
+                target_rir: numOrNull(editingExercise.target_rir),
+                rest_seconds: numOrNull(editingExercise.rest_seconds),
+                tempo: strOrNull(editingExercise.tempo),
+                notes: strOrNull(editingExercise.notes),
+            };
+
+            const { error } = await supabase.from('exercises').update(patch).eq('id', editingExercise.id);
             if (error) throw error;
 
             setAssignedRoutines(prev => prev.map(a => {
@@ -254,9 +269,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                     routine: {
                         ...a.routine,
                         exercises: a.routine.exercises.map(ex =>
-                            ex.id === editingExercise.id
-                                ? { ...ex, series: String(editingExercise.series), reps: String(editingExercise.reps) }
-                                : ex
+                            ex.id === editingExercise.id ? { ...ex, ...patch } : ex
                         )
                     }
                 };
@@ -464,11 +477,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         routine.exercises.map((ex, idx) => {
                                                             const isEditing = editingExercise?.id === ex.id;
                                                             return (
-                                                                <div
-                                                                    key={ex.id}
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                    className="flex items-center gap-3 bg-background/40 rounded-xl px-2 py-2"
-                                                                >
+                                                              <div key={ex.id} onClick={(e) => e.stopPropagation()} className="bg-background/40 rounded-xl">
+                                                                <div className="flex items-center gap-3 px-2 py-2">
                                                                     <div className="flex flex-col flex-shrink-0 -my-1">
                                                                         <button
                                                                             onClick={() => handleReorderExercise(assignment.id, ex.id, -1)}
@@ -530,7 +540,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                         </div>
                                                                     ) : (
                                                                         <div className="flex items-center gap-1 flex-shrink-0">
-                                                                            <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">{ex.series}×{ex.reps}{isTimeBasedExercise(ex) ? 'm' : ''}</span>
+                                                                            <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">
+                                                                                {ex.series}×{ex.reps}{isTimeBasedExercise(ex) ? 'm' : ''}
+                                                                                {ex.target_weight != null && ` · ${String(ex.target_weight).replace('.', ',')}kg`}
+                                                                                {ex.target_rir != null && ` · RIR${ex.target_rir}`}
+                                                                            </span>
                                                                             <button
                                                                                 onClick={(e) => startEditExercise(e, ex, assignment.id)}
                                                                                 className="w-7 h-7 rounded-full hover:bg-surface-highlight flex items-center justify-center transition-colors"
@@ -546,6 +560,42 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                         </div>
                                                                     )}
                                                                 </div>
+
+                                                                {isEditing && (
+                                                                    <div className="px-2 pb-3 pt-1 grid grid-cols-2 gap-2 border-t border-surface-highlight/60 mt-1">
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Peso objetivo (kg)
+                                                                            <input type="number" inputMode="decimal" value={editingExercise.target_weight}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, target_weight: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
+                                                                        </label>
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            RIR (0-5)
+                                                                            <input type="number" min="0" max="5" value={editingExercise.target_rir}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, target_rir: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
+                                                                        </label>
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Descanso (s)
+                                                                            <input type="number" min="0" value={editingExercise.rest_seconds}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, rest_seconds: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
+                                                                        </label>
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Tempo
+                                                                            <input type="text" value={editingExercise.tempo}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, tempo: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="3-1-2" />
+                                                                        </label>
+                                                                        <label className="col-span-2 flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Notas
+                                                                            <textarea rows={2} value={editingExercise.notes}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, notes: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary resize-none" placeholder="Indicaciones técnicas…" />
+                                                                        </label>
+                                                                    </div>
+                                                                )}
+                                                              </div>
                                                             );
                                                         })
                                                     )}

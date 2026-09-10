@@ -24,13 +24,25 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
     const isBodyweight = isBodyweightExercise(exercise);
     const isTimeBased = isTimeBasedExercise(exercise);
 
+    // Prescripción del entrenador (Fase 1 del plan de entrenador). Campos
+    // opcionales — si ninguno está puesto, el modal se ve como siempre.
+    const prescription = {
+        weight: exercise.target_weight != null ? Number(exercise.target_weight) : null,
+        rir: exercise.target_rir != null ? Number(exercise.target_rir) : null,
+        rest: exercise.rest_seconds != null ? Number(exercise.rest_seconds) : null,
+        tempo: exercise.tempo || null,
+        notes: exercise.notes || null,
+    };
+    const hasPrescription = prescription.weight != null || prescription.rir != null
+        || prescription.rest != null || prescription.tempo || prescription.notes;
+
     const [timerActive, setTimerActive] = useState(() => {
         if (!savedTimerState?.timerActive || !savedTimerState?.targetTime) return false;
         return savedTimerState.targetTime > Date.now();
     });
     const [showInstructions, setShowInstructions] = useState(false);
     const [timeLeft, setTimeLeft] = useState(() => {
-        const dur = savedTimerState?.selectedDuration ?? 60;
+        const dur = savedTimerState?.selectedDuration ?? (exercise.rest_seconds != null ? Number(exercise.rest_seconds) : 60);
         if (!savedTimerState?.timerActive || !savedTimerState?.targetTime) return dur;
         const remaining = Math.ceil((savedTimerState.targetTime - Date.now()) / 1000);
         return remaining > 0 ? remaining : dur;
@@ -39,7 +51,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         if (!savedTimerState?.timerActive || !savedTimerState?.targetTime) return null;
         return savedTimerState.targetTime > Date.now() ? savedTimerState.targetTime : null;
     });
-    const [selectedDuration, setSelectedDuration] = useState(savedTimerState?.selectedDuration ?? 60);
+    const [selectedDuration, setSelectedDuration] = useState(
+        savedTimerState?.selectedDuration ?? (exercise.rest_seconds != null ? Number(exercise.rest_seconds) : 60)
+    );
     const [completedSets, setCompletedSets] = useState(initialLog?.completedSets || {});
     const [setsData, setSetsData] = useState(() => {
         if (initialLog && initialLog.setsData) {
@@ -47,8 +61,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         }
         const initial = {};
         const count = parseInt(exercise.series) || 3;
+        // Prefill del peso con el objetivo del entrenador si lo hay (Fase 1).
+        const prefillWeight = exercise.target_weight != null ? String(exercise.target_weight) : '';
         for (let i = 0; i < count; i++) {
-            initial[i] = { weight: '', reps: exercise.reps || '10' };
+            initial[i] = { weight: prefillWeight, reps: exercise.reps || '10' };
         }
         return initial;
     });
@@ -588,7 +604,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
                         <h3 className="text-xs text-text-secondary uppercase tracking-wider mb-3">Temporizador de Descanso</h3>
                         <div className="flex items-center gap-4 mb-4">
-                            {[60, 90].map(duration => (
+                            {[...new Set([prescription.rest, 60, 90].filter(Boolean))].sort((a, b) => a - b).map(duration => (
                                 <button
                                     key={duration}
                                     onClick={() => handleDurationSelect(duration)}
@@ -639,6 +655,41 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                             <p className="text-2xl font-bold text-primary">{calculateCaloriesByVolume(exercise, userWeight)} kcal</p>
                         </div>
                     </div>
+
+                    {/* Objetivo del entrenador (Fase 1 del plan de entrenador) */}
+                    {hasPrescription && (
+                        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Objetivo del entrenador</p>
+                            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+                                {prescription.weight != null && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">{String(prescription.weight).replace('.', ',')} kg</span>
+                                        <span className="text-text-secondary"> objetivo</span>
+                                    </span>
+                                )}
+                                {prescription.rir != null && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">RIR {prescription.rir}</span>
+                                        <span className="text-text-secondary"> (reps en reserva)</span>
+                                    </span>
+                                )}
+                                {prescription.rest != null && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">{prescription.rest}s</span>
+                                        <span className="text-text-secondary"> descanso</span>
+                                    </span>
+                                )}
+                                {prescription.tempo && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">Tempo {prescription.tempo}</span>
+                                    </span>
+                                )}
+                            </div>
+                            {prescription.notes && (
+                                <p className="text-sm text-text-secondary border-t border-primary/15 pt-2">{prescription.notes}</p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Referencia Última Vez */}
                     {(() => {
