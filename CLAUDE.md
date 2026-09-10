@@ -56,6 +56,18 @@ Workout completion data lives in the `workout_logs` Supabase table (JSONB `logs`
 
 SQL migrations are in [supabase/migrations/](supabase/migrations/).
 
+### Producción real — no tocar los datos de Carlos
+
+**Carlos** (`user_id 0c561e91-…`, el propio dueño del proyecto) es el **único
+usuario en producción real**. `admin@gymtracker.com` es la cuenta de
+entrenador de prueba y su único cliente es Carlos.
+
+No modificar nunca sus filas de `exercises` ni sus datos de entreno
+(`workout_logs`). Migraciones que solo añaden columnas nullable: OK. Drives
+de verificación (Playwright/`npm run browse`): solo navegar y capturar,
+nunca pulsar Guardar/Asignar/Terminar sobre su cuenta. No dejar datos de
+prueba en `workout_logs` de ningún usuario.
+
 ### Views Structure
 
 ```
