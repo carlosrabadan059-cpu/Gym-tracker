@@ -215,23 +215,39 @@ Pendiente, no bloqueante: drag-and-drop para reordenar ejercicios
 (hoy flechas ↑↓), densidad de tabla en vez de tarjetas para listas largas
 de ejercicios, y una vista de plantillas propia (Fase 0.2).
 
-## Fase 1 — Prescripción completa
+## Fase 1 — Prescripción completa · ✅ Hecho (2026-09-10)
 
-El núcleo. Añadir a la tabla `exercises` y al panel de creación
-(`AddExercisePanel.jsx`, `RoutineAssignerView.jsx`):
+El núcleo. Decisiones (2026-09-10): **peso objetivo en kg absolutos** (el %
+de 1RM se deja para más adelante), intensidad como **RIR** (repeticiones en
+reserva). Todos los campos opcionales — un ejercicio sin prescripción se
+comporta como antes.
 
-| Campo nuevo | Para qué |
-|---|---|
-| `target_weight` o `target_pct_1rm` | prescribir carga (absoluta o como % del 1RM, que v3 Fase A ya calcula) |
-| `target_rir` / `target_rpe` | prescribir intensidad, no solo volumen |
-| `rest_seconds` | hoy el descanso es un valor fijo del cliente (60s por defecto en `ExerciseDetailModal.jsx`); debería poder marcarlo el entrenador por ejercicio |
-| `tempo` | ej. `3-1-2`, la parte técnica que hoy no cabe en ningún sitio |
-| `notes` | indicaciones por ejercicio ("codos pegados", "no bloquear arriba") |
+| Campo | Tipo | Para qué |
+|---|---|---|
+| `exercises.target_weight` | numeric (kg) | carga objetivo |
+| `exercises.target_rir` | smallint (0-5) | intensidad, no solo volumen |
+| `exercises.rest_seconds` | integer | descanso prescrito por ejercicio |
+| `exercises.tempo` | text (`3-1-2`) | la parte técnica |
+| `exercises.notes` | text | indicaciones ("codos pegados") |
 
-En la app del cliente estos valores aparecen como objetivo dentro del modal
-del ejercicio. Encaja con v3 Fase A: donde ahí la sugerencia de peso venía de
-la IA, aquí puede venir del entrenador — y cuando existan las dos, la del
-entrenador manda y la IA solo sugiere ajustes.
+Construido:
+- Migración `20260910_exercise_prescription.sql`.
+- `ClientProfileView.jsx`: al editar un ejercicio de una rutina asignada,
+  bajo los steppers de series/reps aparece un bloque con peso/RIR/descanso/
+  tempo/notas. En la fila (sin editar) se ve `4×10 · 60kg · RIR2`.
+- Cliente (`ExerciseDetailModal.jsx`): bloque "Objetivo del entrenador" con
+  todos los campos puestos; el peso objetivo prerrellena los inputs de las
+  series; `rest_seconds` se ofrece como opción del temporizador y como
+  duración por defecto.
+
+Pendiente, no bloqueante: fijar la prescripción ya al crear la rutina
+(`RoutineAssignerView` "Crear nueva" / `AddExercisePanel`) — de momento se
+pone justo después desde el editor del perfil del cliente. Y el % de 1RM
+como alternativa al peso absoluto, cuando la v3 Fase A esté asentada.
+
+Encaja con v3 Fase A: donde ahí la sugerencia de peso viene de la heurística
+local, aquí viene del entrenador — cuando existan las dos, la del entrenador
+manda.
 
 ## Fase 2 — IA como asistente del entrenador
 
