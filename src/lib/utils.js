@@ -226,7 +226,8 @@ export async function loadLastRoutineSummary(userId, routineId) {
 
         return {
             durationMinutes: summary.durationMinutes,
-            totalCalories: summary.totalCalories,
+            // Filas antiguas guardaban realCalories pero no totalCalories.
+            totalCalories: summary.totalCalories ?? summary.realCalories ?? null,
             caloriesSource: summary.caloriesSource,
             date: data[0].date,
         };

@@ -27,15 +27,17 @@ export function LastSessionCard({ summary }) {
                 <Clock size={13} className="text-text-secondary" />
                 {summary.durationMinutes} min
             </span>
-            <span className="flex items-center gap-1 text-sm font-bold text-text-primary">
-                <Flame size={13} className="text-primary" />
-                {summary.totalCalories} kcal
-                {summary.caloriesSource === 'health' && (
-                    <span className="text-[9px] font-bold text-primary uppercase tracking-wide bg-primary/10 rounded-full px-1.5 py-0.5">
-                        Watch
-                    </span>
-                )}
-            </span>
+            {summary.totalCalories != null && (
+                <span className="flex items-center gap-1 text-sm font-bold text-text-primary">
+                    <Flame size={13} className="text-primary" />
+                    {summary.totalCalories} kcal
+                    {summary.caloriesSource === 'health' && (
+                        <span className="text-[9px] font-bold text-primary uppercase tracking-wide bg-primary/10 rounded-full px-1.5 py-0.5">
+                            Watch
+                        </span>
+                    )}
+                </span>
+            )}
         </div>
     );
 }
