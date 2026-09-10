@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, History, Trophy } from 'lucide-react';
+import { X, Check, History, Trophy, Sparkles } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { platesPerSide, formatPlates, estimate1RM, RPE_OPTIONS } from '../lib/plates';
+import { suggestNextWeight } from '../lib/progression';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
@@ -656,6 +657,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
 
                         const needsPerSeriesList = lastLog && sets.length > 0 && (!sharedWeight || !sharedReps);
 
+                        const suggestion = !isBodyweight && !isTimeBased
+                            ? suggestNextWeight(lastLog, exercise.reps)
+                            : null;
+
                         // Mejor 1RM estimado de la última sesión (Epley).
                         const lastOneRm = !isBodyweight && !isTimeBased
                             ? sets.reduce((best, [, s]) => {
@@ -705,6 +710,20 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                )}
+
+                                {suggestion && (
+                                    <div className="border-t border-amber-500/20 pt-2 mt-2">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="flex items-center gap-1.5 text-text-secondary">
+                                                <Sparkles size={12} className="text-primary" /> Sugerencia
+                                            </span>
+                                            <span className="font-mono font-bold text-primary">
+                                                {String(suggestion.weight).replace('.', ',')} kg × {suggestion.reps}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-text-secondary mt-0.5">{suggestion.reason}</p>
                                     </div>
                                 )}
 

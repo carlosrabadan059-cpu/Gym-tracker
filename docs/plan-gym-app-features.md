@@ -142,8 +142,15 @@ respeta la velocidad de registro. Implementado en `ExerciseDetailModal.jsx`:
 - ✅ RPE por serie (`RPE_OPTIONS` 6-10), aparece solo tras marcar la serie,
   opcional. Se guarda en `setsData[i].rpe` (el JSONB de `workout_logs` lo
   absorbe, sin migración).
-- ⏳ Sugerencia de peso vía la IA existente — PR aparte (necesita tocar el
-  backend de IA de `ChatView`).
+- ✅ Sugerencia de peso para la próxima sesión — **heurística local**
+  (`src/lib/progression.js`), no la IA de `ChatView`: ese webhook es un chat
+  n8n de texto libre, no una API estructurada, y sacar de ahí
+  `{peso, reps, motivo}` fiable era un workflow nuevo, no un quick win. La
+  regla local: última vez con todas las series cerradas y (si hay RPE)
+  ninguna ≥ 9 → sube un incremento (2,5 kg si peso ≥ 20, si no 1 kg); RPE ≥ 9
+  o reps por debajo del objetivo → mantén. Se muestra en el bloque "Última
+  vez". La versión con IA queda como evolución si la heurística se queda
+  corta.
 
 ### Fase B — Superseries / circuitos
 
