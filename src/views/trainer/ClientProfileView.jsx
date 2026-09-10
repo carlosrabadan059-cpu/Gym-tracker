@@ -27,7 +27,7 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
     );
 }
 
-export function ClientProfileView({ client, onBack, onAssignRoutine }) {
+export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = false }) {
     const [assignedRoutines, setAssignedRoutines] = useState([]);
     const [workoutHistory, setWorkoutHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -301,14 +301,16 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                 />
             )}
 
-            <div className="flex flex-col h-full bg-background pb-20">
-                <header className="mb-6 flex items-center gap-4 p-4 border-b border-surface-highlight">
-                    <button
-                        onClick={onBack}
-                        className="p-2 rounded-full hover:bg-surface-highlight transition-colors"
-                    >
-                        <ArrowLeft size={24} className="text-text-primary" />
-                    </button>
+            <div className={embedded ? '' : 'flex flex-col h-full bg-background pb-20'}>
+                <header className={`flex items-center gap-4 border-b border-surface-highlight ${embedded ? 'mb-4 pb-3' : 'mb-6 p-4'}`}>
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className={`p-2 rounded-full hover:bg-surface-highlight transition-colors ${embedded ? 'md:hidden' : ''}`}
+                        >
+                            <ArrowLeft size={24} className="text-text-primary" />
+                        </button>
+                    )}
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-surface-highlight overflow-hidden flex-shrink-0">
                             <img

@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, User, ChevronRight, UserPlus, Search, X } from 'lucide-react';
 
-export function ClientsListView({ onBack, onSelectClient }) {
+export function ClientsListView({ onBack, onSelectClient, embedded = false, selectedId = null }) {
     const { user } = useAuth();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -45,15 +45,17 @@ export function ClientsListView({ onBack, onSelectClient }) {
     useEffect(() => { fetchClients(); }, [fetchClients]);
 
     return (
-        <div className="flex flex-col h-full bg-background pb-20">
-            <header className="mb-6 flex items-center gap-4 p-4 border-b border-surface-highlight">
-                <button
-                    onClick={onBack}
-                    className="p-2 rounded-full hover:bg-surface-highlight transition-colors"
-                >
-                    <ArrowLeft size={24} className="text-text-primary" />
-                </button>
-                <h2 className="text-2xl font-bold text-text-primary flex-1">Mis Clientes</h2>
+        <div className={embedded ? '' : 'flex flex-col h-full bg-background pb-20'}>
+            <header className={`flex items-center gap-4 border-b border-surface-highlight ${embedded ? 'mb-4 pb-3' : 'mb-6 p-4'}`}>
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className={`p-2 rounded-full hover:bg-surface-highlight transition-colors ${embedded ? 'md:hidden' : ''}`}
+                    >
+                        <ArrowLeft size={24} className="text-text-primary" />
+                    </button>
+                )}
+                <h2 className={`font-bold text-text-primary flex-1 ${embedded ? 'text-lg' : 'text-2xl'}`}>Mis Clientes</h2>
                 <button
                     onClick={() => setShowAddModal(true)}
                     className="p-2 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
@@ -63,7 +65,7 @@ export function ClientsListView({ onBack, onSelectClient }) {
                 </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto px-4 space-y-3">
+            <div className={embedded ? 'space-y-2' : 'flex-1 overflow-y-auto px-4 space-y-3'}>
                 {loading ? (
                     <div className="space-y-3">
                         {[1, 2, 3].map(i => (
@@ -92,10 +94,10 @@ export function ClientsListView({ onBack, onSelectClient }) {
                         <button
                             key={client.user_id}
                             onClick={() => onSelectClient(client)}
-                            className="w-full bg-surface p-4 rounded-2xl border border-surface-highlight hover:border-primary transition-all flex items-center justify-between text-left group"
+                            className={`w-full bg-surface rounded-2xl border transition-all flex items-center justify-between text-left group ${embedded ? 'p-3' : 'p-4'} ${selectedId === client.user_id ? 'border-primary' : 'border-surface-highlight hover:border-primary'}`}
                         >
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-full bg-surface-highlight overflow-hidden flex-shrink-0">
+                            <div className="flex items-center gap-4 min-w-0">
+                                <div className={`rounded-full bg-surface-highlight overflow-hidden flex-shrink-0 ${embedded ? 'w-10 h-10' : 'w-12 h-12'}`}>
                                     <img
                                         src={client.avatar_url || `https://ui-avatars.com/api/?name=${client.username}&background=random&color=fff`}
                                         alt={client.username}
@@ -103,12 +105,12 @@ export function ClientsListView({ onBack, onSelectClient }) {
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-text-primary text-lg">{client.fullName || client.username}</h3>
-                                    <p className="text-xs text-text-secondary">Ver progreso y asignar rutinas</p>
+                                <div className="min-w-0">
+                                    <h3 className={`font-bold text-text-primary truncate ${embedded ? 'text-sm' : 'text-lg'}`}>{client.fullName || client.username}</h3>
+                                    {!embedded && <p className="text-xs text-text-secondary">Ver progreso y asignar rutinas</p>}
                                 </div>
                             </div>
-                            <ChevronRight size={20} className="text-text-secondary group-hover:text-primary transition-colors" />
+                            <ChevronRight size={20} className="text-text-secondary group-hover:text-primary transition-colors flex-shrink-0" />
                         </button>
                     ))
                 )}

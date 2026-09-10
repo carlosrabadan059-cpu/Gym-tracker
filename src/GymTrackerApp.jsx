@@ -17,8 +17,7 @@ import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { TRAINER_ROLES, isTrainer } from './lib/constants';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
-import { ClientsListView } from './views/trainer/ClientsListView';
-import { ClientProfileView } from './views/trainer/ClientProfileView';
+import { TrainerClientsView } from './components/layout/TrainerClientsView';
 import { RoutineAssignerView } from './views/trainer/RoutineAssignerView';
 import { TrainerLibraryView } from './views/trainer/TrainerLibraryView';
 
@@ -340,19 +339,14 @@ const AuthenticatedApp = () => {
                     {view === 'trainer' && (
                         <TrainerDashboardView onNavigate={handleNavigate} />
                     )}
-                    {view === 'trainer_clients' && (
-                        <ClientsListView
-                            onBack={() => setView('trainer')}
-                            onSelectClient={(client) => {
-                                setCurrentClient(client);
-                                setView('trainer_client_profile');
-                            }}
-                        />
-                    )}
-                    {view === 'trainer_client_profile' && (
-                        <ClientProfileView
+                    {(view === 'trainer_clients' || view === 'trainer_client_profile') && (
+                        <TrainerClientsView
+                            view={view}
                             client={currentClient}
-                            onBack={() => setView('trainer_clients')}
+                            onSelectClient={setCurrentClient}
+                            onOpenProfile={() => setView('trainer_client_profile')}
+                            onBackToList={() => setView('trainer_clients')}
+                            onBackToDashboard={() => setView('trainer')}
                             onAssignRoutine={() => setView('trainer_assign_routine')}
                         />
                     )}
