@@ -94,7 +94,7 @@ export async function saveWorkoutLog(userId, routineId, logs) {
 
         const { data: existingLogs, error: searchError } = await supabase
             .from('workout_logs')
-            .select('id')
+            .select('id, logs')
             .eq('user_id', userId)
             .eq('routine_id', routineId)
             .gte('date', todayStart.toISOString());
@@ -102,10 +102,19 @@ export async function saveWorkoutLog(userId, routineId, logs) {
         if (searchError) throw searchError;
 
         if (existingLogs && existingLogs.length > 0) {
-            // Sobrescribir el de hoy
+            // Red de seguridad: si ya hay una duración real guardada hoy y la
+            // que llega es 0 (p.ej. "Revisar Entrenamiento" reabre la rutina
+            // con el cronómetro a cero), se conserva la buena en vez de
+            // machacarla — los datos de la sesión no se pierden.
+            const prev = existingLogs[0].logs?.workoutDuration;
+            const next = logs?.workoutDuration;
+            const merged = (prev?.durationMinutes > 0 && !(next?.durationMinutes > 0))
+                ? { ...logs, workoutDuration: prev }
+                : logs;
+
             const { error: updateError } = await supabase
                 .from('workout_logs')
-                .update({ logs: logs, date: new Date().toISOString() })
+                .update({ logs: merged, date: new Date().toISOString() })
                 .eq('id', existingLogs[0].id);
 
             if (updateError) throw updateError;
@@ -216,20 +225,23 @@ export async function loadLastRoutineSummary(userId, routineId) {
             .eq('user_id', userId)
             .eq('routine_id', routineId)
             .order('date', { ascending: false })
-            .limit(1);
+            .limit(10);
 
         if (error) throw error;
         if (!data || data.length === 0) return null;
 
-        const summary = data[0].logs?.workoutDuration;
-        if (!summary) return null;
+        // Salta las sesiones marcadas completadas sin cronómetro
+        // (durationMinutes 0) — no son una "última vez" útil como referencia.
+        const row = data.find(r => (r.logs?.workoutDuration?.durationMinutes ?? 0) > 0);
+        if (!row) return null;
+        const summary = row.logs.workoutDuration;
 
         return {
             durationMinutes: summary.durationMinutes,
             // Filas antiguas guardaban realCalories pero no totalCalories.
             totalCalories: summary.totalCalories ?? summary.realCalories ?? null,
             caloriesSource: summary.caloriesSource,
-            date: data[0].date,
+            date: row.date,
         };
     } catch (e) {
         console.error("Error loading last routine summary from Supabase:", e);
