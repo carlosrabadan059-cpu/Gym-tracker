@@ -246,13 +246,19 @@ código real conectado a HealthKit/`workout_logs` (sin mock data):
   local, transición "¡Descanso terminado!", y desaparición al terminar.
 - ⏳ **Dynamic Island**: código presente, no probable en 13 Pro (sin
   hardware). Pendiente de validar en 14 Pro o posterior.
-- ⏳ **Caso "descanso acaba con el móvil bloqueado del todo"**: la transición
-  a `restFinished` la dispara JS, que se suspende con la pantalla apagada.
-  Necesita push APNs de tipo `liveactivity` — requiere añadir la capability
-  Push Notifications (aps-environment, ahora NO está) y volver a
-  `pushType: .token` + `observePushToken` en el plugin (se quitó al no tener
-  la capability), y extender `send-timer-push` para reenviar ese token.
-  Paso posterior, no bloquea el resto.
+- ⏸️ **Caso "descanso acaba con el móvil bloqueado del todo" — descartado por
+  ahora (2026-09-10).** La transición a `restFinished` la dispara JS, que se
+  suspende con la pantalla apagada. Para actualizar la tarjeta sin abrir la
+  app haría falta push APNs de tipo `liveactivity`: es un canal distinto del
+  Web Push (VAPID) que ya usa `send-timer-push` — no se reutiliza nada.
+  Requeriría: capability Push Notifications (`aps-environment`), volver a
+  `pushType: .token` + `observePushToken`, guardar el token en Supabase,
+  clave APNs `.p8` (key ID + team ID) como secrets, y una Edge Function que
+  mande el push APNs a `targetTime`. **No se hace** porque la ganancia es
+  cosmética: con la pantalla apagada el usuario ya recibe el Web Push
+  "¡Recuperación completada!" (enciende pantalla + banner). Lo único que
+  falta es que la tarjeta de la Live Activity en sí cambie de estado sin
+  abrir la app. Se retoma solo si se pide expresamente.
 
 `Activity.request` usa `pushType: nil` de momento. El plugin limpia
 Activities huérfanas en `load()` (proceso matado sin `end()`), antes de cada
