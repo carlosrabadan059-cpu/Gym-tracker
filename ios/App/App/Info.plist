@@ -28,6 +28,8 @@
 	<string>Rutinex lee tus datos de Apple Health (pasos, peso, calorías activas, frecuencia cardiaca en reposo y entrenos) para completar tus estadísticas y detectar automáticamente el cardio que hagas con el Apple Watch.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Rutinex escribe en Apple Health los entrenos que completas en la app, para que aparezcan en tus anillos de Actividad.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

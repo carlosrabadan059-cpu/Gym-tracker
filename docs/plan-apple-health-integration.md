@@ -228,7 +228,36 @@ código real conectado a HealthKit/`workout_logs` (sin mock data):
 - Todo lo anclado a Health (todo excepto la comparativa de kcal) es no-op en
   la PWA — las cards simplemente no aparecen, sin romper nada.
 
-### Fase 4 — Live Activity durante el entreno
+### Fase 4 — Live Activity durante el entreno · ✅ Foreground/local hecho y validado en real (2026-09-10)
+
+**Estado:**
+- ✅ Puente Capacitor→ActivityKit (`ios/App/App/LiveActivityPlugin.swift`,
+  plugin LOCAL registrado en `SceneDelegate` vía `MainViewController` /
+  `bridge?.registerPluginInstance`). Wrapper JS: `src/lib/liveActivity.js`.
+- ✅ Widget extension `RutinexWidgetsExtension` con la Live Activity (lock
+  screen + Dynamic Island). Tipo compartido `LiveActivityAttributes.swift`
+  con Target Membership en app y extensión.
+- ✅ Wiring React: `TrainingView` arranca al entrar al primer ejercicio y
+  actualiza en los siguientes (`handleOpenExercise`); `ExerciseDetailModal`
+  actualiza a fase `resting` con cuenta atrás al marcar serie y a
+  `restFinished` cuando el descanso llega a 0; `end()` al terminar la rutina
+  y como red de seguridad al desmontar `TrainingView`.
+- ✅ Validado en iPhone 13 Pro (iOS 26): banner en lock screen, cuenta atrás
+  local, transición "¡Descanso terminado!", y desaparición al terminar.
+- ⏳ **Dynamic Island**: código presente, no probable en 13 Pro (sin
+  hardware). Pendiente de validar en 14 Pro o posterior.
+- ⏳ **Caso "descanso acaba con el móvil bloqueado del todo"**: la transición
+  a `restFinished` la dispara JS, que se suspende con la pantalla apagada.
+  Necesita push APNs de tipo `liveactivity` — requiere añadir la capability
+  Push Notifications (aps-environment, ahora NO está) y volver a
+  `pushType: .token` + `observePushToken` en el plugin (se quitó al no tener
+  la capability), y extender `send-timer-push` para reenviar ese token.
+  Paso posterior, no bloquea el resto.
+
+`Activity.request` usa `pushType: nil` de momento. El plugin limpia
+Activities huérfanas en `load()` (proceso matado sin `end()`), antes de cada
+`start()`, y `update()` adopta una Activity viva si el proceso es nuevo
+(reanudar entreno tras reabrir la app).
 
 Mapeo del flujo real de uso (entras al ejercicio → marcas serie → arranca
 descanso → termina descanso → completas ejercicio → siguiente) a eventos de
