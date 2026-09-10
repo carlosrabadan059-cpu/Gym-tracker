@@ -6,6 +6,7 @@ import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, lo
 import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
+import { startWorkoutActivity, updateWorkoutActivity, endWorkoutActivity } from '../lib/liveActivity';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
 
 const TrainingView = ({ workout, onFinish }) => {
@@ -40,6 +41,30 @@ const TrainingView = ({ workout, onFinish }) => {
     const [finishing, setFinishing] = useState(false);
     const [finishSummary, setFinishSummary] = useState(null);
     const [lastSummary, setLastSummary] = useState(null);
+    // v2 Fase 4 — una sola Live Activity para toda la sesión: la primera
+    // vez que se entra a un ejercicio la arranca, las siguientes solo la
+    // actualiza (si reiniciara en cada ejercicio, parpadearía en pantalla
+    // bloqueada/Dynamic Island). Ver docs/plan-apple-health-integration.md.
+    const activityStartedRef = React.useRef(false);
+
+    // Red de seguridad: si la vista se desmonta sin pasar por "Terminar"
+    // (navegación atrás, cierre de la app), cierra la Live Activity para que
+    // no quede huérfana en pantalla.
+    React.useEffect(() => () => { endWorkoutActivity(); }, []);
+
+    const handleOpenExercise = (ex) => {
+        const totalSets = parseInt(ex.series) || 3;
+        const completedCount = Object.values(exerciseLogs[String(ex.id)]?.completedSets || {}).filter(Boolean).length;
+        const currentSet = Math.min(completedCount + 1, totalSets);
+
+        if (!activityStartedRef.current) {
+            activityStartedRef.current = true;
+            startWorkoutActivity({ routineName: activeWorkout.name, exerciseName: ex.name, currentSet, totalSets });
+        } else {
+            updateWorkoutActivity({ exerciseName: ex.name, currentSet, totalSets, phase: 'training' });
+        }
+        setActiveExercise(ex);
+    };
 
     useEffect(() => {
         if (!activeWorkout?.id || !user?.id) return;
@@ -251,7 +276,7 @@ const TrainingView = ({ workout, onFinish }) => {
                     <Card
                         key={ex.id || idx}
                         className="p-4 flex items-center gap-4 bg-surface active:bg-surface-highlight transition-colors cursor-pointer"
-                        onClick={() => setActiveExercise(ex)}
+                        onClick={() => handleOpenExercise(ex)}
                     >
                         <div className="h-16 w-16 rounded-lg bg-surface-highlight overflow-hidden flex-shrink-0">
                             {(ex.image_url || ex.image) && (
@@ -346,6 +371,7 @@ const TrainingView = ({ workout, onFinish }) => {
                         }
                     }
 
+                    endWorkoutActivity();
                     setFinishing(false);
                     setFinishSummary(finalLogs);
                 }}

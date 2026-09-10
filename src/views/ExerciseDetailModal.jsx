@@ -4,6 +4,7 @@ import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
+import { updateWorkoutActivity } from '../lib/liveActivity';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -242,6 +243,13 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             playBeep('start');
             scheduleEndBeep(dur);
             scheduleSWNotification(target, false, sessionId); // Schedule END notification
+            updateWorkoutActivity({
+                exerciseName: exercise.name,
+                currentSet: index + 1,
+                totalSets: parseInt(exercise.series) || 3,
+                phase: 'resting',
+                restEndDate: target,
+            });
             if (user?.id) {
                 subscribeToPush(user.id)
                     .then(() => scheduleServerPush(user.id, target, sessionId))
@@ -335,6 +343,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     if ('vibrate' in navigator) {
                         navigator.vibrate([500, 200, 500, 200, 800]);
                     }
+                    updateWorkoutActivity({ phase: 'restFinished' });
                     setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
                 }
             }, 500);
