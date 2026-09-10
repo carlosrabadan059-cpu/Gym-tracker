@@ -57,9 +57,9 @@ export async function getTodayMetrics() {
     ]);
 
     return {
-        steps: steps.samples[0]?.value ?? 0,
-        activeCalories: calories.samples[0]?.value ?? 0,
-        restingHr: restingHr.samples[0]?.value ?? null,
+        steps: Math.round(steps.samples[0]?.value ?? 0),
+        activeCalories: Math.round(calories.samples[0]?.value ?? 0),
+        restingHr: restingHr.samples[0]?.value != null ? Math.round(restingHr.samples[0].value) : null,
     };
 }
 
