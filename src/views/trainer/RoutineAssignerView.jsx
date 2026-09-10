@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
+import { cloneRoutineToClient } from '../../lib/trainerUtils';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star } from 'lucide-react';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -110,9 +111,13 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
+                // owner_client_id null: fuera las copias privadas de cada
+                // cliente (clones). Solo plantillas, estáticas y rutinas del
+                // entrenador aún sin dueño.
                 const { data: routinesData, error } = await supabase
                     .from('routines')
-                    .select('*');
+                    .select('*')
+                    .is('owner_client_id', null);
                 if (error) throw error;
 
                 const ids = (routinesData || []).map(r => r.id);
@@ -136,6 +141,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                     return match ? parseInt(match[1], 10) : null;
                 };
                 const sorted = Object.values(map).sort((a, b) => {
+                    if (!!a.is_template !== !!b.is_template) return a.is_template ? -1 : 1;
                     const orderA = extractDayNumber(a.name);
                     const orderB = extractDayNumber(b.name);
                     if (orderA !== null && orderB === null) return -1;
@@ -170,6 +176,17 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
         }
     };
 
+    const handleToggleTemplate = async (routineId, next) => {
+        setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, is_template: next } : r));
+        try {
+            const { error } = await supabase.from('routines').update({ is_template: next }).eq('id', routineId);
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error toggling template:', err);
+            setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, is_template: !next } : r));
+        }
+    };
+
     const handleDeleteRoutine = async (routineId) => {
         try {
             await supabase.from('exercises').delete().eq('routine_id', routineId);
@@ -188,27 +205,9 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
         if (!selectedRoutineId || !client) return;
         setSaving(true);
         try {
-            const { error } = await supabase.from('assigned_routines').insert([{
-                client_id: client.user_id,
-                routine_id: selectedRoutineId,
-                assigned_by: user.id,
-            }]);
-            if (error) throw error;
-
-            const routine = routines.find(r => r.id === selectedRoutineId);
-            if (client.user_id && routine) {
-                try {
-                    await supabase.from('notifications').insert([{
-                        user_id: client.user_id,
-                        title: '¡Nueva Rutina Asignada!',
-                        message: `Tu entrenador te ha asignado: ${routine.name}. ¡A darle duro!`,
-                        read: false,
-                    }]);
-                } catch (notifErr) {
-                    console.warn('Could not insert notification, table likely missing', notifErr);
-                }
-            }
-
+            // Clonar-siempre: el cliente recibe una copia propia, no la rutina
+            // compartida. La notificación la manda cloneRoutineToClient.
+            await cloneRoutineToClient(selectedRoutineId, client, user.id);
             onSuccess();
         } catch (err) {
             console.error('Error assigning routine:', err);
@@ -284,10 +283,20 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className={`font-bold text-sm ${routine.text_color || 'text-text-primary'}`}>{routine.name}</p>
-                                            <p className="text-xs text-text-secondary">{routine.exercises.length} ejercicios</p>
+                                            <p className="text-xs text-text-secondary">
+                                                {routine.exercises.length} ejercicios
+                                                {routine.is_template && <span className="text-primary font-semibold"> · Plantilla</span>}
+                                            </p>
                                         </div>
                                     </div>
                                 <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                                    <button
+                                        onClick={() => handleToggleTemplate(routine.id, !routine.is_template)}
+                                        title={routine.is_template ? 'Quitar de plantillas' : 'Marcar como plantilla'}
+                                        className={`p-1.5 rounded-full transition-colors ${routine.is_template ? 'text-primary hover:bg-primary/10' : 'text-text-secondary hover:text-primary hover:bg-primary/10'}`}
+                                    >
+                                        <Star size={14} fill={routine.is_template ? 'currentColor' : 'none'} />
+                                    </button>
                                     <button
                                         onClick={() => { setEditingNameId(routine.id); setEditingNameValue(routine.name); }}
                                         className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
@@ -476,6 +485,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     border_color: routineColor.border,
                     text_color: routineColor.text,
                     trainer_id: user.id,
+                    owner_client_id: client.user_id,
                 }]);
             if (routineError) throw routineError;
 

@@ -134,10 +134,28 @@ clientes" del entrenador real devuelve exactamente su único cliente
 backfillado; la búsqueda de clientes añadibles excluye a ese cliente y
 devuelve los dos que siguen sin entrenador.
 
-**2. Plantillas de rutina reutilizables.**
-Hoy cada rutina se crea dentro de una asignación; no hay forma de reutilizar
-"Día 2 · Empuje" con otro cliente sin rehacerla. Marcar rutinas como
-plantilla (`is_template`) y poder clonarlas a un cliente concreto.
+**2. Plantillas de rutina reutilizables. ✅ Hecho (2026-09-10).**
+
+Decisiones: **clonar siempre** al asignar (cada cliente tiene su copia
+editable, tocar la de uno no afecta a otro), y marcar plantilla con una
+**estrella** en la lista de "Rutinas existentes".
+
+Construido:
+- Migración `20260910_routine_templates.sql`: `routines.is_template` y
+  `routines.owner_client_id` (si está puesto, es la copia privada de un
+  cliente y no aparece en la lista de asignables). Backfill: las rutinas
+  custom asignadas hoy a un solo cliente quedan marcadas como su copia.
+- `src/lib/trainerUtils.js`: `cloneRoutineToClient` (copia routine +
+  exercises con id nuevo, asigna, notifica) y `deleteClientRoutineCopy`
+  (al desasignar borra la copia huérfana; nunca toca plantillas ni
+  compartidas).
+- `RoutineAssignerView.jsx`: lista filtrada a `owner_client_id is null`,
+  estrella para marcar/quitar plantilla (plantillas primero), "Asignar" y
+  "Crear nueva" ahora clonan/crean copia privada.
+- `ClientProfileView.jsx`: desasignar borra también la copia privada.
+
+Pendiente, no bloqueante: una vista de plantillas propia encaja mejor con
+la Fase 0.4 (layout iPad) — de momento se gestionan desde el asignador.
 
 **3. Reordenar los ejercicios de una rutina. ✅ Hecho (2026-09-08), versión botones.**
 
