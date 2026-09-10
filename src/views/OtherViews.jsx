@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../components/ui/Card';
 import { Check, Flame, Clock, Watch, Dumbbell, HeartPulse } from 'lucide-react';
 import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET, resolveCardioCalories } from '../lib/routineUtils';
-import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary } from '../lib/utils';
+import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary, loadExerciseBest1RM } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
@@ -31,6 +31,7 @@ const TrainingView = ({ workout, onFinish }) => {
     const [completedExercises, setCompletedExercises] = useState({});
     const [exerciseLogs, setExerciseLogs] = useState({});
     const [lastExerciseLogs, setLastExerciseLogs] = useState({});
+    const [exerciseBest1RM, setExerciseBest1RM] = useState({});
     const [logsLoading, setLogsLoading] = useState(true);
     const [timerStates, setTimerStates] = useState({});
     const [workoutStartTime] = useState(() => {
@@ -166,6 +167,14 @@ const TrainingView = ({ workout, onFinish }) => {
                         })
                     );
                     setLastExerciseLogs(Object.fromEntries(lastLogsEntries));
+
+                    const best1RMEntries = await Promise.all(
+                        activeWorkout.exercises.map(async (ex) => [
+                            String(ex.id),
+                            ex.name ? await loadExerciseBest1RM(user.id, ex.name) : null,
+                        ])
+                    );
+                    setExerciseBest1RM(Object.fromEntries(best1RMEntries));
                 }
             } catch (error) {
                 console.error("Failed to fetch logs:", error);
@@ -391,6 +400,7 @@ const TrainingView = ({ workout, onFinish }) => {
                     exercise={activeExercise}
                     initialLog={exerciseLogs[String(activeExercise.id)]}
                     lastLog={lastExerciseLogs[String(activeExercise.id)] ?? null}
+                    bestOneRm={exerciseBest1RM[String(activeExercise.id)] ?? null}
                     isCompleted={completedExercises[String(activeExercise.id)]}
                     onClose={handleExerciseModalClose}
                     savedTimerState={timerStates[activeExercise.id]}

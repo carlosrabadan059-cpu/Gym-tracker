@@ -130,7 +130,20 @@ tiene sentido construirlas de una vez y no en cuatro pasadas:
 
 **Diseño:** prototipado con 3 variantes (A inline mínimo / B tarjeta de
 objetivo / C serie activa expandida). Ver
-`src/views/prototype-logging/NOTES.md`. Veredicto pendiente.
+`src/views/prototype-logging/NOTES.md` en la rama `prototype/logging-ui`.
+
+**Veredicto (2026-09-10): gana A — "inline mínimo".** Cero bloques nuevos,
+respeta la velocidad de registro. Implementado en `ExerciseDetailModal.jsx`:
+- ✅ Calculadora de discos (`src/lib/plates.js`: barra 20 kg + discos
+  25/20/15/10/5/2,5/1,25). Texto fino bajo cada fila de serie.
+- ✅ 1RM estimado (Epley) en el bloque "Última vez" + badge "Récord estimado"
+  en la fila cuando el 1RM de esa serie supera el mejor histórico
+  (`loadExerciseBest1RM` en `utils.js`).
+- ✅ RPE por serie (`RPE_OPTIONS` 6-10), aparece solo tras marcar la serie,
+  opcional. Se guarda en `setsData[i].rpe` (el JSONB de `workout_logs` lo
+  absorbe, sin migración).
+- ⏳ Sugerencia de peso vía la IA existente — PR aparte (necesita tocar el
+  backend de IA de `ChatView`).
 
 ### Fase B — Superseries / circuitos
 

@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "./supabase";
+import { estimate1RM } from "./plates";
 
 export function cn(...inputs) {
     return twMerge(clsx(inputs));
@@ -382,4 +383,23 @@ export async function loadExerciseHistory(userId, exerciseName) {
         console.error('Error loading exercise history:', e);
         return [];
     }
+}
+
+/**
+ * Mejor 1RM estimado (Epley) histórico de un ejercicio, mirando todas las
+ * series de todas las sesiones. Sirve para el aviso de PR "en el momento"
+ * dentro de ExerciseDetailModal. null si no hay historial con peso×reps.
+ *
+ * @returns {number | null}
+ */
+export async function loadExerciseBest1RM(userId, exerciseName) {
+    const history = await loadExerciseHistory(userId, exerciseName);
+    let best = null;
+    for (const session of history) {
+        for (const set of Object.values(session.setsData || {})) {
+            const oneRm = estimate1RM(set.weight, set.reps);
+            if (oneRm && (best === null || oneRm > best)) best = oneRm;
+        }
+    }
+    return best;
 }
