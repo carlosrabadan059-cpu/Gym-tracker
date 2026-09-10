@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, History } from 'lucide-react';
+import { X, Check, History, Trophy } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
+import { platesPerSide, formatPlates, estimate1RM, RPE_OPTIONS } from '../lib/plates';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
@@ -15,7 +16,7 @@ function formatRelativeDate(isoDate) {
     return `hace ${diffDays} días`;
 }
 
-export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClose, savedTimerState, onTimerStateChange }) => {
+export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm = null, isCompleted, onClose, savedTimerState, onTimerStateChange }) => {
     const { user, profile } = useAuth();
     const userWeight = profile?.weight || null;
 
@@ -215,6 +216,22 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 return next;
             });
         }
+    };
+
+    const setRpe = (index, value) => {
+        setSetsData(prev => ({
+            ...prev,
+            [index]: { ...prev[index], rpe: prev[index]?.rpe === value ? null : value }
+        }));
+    };
+
+    // Un 1RM estimado de una serie cuenta como récord si supera el mejor
+    // histórico (bestOneRm). Sin historial (bestOneRm null) no se marca nada:
+    // no hay contra qué comparar todavía.
+    const isSetPr = (set) => {
+        if (bestOneRm == null || isBodyweight || isTimeBased) return false;
+        const oneRm = estimate1RM(set?.weight, set?.reps);
+        return oneRm != null && oneRm > bestOneRm;
     };
 
     const toggleSet = (index) => {
@@ -639,6 +656,14 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
                         const needsPerSeriesList = lastLog && sets.length > 0 && (!sharedWeight || !sharedReps);
 
+                        // Mejor 1RM estimado de la última sesión (Epley).
+                        const lastOneRm = !isBodyweight && !isTimeBased
+                            ? sets.reduce((best, [, s]) => {
+                                const v = estimate1RM(s.weight, s.reps);
+                                return v != null && (best == null || v > best) ? v : best;
+                            }, null)
+                            : null;
+
                         return (
                             <div className="rounded-2xl border p-4"
                                 style={{
@@ -683,6 +708,18 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                                     </div>
                                 )}
 
+                                {(lastOneRm != null || bestOneRm != null) && (
+                                    <div className="flex items-center justify-between text-xs text-text-secondary border-t border-amber-500/20 pt-2 mt-2">
+                                        <span>1RM estimado</span>
+                                        <span className="font-mono">
+                                            {lastOneRm != null ? `${String(lastOneRm).replace('.', ',')} kg` : '—'}
+                                            {bestOneRm != null && (
+                                                <span className="text-amber-400/70"> · récord {String(bestOneRm).replace('.', ',')} kg</span>
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+
                                 {!lastLog && (
                                     <p className="text-xs text-text-secondary mt-1">Aún no hay datos históricos para este ejercicio. ¡Registra tu primera sesión!</p>
                                 )}
@@ -693,8 +730,13 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     {/* Logging Inputs */}
                     <div className="space-y-3">
                         <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-2">Registrar Series</h3>
-                        {Array.from({ length: parseInt(exercise.series) || 3 }).map((_, i) => (
-                            <div key={i} className="flex items-center gap-3">
+                        {Array.from({ length: parseInt(exercise.series) || 3 }).map((_, i) => {
+                          const set = setsData[i];
+                          const plates = !isBodyweight && !isTimeBased ? platesPerSide(parseFloat(set?.weight)) : null;
+                          const showPr = isSetPr(set);
+                          return (
+                            <div key={i}>
+                              <div className="flex items-center gap-3">
                                 <span className="w-8 text-center font-bold text-text-secondary">{i + 1}</span>
                                 {!isBodyweight && !isTimeBased && (
                                     <div className={`flex-1 rounded-xl bg-background border px-4 py-3 flex items-center gap-2 transition-colors ${inputErrors[i] ? 'border-red-500 bg-red-500/10' : 'border-surface-highlight'
@@ -732,8 +774,42 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                                 >
                                     {completedSets[i] && <Check size={14} strokeWidth={3} />}
                                 </div>
+                              </div>
+
+                              {/* Discos por lado + badge de récord: texto fino, sin bloque propio */}
+                              {(plates?.length > 0 || showPr) && (
+                                <div className="flex items-center gap-2 pl-11 mt-1">
+                                    {plates?.length > 0 && (
+                                        <span className="text-[11px] text-text-secondary font-mono">
+                                            {formatPlates(plates)} /lado
+                                        </span>
+                                    )}
+                                    {showPr && (
+                                        <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                                            <Trophy size={10} /> Récord estimado
+                                        </span>
+                                    )}
+                                </div>
+                              )}
+
+                              {/* RPE: solo tras marcar la serie. Opcional, se puede ignorar. */}
+                              {completedSets[i] && (
+                                <div className="flex items-center gap-1.5 pl-11 mt-1.5">
+                                    <span className="text-[10px] text-text-secondary uppercase tracking-wider">RPE</span>
+                                    {RPE_OPTIONS.map((v) => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setRpe(i, v)}
+                                            className={`h-6 w-6 rounded-full text-[11px] font-bold transition-colors ${set?.rpe === v ? 'bg-primary text-black' : 'bg-surface-highlight text-text-secondary'}`}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                              )}
                             </div>
-                        ))}
+                          );
+                        })}
                     </div>
 
                 </div>
