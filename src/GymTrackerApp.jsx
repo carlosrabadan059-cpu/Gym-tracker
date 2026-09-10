@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAppUpdate } from './hooks/useAppUpdate';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
+import { TrainerShell } from './components/layout/TrainerShell';
 import { DashboardView } from './views/DashboardView';
 import { TrainingView } from './views/OtherViews';
 const ProgressView = lazy(() => import('./views/StatisticsView').then(m => ({ default: m.StatisticsView })));
@@ -334,39 +335,40 @@ const AuthenticatedApp = () => {
                 />
             )}
 
+            {isTrainer(profile) && view.startsWith('trainer') ? (
+                <TrainerShell view={view} onNavigate={handleNavigate}>
+                    {view === 'trainer' && (
+                        <TrainerDashboardView onNavigate={handleNavigate} />
+                    )}
+                    {view === 'trainer_clients' && (
+                        <ClientsListView
+                            onBack={() => setView('trainer')}
+                            onSelectClient={(client) => {
+                                setCurrentClient(client);
+                                setView('trainer_client_profile');
+                            }}
+                        />
+                    )}
+                    {view === 'trainer_client_profile' && (
+                        <ClientProfileView
+                            client={currentClient}
+                            onBack={() => setView('trainer_clients')}
+                            onAssignRoutine={() => setView('trainer_assign_routine')}
+                        />
+                    )}
+                    {view === 'trainer_assign_routine' && (
+                        <RoutineAssignerView
+                            client={currentClient}
+                            onBack={() => setView('trainer_client_profile')}
+                            onSuccess={() => setView('trainer_client_profile')}
+                        />
+                    )}
+                    {view === 'trainer_library' && (
+                        <TrainerLibraryView onBack={() => setView('trainer')} />
+                    )}
+                </TrainerShell>
+            ) : (
             <main className={`flex-1 overflow-y-auto px-4 pb-32 scrollbar-hide ${['dashboard', 'progress', 'chat'].includes(view) ? 'pt-2' : 'pt-safe'}`}>
-                {/* Vistas exclusivas de entrenador */}
-                {isTrainer(profile) && view === 'trainer' && (
-                    <TrainerDashboardView onNavigate={handleNavigate} />
-                )}
-                {isTrainer(profile) && view === 'trainer_clients' && (
-                    <ClientsListView
-                        onBack={() => setView('trainer')}
-                        onSelectClient={(client) => {
-                            setCurrentClient(client);
-                            setView('trainer_client_profile');
-                        }}
-                    />
-                )}
-                {isTrainer(profile) && view === 'trainer_client_profile' && (
-                    <ClientProfileView
-                        client={currentClient}
-                        onBack={() => setView('trainer_clients')}
-                        onAssignRoutine={() => setView('trainer_assign_routine')}
-                    />
-                )}
-                {isTrainer(profile) && view === 'trainer_assign_routine' && (
-                    <RoutineAssignerView
-                        client={currentClient}
-                        onBack={() => setView('trainer_client_profile')}
-                        onSuccess={() => setView('trainer_client_profile')}
-                    />
-                )}
-                {isTrainer(profile) && view === 'trainer_library' && (
-                    <TrainerLibraryView
-                        onBack={() => setView('trainer')}
-                    />
-                )}
                 {view === 'dashboard' && (
                     <DashboardView
                         onStartDaily={(routine) => handleStartWorkout(routine || { id: 'day1' })}
@@ -401,6 +403,7 @@ const AuthenticatedApp = () => {
                 {view === 'profile' && <ProfileView />}
                 {view === 'notifications' && <NotificationsListView onClose={() => setView('dashboard')} />}
             </main>
+            )}
 
             {/* Banner de actualización disponible */}
             {updateAvailable && (
