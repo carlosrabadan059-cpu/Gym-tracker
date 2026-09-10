@@ -191,18 +191,29 @@ contra el cliente real (Carlos, el único usuario con datos reales en el
 proyecto): tenía **20 sesiones ocultas** por este bug — ahora aparecen con
 fecha y nombre de rutina correctos.
 
-**4. Layout de iPad y escritorio.**
-Ver "Contexto de uso" arriba. Va en la Fase 0 porque construir las fases
-siguientes sobre el layout móvil actual significa construirlas dos veces:
-la pantalla de borrador de la IA (Fase 2), el calendario (Fase 3) y el panel
-de adherencia (Fase 4) son justo las que más se benefician de pantalla ancha.
+**4. Layout de iPad y escritorio. ✅ Hecho (2026-09-10).**
 
-Alcance mínimo para cerrar esta fase:
-- Shell propio para las vistas de entrenador, con barra lateral a partir de
-  `md:` en vez de la navegación inferior.
-- Maestro-detalle en clientes: lista + detalle a la vez en pantalla ancha.
-- Constructor de rutinas a dos columnas: catálogo | rutina.
-- El layout móvil del cliente, intacto.
+Ver "Contexto de uso" arriba. Verificado con capturas a 1280px y 390px
+(login de entrenador real).
+
+Construido:
+- `src/components/layout/TrainerShell.jsx`: las vistas de entrenador salen
+  del `<main>` móvil. A partir de `md:` barra lateral fija
+  (Inicio/Clientes/Librería + cerrar sesión) en vez de la píldora inferior,
+  contenido centrado con ancho máximo. Por debajo de `md:` sin barra
+  lateral, las vistas usan su header con atrás como hasta ahora.
+- `src/components/layout/TrainerClientsView.jsx`: clientes maestro-detalle.
+  En `md:` lista (columna estrecha) + perfil del cliente a la vez; por
+  debajo, una cosa cada vez. `ClientsListView`/`ClientProfileView` ganan
+  prop `embedded`.
+- `RoutineAssignerView` "Crear nueva": a dos columnas en `md:` — catálogo
+  (izq) | nombre/color + rutina en construcción con reordenar/quitar (rail
+  derecho). En móvil sigue la barra inferior colapsable.
+- El layout móvil del cliente, intacto (todo bajo `md:`).
+
+Pendiente, no bloqueante: drag-and-drop para reordenar ejercicios
+(hoy flechas ↑↓), densidad de tabla en vez de tarjetas para listas largas
+de ejercicios, y una vista de plantillas propia (Fase 0.2).
 
 ## Fase 1 — Prescripción completa
 
