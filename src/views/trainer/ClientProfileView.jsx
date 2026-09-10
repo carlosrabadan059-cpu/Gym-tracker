@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
+import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
@@ -187,8 +188,13 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
     const handleDeleteRoutine = async (assignmentId) => {
         try {
+            const assignment = assignedRoutines.find(a => a.id === assignmentId);
             await supabase.from('assigned_routines').delete().eq('id', assignmentId);
             setAssignedRoutines(prev => prev.filter(a => a.id !== assignmentId));
+            // Si era la copia privada del cliente (clon), se borra también la
+            // rutina huérfana. deleteClientRoutineCopy no toca plantillas ni
+            // rutinas compartidas.
+            if (assignment?.routine_id) await deleteClientRoutineCopy(assignment.routine_id);
         } catch (error) {
             console.error('Error unassigning routine:', error);
         } finally {
