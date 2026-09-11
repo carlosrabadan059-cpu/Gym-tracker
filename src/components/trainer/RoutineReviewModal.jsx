@@ -29,10 +29,13 @@ export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose
     const [status, setStatus] = useState('loading'); // 'loading' | 'done' | 'error'
     const [answer, setAnswer] = useState('');
     const hasRunRef = useRef(false);
+    const paramsRef = useRef({ exercises, routineName, clientGoal });
 
     useEffect(() => {
         if (hasRunRef.current) return;
         hasRunRef.current = true;
+
+        const { exercises: initialExercises, routineName: initialRoutineName, clientGoal: initialClientGoal } = paramsRef.current;
 
         let cancelled = false;
         let controller;
@@ -48,7 +51,7 @@ export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose
                 return;
             }
 
-            const breakdown = buildRoutineBreakdown(exercises);
+            const breakdown = buildRoutineBreakdown(initialExercises);
             const exercisesSummary = formatExercisesSummary(breakdown.items);
 
             try {
@@ -58,8 +61,8 @@ export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        routineName: routineName || 'Rutina sin nombre',
-                        clientGoal: clientGoal || 'No especificado',
+                        routineName: initialRoutineName || 'Rutina sin nombre',
+                        clientGoal: initialClientGoal || 'No especificado',
                         exercisesSummary,
                     }),
                     signal: controller.signal,
@@ -85,7 +88,7 @@ export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose
             controller?.abort();
             clearTimeout(timer);
         };
-    }, [exercises, routineName, clientGoal]);
+    }, []);
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
