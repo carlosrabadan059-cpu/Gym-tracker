@@ -321,6 +321,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                 if (!assignment) return null;
                 return (
                     <RoutineReviewModal
+                        key={reviewingAssignmentId}
                         exercises={assignment.routine.exercises.map((ex) => ({
                             name: ex.name,
                             category: ex.category,

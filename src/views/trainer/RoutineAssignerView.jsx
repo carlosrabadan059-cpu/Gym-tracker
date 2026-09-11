@@ -803,6 +803,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
 
             {showReview && (
                 <RoutineReviewModal
+                    key={routineName}
                     exercises={selectedExercises.map((ex) => ({
                         name: ex.name,
                         category: catalog.find((c) => c.id === ex.catalog_id)?.category,
