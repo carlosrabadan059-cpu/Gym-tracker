@@ -3,9 +3,10 @@ import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
-import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
+import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 
 function Stepper({ value, onChange, min = 1, max = 99 }) {
     return (
@@ -44,6 +45,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
 
     const [addingToAssignment, setAddingToAssignment] = useState(null);
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
+    const [reviewingAssignmentId, setReviewingAssignmentId] = useState(null);
 
     useEffect(() => {
         const fetchRoutines = async () => {
@@ -68,7 +70,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                     { data: rawExercisesData, error: exercisesError },
                 ] = await Promise.all([
                     supabase.from('routines').select('*').in('id', routineIds).order('id'),
-                    supabase.from('exercises').select('*, exercise_catalog(name, image_url, instructions)').in('routine_id', routineIds).order('ui_order'),
+                    supabase.from('exercises').select('*, exercise_catalog(name, image_url, instructions, category)').in('routine_id', routineIds).order('ui_order'),
                 ]);
 
                 if (routinesError) throw routinesError;
@@ -314,6 +316,24 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                 />
             )}
 
+            {reviewingAssignmentId && (() => {
+                const assignment = assignedRoutines.find((a) => a.id === reviewingAssignmentId);
+                if (!assignment) return null;
+                return (
+                    <RoutineReviewModal
+                        exercises={assignment.routine.exercises.map((ex) => ({
+                            name: ex.name,
+                            category: ex.category,
+                            series: ex.series,
+                            reps: ex.reps,
+                        }))}
+                        routineName={assignment.routine.name}
+                        clientGoal={client?.goal}
+                        onClose={() => setReviewingAssignmentId(null)}
+                    />
+                );
+            })()}
+
             <div className={embedded ? '' : 'flex flex-col h-full bg-background pb-20'}>
                 <header className={`flex items-center gap-4 border-b border-surface-highlight ${embedded ? 'mb-4 pb-3' : 'mb-6 p-4'}`}>
                     {onBack && (
@@ -432,6 +452,13 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         </p>
                                                     </div>
                                                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                                        <button
+                                                            onClick={() => setReviewingAssignmentId(assignment.id)}
+                                                            className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                            title="Revisar con IA"
+                                                        >
+                                                            <Sparkles size={15} />
+                                                        </button>
                                                         <button
                                                             onClick={() => { setEditingRoutineNameId(assignment.id); setEditingRoutineNameValue(routine.name); }}
                                                             className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
