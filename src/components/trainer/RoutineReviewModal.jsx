@@ -28,13 +28,20 @@ function formatExercisesSummary(items) {
 export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose }) {
     const [status, setStatus] = useState('loading'); // 'loading' | 'done' | 'error'
     const [answer, setAnswer] = useState('');
-    const hasRunRef = useRef(false);
     const paramsRef = useRef({ exercises, routineName, clientGoal });
 
     useEffect(() => {
-        if (hasRunRef.current) return;
-        hasRunRef.current = true;
-
+        // Deps vacías a propósito: solo queremos disparar la revisión una vez
+        // al montar, ignorando cambios posteriores de identidad de `exercises`
+        // (los callers construyen ese array inline en cada render). NO añadir
+        // un guard tipo `hasRunRef` aquí: bajo StrictMode (dev) React monta,
+        // desmonta y vuelve a montar el efecto a propósito para detectar
+        // fugas — un guard así deja la primera petición abortada por el
+        // desmontaje sintético y bloquea el remontaje real, dejando el modal
+        // colgado en "Analizando..." para siempre. El cleanup de abajo ya
+        // cancela correctamente la petición en curso; dejar que el efecto se
+        // vuelva a ejecutar tras ese cleanup es justo el comportamiento
+        // correcto.
         const { exercises: initialExercises, routineName: initialRoutineName, clientGoal: initialClientGoal } = paramsRef.current;
 
         let cancelled = false;
