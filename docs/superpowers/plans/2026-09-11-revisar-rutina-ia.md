@@ -121,7 +121,7 @@ const breakdown = buildRoutineBreakdown([
 ]);
 console.assert(breakdown.patternCounts.empuje === 2, 'dos ejercicios de empuje');
 console.assert(breakdown.patternCounts.pierna === 1, 'un ejercicio de pierna');
-console.assert(breakdown.orderBroken === false, 'orden correcto: compuesto, aislamiento, compuesto (pierna) — solo rompe si aparece un compuesto DESPUÉS de un aislamiento ya visto');
+console.assert(breakdown.orderBroken === true, 'la regla es global a toda la rutina: Sentadilla (compuesto) llega después de Aperturas (aislamiento), aunque sean de categorías distintas — eso ya rompe el orden');
 
 const brokenOrder = buildRoutineBreakdown([
     { name: 'Aperturas', category: 'Pecho', series: 3, reps: 12 },

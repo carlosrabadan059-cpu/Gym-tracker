@@ -55,6 +55,10 @@ export function buildRoutineBreakdown(exercises) {
         });
     }
 
+    // Escaneo global a toda la rutina, NO por categoría/patrón: una vez visto
+    // un aislamiento, cualquier compuesto posterior (de cualquier categoría)
+    // rompe el orden. No reintroducir scoping por categoría aquí — ya se
+    // intentó y se revirtió, ver historial de este archivo.
     let orderBroken = false;
     let sawIsolation = false;
     for (const item of items) {
