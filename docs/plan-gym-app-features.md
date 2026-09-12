@@ -134,8 +134,14 @@ objetivo / C serie activa expandida). Ver
 
 **Veredicto (2026-09-10): gana A — "inline mínimo".** Cero bloques nuevos,
 respeta la velocidad de registro. Implementado en `ExerciseDetailModal.jsx`:
-- ✅ Calculadora de discos (`src/lib/plates.js`: barra 20 kg + discos
-  25/20/15/10/5/2,5/1,25). Texto fino bajo cada fila de serie.
+- ❌ ~~Calculadora de discos~~ **revertida (2026-09-12)**. Asumía siempre
+  barra olímpica de 20 kg cargada por los dos lados — incorrecto para
+  máquinas de palanca/T-bar, poleas y prensas (bug real reportado con
+  captura: "Remo en T apoyado" mostraba un desglose imposible). El catálogo
+  de ejercicios no tiene ningún dato fiable para distinguir barra libre del
+  resto por nombre, así que se quitó en vez de arreglarse a medias. Ver
+  `docs/superpowers/specs/2026-09-12-quitar-desglose-discos-design.md`. El
+  peso total en kg se mantiene igual.
 - ✅ 1RM estimado (Epley) en el bloque "Última vez" + badge "Récord estimado"
   en la fila cuando el 1RM de esa serie supera el mejor histórico
   (`loadExerciseBest1RM` en `utils.js`).
