@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Check, History, Trophy, Sparkles } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
-import { platesPerSide, formatPlates, estimate1RM, RPE_OPTIONS } from '../lib/plates';
+import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
 import { suggestNextWeight } from '../lib/progression';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
@@ -813,7 +813,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                         <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-2">Registrar Series</h3>
                         {Array.from({ length: parseInt(exercise.series) || 3 }).map((_, i) => {
                           const set = setsData[i];
-                          const plates = !isBodyweight && !isTimeBased ? platesPerSide(parseFloat(set?.weight)) : null;
                           const showPr = isSetPr(set);
                           return (
                             <div key={i}>
@@ -857,19 +856,12 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                 </div>
                               </div>
 
-                              {/* Discos por lado + badge de récord: texto fino, sin bloque propio */}
-                              {(plates?.length > 0 || showPr) && (
+                              {/* Badge de récord: texto fino, sin bloque propio */}
+                              {showPr && (
                                 <div className="flex items-center gap-2 pl-11 mt-1">
-                                    {plates?.length > 0 && (
-                                        <span className="text-[11px] text-text-secondary font-mono">
-                                            {formatPlates(plates)} /lado
-                                        </span>
-                                    )}
-                                    {showPr && (
-                                        <span className="text-[10px] font-bold text-primary flex items-center gap-1">
-                                            <Trophy size={10} /> Récord estimado
-                                        </span>
-                                    )}
+                                    <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                                        <Trophy size={10} /> Récord estimado
+                                    </span>
                                 </div>
                               )}
 
