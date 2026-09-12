@@ -308,20 +308,66 @@ como pasos sucesivos; en iPad cabe entero.
   sem. 2: 3×12 @70%…) en vez de reeditar la rutina cada semana.
 - **Mesociclo con fechas**: inicio, fin, y qué pasa al terminar.
 
-## Fase 4 — Seguimiento y feedback
+## Fase 4 — Seguimiento y feedback · ✅ Hecho (2026-09-12)
 
-- **Adherencia**: % de sesiones completadas sobre asignadas, racha, días sin
-  entrenar. Hoy el perfil del cliente solo muestra un contador de sesiones.
-- **Alertas al entrenador**: "X lleva 8 días sin entrenar", "X no completó
-  las series de ayer", "X hizo PR". Se apoya en la tabla `notifications` y la
-  suscripción Realtime que ya existen (`NotificationsContext.jsx`) — no hace
-  falta infraestructura nueva.
-- **Comentarios en dos direcciones** por sesión o por ejercicio: hoy solo
-  existe `support_messages`, que es un buzón genérico, no una conversación
-  atada a un entreno concreto.
-- **Ver el RPE/RIR real del cliente** junto a lo prescrito (dato que llega
-  con v3 Fase A) — es lo que convierte "no le dio" en "le dio con RIR 0, hay
-  que bajar carga".
+**1. Adherencia: racha y días sin entrenar. ✅ Hecho.**
+
+`src/lib/adherence.js`: `computeStreak(dates)` (racha viva en días
+consecutivos) y `computeDaysSinceLastSession(dates)`, puras y testeadas
+(`adherence.test.js`, con `vi.useFakeTimers()` para fechas deterministas).
+`ClientProfileView.jsx` gana dos tarjetas ("Racha", "Última sesión") junto a
+las que ya había (sesiones, rutinas asignadas).
+
+**2. Alertas al entrenador: badge de inactividad. ✅ Hecho, con alcance recortado.**
+
+Decidido explícitamente **al vuelo, sin tabla `notifications` ni cron**: el
+proyecto no tiene ningún scheduler (`pg_cron` ni externo), y montar uno solo
+para esto habría sido la infraestructura nueva que el plan decía evitar.
+`INACTIVITY_ALERT_DAYS = 7` (en `adherence.js`); `ClientsListView.jsx` añade
+una query en paralelo de `workout_logs` (fecha más reciente por cliente, sin
+N+1) y muestra un badge ⚠️ "Hace N días" / "Sin sesiones" cuando corresponde.
+Es un aviso visual al abrir la lista, no una notificación push — las
+alertas de PR y de series no completadas quedan fuera, no se han construido.
+
+**Hallazgo de seguridad real, no planeado, arreglado de paso**: revisando el
+código de esta pieza salió un agujero de RLS — varias políticas de
+entrenador (`workout_logs`, `assigned_routines`, `routines`, `exercises`)
+usaban solo `is_trainer()` (comprueba el rol) sin comprobar que el cliente
+fuera realmente suyo. **Cualquier entrenador podía leer/editar los datos de
+clientes de cualquier otro entrenador.** Arreglado en
+`20260912_scope_trainer_policies_to_own_clients.sql`: las cuatro tablas
+pasan a exigir `trainer_clients`/`routines.trainer_id`, verificado contra
+datos reales antes de aplicar y comprobado en el navegador después.
+
+**3. Comentarios en dos direcciones por ejercicio. ✅ Hecho.**
+
+Tabla nueva `exercise_comments` (`exercise_id`, `author_id`, `body`,
+`created_at`), RLS **diseñada bien desde el principio** con el mismo patrón
+que el fix de seguridad de arriba (nunca `is_trainer()` a secas). Componente
+compartido `src/components/shared/ExerciseCommentThread.jsx` (hilo
+append-only, sin editar/borrar) montado en dos sitios que ya existían:
+`ExerciseDetailModal.jsx` (cliente, bajo "Objetivo del entrenador") y el
+editor inline de ejercicio en `ClientProfileView.jsx` (entrenador). Cada
+comentario notifica al otro participante reusando `notifications` +
+Realtime — `NotificationsListView.jsx` gana un icono para `type: 'comment'`.
+Por sesión completa no se hizo (no hay pantalla de detalle de sesión para el
+cliente); navegación al tocar la notificación tampoco (ninguna notificación
+de la app navega hoy, se deja para cuando haga falta de verdad).
+
+**4. Ver el RPE/RIR real del cliente junto a lo prescrito. ✅ Hecho.**
+
+El RPE por serie (v3 Fase A, ya en `main`) se convierte a RIR aproximado con
+`rirFromRpe(rpe) = 10 - rpe` (`src/lib/plates.js`, testeado). El detalle de
+una sesión pasada (`WorkoutDetailPanel.jsx`, lado entrenador) muestra
+"objetivo RIR N" junto al nombre del ejercicio (si estaba prescrito) y "RIR
+real ≈M" en cada serie donde el cliente marcó su esfuerzo — sin colores de
+alerta ni lógica de "esto es preocupante", solo los dos números uno junto al
+otro (YAGNI, igual criterio que el resto de la fase). Sin tabla ni columna
+nueva: pura lectura de datos que ya existían.
+
+**Pendiente, no bloqueante**: alerta de PR y de series no completadas
+(explícitamente fuera de alcance de la pieza 2), resumen/promedio de
+RPE/RIR en `ClientProfileView.jsx` (solo está en el detalle de sesión).
 
 ## Fase 5 — Salud y visión agregada (depende de v2)
 
