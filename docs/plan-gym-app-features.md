@@ -1,11 +1,12 @@
 # Versión 3: funciones de las apps de gimnasio mejor valoradas
 
-**Fecha:** 2026-09-07
-**Estado:** aparcado como **versión 3** de Rutinex. La **versión 2** es la
-integración con Apple Health completa —fases 0 a 5, incluida la Live Activity—
-en [plan-apple-health-integration.md](plan-apple-health-integration.md), y va
-antes que todo lo de este documento. Nada de aquí está decidido para
-construirse todavía.
+**Fecha:** 2026-09-07 (estado actualizado 2026-09-13)
+**Estado:** versión 3 de Rutinex. **Fase A hecha** (1RM estimado, RPE por
+serie, sugerencia de peso — la calculadora de discos que también formaba
+parte se implementó y se revirtió, ver Fase A abajo). Fases B y C sin
+empezar. La **versión 2** (integración con Apple Health, fases 0 a 5,
+incluida la Live Activity) está en
+[plan-apple-health-integration.md](plan-apple-health-integration.md).
 **Objetivo:** identificar qué funciones de las apps de entrenamiento mejor
 valoradas (Hevy, Fitbod, Strong, JEFIT) aportarían más a Rutinex, evitando
 recomendar lo que ya existe.
@@ -186,6 +187,9 @@ con Apple Health, así que pueden avanzar en paralelo a ese plan.
 
 ## Estado
 
-Documento de estudio + propuesta. Nada implementado ni ejecutado. Ver
-también [docs/plan-apple-health-integration.md](plan-apple-health-integration.md)
+**Fase A hecha (2026-09-10, calculadora de discos revertida 2026-09-12)**:
+1RM estimado + badge de récord, RPE por serie, sugerencia de peso por
+heurística local — los tres en `ExerciseDetailModal.jsx`. Fases B
+(superseries) y C (mapa de recuperación muscular) sin empezar. Ver también
+[docs/plan-apple-health-integration.md](plan-apple-health-integration.md)
 para la integración con Apple Health, que es un eje de mejora aparte.
