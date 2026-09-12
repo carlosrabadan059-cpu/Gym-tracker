@@ -49,3 +49,15 @@ export function estimate1RM(weight, reps) {
 
 /** Opciones de RPE (esfuerzo percibido, 1-10) que se ofrecen tras la serie. */
 export const RPE_OPTIONS = [6, 7, 8, 9, 10];
+
+/**
+ * RIR (repeticiones en reserva) aproximado a partir del RPE marcado por el
+ * cliente tras una serie. Conversión estándar RIR = 10 - RPE — aproximada
+ * a propósito (el RPE es una sensación, no una cuenta exacta de reps
+ * restantes), de ahí el "≈" con que se presenta en la UI. null si no hay
+ * rpe (es un dato opcional, el cliente puede no haberlo marcado).
+ */
+export function rirFromRpe(rpe) {
+    if (rpe == null) return null;
+    return 10 - rpe;
+}
