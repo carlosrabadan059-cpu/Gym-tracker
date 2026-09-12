@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNotifications } from '../context/NotificationsContext';
 import { Card } from '../components/ui/Card';
-import { Bell, Trophy, Info, X, Check } from 'lucide-react';
+import { Bell, Trophy, Info, X, Check, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function NotificationsListView({ onClose }) {
@@ -11,6 +11,7 @@ export function NotificationsListView({ onClose }) {
         switch (type) {
             case 'achievement': return <Trophy size={20} className="text-yellow-500" />;
             case 'reminder': return <Bell size={20} className="text-primary" />;
+            case 'comment': return <MessageCircle size={20} className="text-primary" />;
             default: return <Info size={20} className="text-blue-500" />;
         }
     };
