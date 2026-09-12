@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { isBodyweightExercise, isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { ArrowLeft, Dumbbell, Calendar, Timer } from 'lucide-react';
 import { routines as staticRoutines } from '../../data/routines';
+import { rirFromRpe } from '../../lib/plates';
 
 const STATIC_ID_TO_NAME = {};
 staticRoutines.forEach(r => r.exercises.forEach(ex => {
@@ -22,13 +23,13 @@ export function WorkoutDetailPanel({ entry, onClose }) {
 
             const { data } = await supabase
                 .from('exercises')
-                .select('id, name, catalog_id, exercise_catalog(name)')
+                .select('id, name, catalog_id, target_rir, exercise_catalog(name)')
                 .in('id', ids.map(Number));
 
             if (data) {
                 data.forEach(ex => {
                     const resolvedName = ex.exercise_catalog?.name || ex.name;
-                    nextNameMap[String(ex.id)] = { name: resolvedName, catalog_id: ex.catalog_id };
+                    nextNameMap[String(ex.id)] = { name: resolvedName, catalog_id: ex.catalog_id, target_rir: ex.target_rir ?? null };
                 });
             }
 
@@ -66,15 +67,18 @@ export function WorkoutDetailPanel({ entry, onClose }) {
                 const mapData = nameMap[id];
                 let name = `Ejercicio antiguo (#${id})`;
                 let catalog_id = null;
+                let target_rir = null;
 
                 if (mapData) {
                     name = (typeof mapData === 'string' ? mapData : mapData.name);
                     catalog_id = typeof mapData !== 'string' ? mapData.catalog_id : null;
+                    target_rir = typeof mapData !== 'string' ? (mapData.target_rir ?? null) : null;
                 }
                 return {
                     id,
                     name,
                     catalog_id,
+                    target_rir,
                     sets: Object.values(log.setsData || {}),
                 };
             });
@@ -125,7 +129,12 @@ export function WorkoutDetailPanel({ entry, onClose }) {
                         const doneSets = ex.sets.filter(s => s.done !== false);
                         return (
                             <div key={ex.id} className="bg-surface rounded-2xl p-4 border border-surface-highlight">
-                                <p className="font-semibold text-text-primary text-sm mb-3">{ex.name}</p>
+                                <p className="font-semibold text-text-primary text-sm mb-3">
+                                    {ex.name}
+                                    {ex.target_rir != null && (
+                                        <span className="font-normal text-text-secondary"> · objetivo RIR {ex.target_rir}</span>
+                                    )}
+                                </p>
                                 <div className="space-y-1.5">
                                     {doneSets.length === 0 ? (
                                         <p className="text-xs text-text-secondary">Sin series completadas.</p>
@@ -149,6 +158,11 @@ export function WorkoutDetailPanel({ entry, onClose }) {
                                                             </>
                                                         )}
                                                     </span>
+                                                    {set.rpe != null && (
+                                                        <span className="text-xs text-text-secondary">
+                                                            · RIR real ≈{rirFromRpe(set.rpe)}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             );
                                         })
