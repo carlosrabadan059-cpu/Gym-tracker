@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
-import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles } from 'lucide-react';
+import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
+import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
@@ -46,6 +47,20 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
     const [addingToAssignment, setAddingToAssignment] = useState(null);
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
     const [reviewingAssignmentId, setReviewingAssignmentId] = useState(null);
+
+    const sessionDates = useMemo(() => workoutHistory.map((entry) => entry.date), [workoutHistory]);
+    const streak = useMemo(() => computeStreak(sessionDates), [sessionDates]);
+    const daysSinceLastSession = useMemo(() => computeDaysSinceLastSession(sessionDates), [sessionDates]);
+
+    const lastSessionLabel = historyLoading
+        ? '—'
+        : daysSinceLastSession === null
+            ? 'Sin sesiones'
+            : daysSinceLastSession === 0
+                ? 'Hoy'
+                : daysSinceLastSession === 1
+                    ? 'Ayer'
+                    : `Hace ${daysSinceLastSession} días`;
 
     useEffect(() => {
         const fetchRoutines = async () => {
@@ -383,6 +398,25 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                 {loading ? '—' : assignedRoutines.length}
                             </p>
                             <p className="text-xs text-text-secondary">asignadas</p>
+                        </div>
+                        <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-red-500">
+                                <Flame size={18} />
+                                <span className="font-bold text-xs uppercase tracking-wider">Racha</span>
+                            </div>
+                            <p className="text-2xl font-black text-text-primary">
+                                {historyLoading ? '—' : streak}
+                            </p>
+                            <p className="text-xs text-text-secondary">días seguidos</p>
+                        </div>
+                        <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-blue-400">
+                                <Calendar size={18} />
+                                <span className="font-bold text-xs uppercase tracking-wider">Última sesión</span>
+                            </div>
+                            <p className="text-lg font-black text-text-primary">
+                                {lastSessionLabel}
+                            </p>
                         </div>
                     </div>
 
