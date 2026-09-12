@@ -76,3 +76,8 @@ export function computeDaysSinceLastSession(dates) {
     const diffMs = todayDay.getTime() - latestDay.getTime();
     return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
+
+// Umbral a partir del cual "días sin entrenar" pasa de dato informativo a
+// aviso de atención (ClientsListView). Vive aquí para que cualquier vista
+// futura que quiera el mismo criterio lo reuse en vez de inventar el suyo.
+export const INACTIVITY_ALERT_DAYS = 7;
