@@ -8,6 +8,7 @@ import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, Che
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
+import { ExerciseCommentThread } from '../../components/shared/ExerciseCommentThread';
 
 function Stepper({ value, onChange, min = 1, max = 99 }) {
     return (
@@ -656,6 +657,14 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                 onChange={(e) => setEditingExercise(p => ({ ...p, notes: e.target.value }))}
                                                                                 className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary resize-none" placeholder="Indicaciones técnicas…" />
                                                                         </label>
+                                                                        <div className="col-span-2 pt-2 border-t border-surface-highlight/60">
+                                                                            <ExerciseCommentThread
+                                                                                exerciseId={ex.id}
+                                                                                exerciseName={ex.name}
+                                                                                recipientId={client.user_id}
+                                                                                counterpartLabel="Cliente"
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 )}
                                                               </div>
