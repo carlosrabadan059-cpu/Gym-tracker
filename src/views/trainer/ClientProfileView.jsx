@@ -417,6 +417,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                             <p className="text-lg font-black text-text-primary">
                                 {lastSessionLabel}
                             </p>
+                            <p className="text-xs text-text-secondary">última actividad</p>
                         </div>
                     </div>
 
