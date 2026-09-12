@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
+import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
-import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil } from 'lucide-react';
+import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
+import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
+import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 
 function Stepper({ value, onChange, min = 1, max = 99 }) {
     return (
@@ -26,7 +29,7 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
     );
 }
 
-export function ClientProfileView({ client, onBack, onAssignRoutine }) {
+export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = false }) {
     const [assignedRoutines, setAssignedRoutines] = useState([]);
     const [workoutHistory, setWorkoutHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -43,6 +46,21 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
 
     const [addingToAssignment, setAddingToAssignment] = useState(null);
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
+    const [reviewingAssignmentId, setReviewingAssignmentId] = useState(null);
+
+    const sessionDates = useMemo(() => workoutHistory.map((entry) => entry.date), [workoutHistory]);
+    const streak = useMemo(() => computeStreak(sessionDates), [sessionDates]);
+    const daysSinceLastSession = useMemo(() => computeDaysSinceLastSession(sessionDates), [sessionDates]);
+
+    const lastSessionLabel = historyLoading
+        ? '—'
+        : daysSinceLastSession === null
+            ? 'Sin sesiones'
+            : daysSinceLastSession === 0
+                ? 'Hoy'
+                : daysSinceLastSession === 1
+                    ? 'Ayer'
+                    : `Hace ${daysSinceLastSession} días`;
 
     useEffect(() => {
         const fetchRoutines = async () => {
@@ -67,7 +85,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                     { data: rawExercisesData, error: exercisesError },
                 ] = await Promise.all([
                     supabase.from('routines').select('*').in('id', routineIds).order('id'),
-                    supabase.from('exercises').select('*, exercise_catalog(name, image_url, instructions)').in('routine_id', routineIds).order('ui_order'),
+                    supabase.from('exercises').select('*, exercise_catalog(name, image_url, instructions, category)').in('routine_id', routineIds).order('ui_order'),
                 ]);
 
                 if (routinesError) throw routinesError;
@@ -98,18 +116,34 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         const fetchHistory = async () => {
             if (!client?.user_id) { setHistoryLoading(false); return; }
             try {
+                // Dos consultas, no un embed `routines(name)`: PostgREST no
+                // tiene una FK entre workout_logs.routine_id y routines.id
+                // (routine_id también puede ser un id de rutina estática
+                // tipo "day1", que ni siquiera existe como fila en
+                // `routines`), así que el embed automático siempre fallaba
+                // con PGRST200. Mismo patrón que trainer_clients/profiles.
                 const { data: logs, error } = await supabase
                     .from('workout_logs')
-                    .select('id, routine_id, date, logs, routines(name)')
+                    .select('id, routine_id, date, logs')
                     .eq('user_id', client.user_id)
                     .order('date', { ascending: false })
                     .limit(20);
 
                 if (error) throw error;
 
+                const routineIds = [...new Set((logs || []).map(l => l.routine_id).filter(Boolean))];
+                let nameById = {};
+                if (routineIds.length > 0) {
+                    const { data: routinesData } = await supabase
+                        .from('routines')
+                        .select('id, name')
+                        .in('id', routineIds);
+                    nameById = Object.fromEntries((routinesData || []).map(r => [r.id, r.name]));
+                }
+
                 setWorkoutHistory((logs || []).map(log => ({
                     ...log,
-                    routineName: log.routines?.name || log.routine_id,
+                    routineName: nameById[log.routine_id] || log.routine_id,
                     exerciseCount: log.logs ? Object.keys(log.logs).length : 0,
                 })));
             } catch (e) {
@@ -142,10 +176,42 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         }
     };
 
+    // Fase 0 del plan de entrenador: no había forma de reordenar ejercicios
+    // ya asignados salvo borrar y volver a añadir. Mueve un puesto arriba/abajo
+    // y renumera 1..n para cerrar los huecos que deja borrar ejercicios.
+    const handleReorderExercise = async (assignmentId, exerciseId, direction) => {
+        const assignment = assignedRoutines.find(a => a.id === assignmentId);
+        if (!assignment) return;
+        const exercises = [...assignment.routine.exercises];
+        const index = exercises.findIndex(ex => ex.id === exerciseId);
+        const targetIndex = index + direction;
+        if (index === -1 || targetIndex < 0 || targetIndex >= exercises.length) return;
+
+        [exercises[index], exercises[targetIndex]] = [exercises[targetIndex], exercises[index]];
+        exercises.forEach((ex, i) => { ex.ui_order = i + 1; });
+
+        setAssignedRoutines(prev => prev.map(a =>
+            a.id === assignmentId ? { ...a, routine: { ...a.routine, exercises } } : a
+        ));
+
+        try {
+            await Promise.all(exercises.map(ex =>
+                supabase.from('exercises').update({ ui_order: ex.ui_order }).eq('id', ex.id)
+            ));
+        } catch (error) {
+            console.error('Error reordering exercises:', error);
+        }
+    };
+
     const handleDeleteRoutine = async (assignmentId) => {
         try {
+            const assignment = assignedRoutines.find(a => a.id === assignmentId);
             await supabase.from('assigned_routines').delete().eq('id', assignmentId);
             setAssignedRoutines(prev => prev.filter(a => a.id !== assignmentId));
+            // Si era la copia privada del cliente (clon), se borra también la
+            // rutina huérfana. deleteClientRoutineCopy no toca plantillas ni
+            // rutinas compartidas.
+            if (assignment?.routine_id) await deleteClientRoutineCopy(assignment.routine_id);
         } catch (error) {
             console.error('Error unassigning routine:', error);
         } finally {
@@ -184,6 +250,12 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
             assignmentId,
             series: Number(ex.series) || 3,
             reps: Number(ex.reps) || 10,
+            // Prescripción (Fase 1). Cadenas vacías = sin prescribir.
+            target_weight: ex.target_weight ?? '',
+            target_rir: ex.target_rir ?? '',
+            rest_seconds: ex.rest_seconds ?? '',
+            tempo: ex.tempo ?? '',
+            notes: ex.notes ?? '',
         });
     };
 
@@ -192,10 +264,19 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
         if (!editingExercise) return;
         setSavingEdit(true);
         try {
-            const { error } = await supabase
-                .from('exercises')
-                .update({ series: String(editingExercise.series), reps: String(editingExercise.reps) })
-                .eq('id', editingExercise.id);
+            const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
+            const strOrNull = (v) => (v?.trim() ? v.trim() : null);
+            const patch = {
+                series: String(editingExercise.series),
+                reps: String(editingExercise.reps),
+                target_weight: numOrNull(editingExercise.target_weight),
+                target_rir: numOrNull(editingExercise.target_rir),
+                rest_seconds: numOrNull(editingExercise.rest_seconds),
+                tempo: strOrNull(editingExercise.tempo),
+                notes: strOrNull(editingExercise.notes),
+            };
+
+            const { error } = await supabase.from('exercises').update(patch).eq('id', editingExercise.id);
             if (error) throw error;
 
             setAssignedRoutines(prev => prev.map(a => {
@@ -205,9 +286,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                     routine: {
                         ...a.routine,
                         exercises: a.routine.exercises.map(ex =>
-                            ex.id === editingExercise.id
-                                ? { ...ex, series: String(editingExercise.series), reps: String(editingExercise.reps) }
-                                : ex
+                            ex.id === editingExercise.id ? { ...ex, ...patch } : ex
                         )
                     }
                 };
@@ -252,14 +331,35 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                 />
             )}
 
-            <div className="flex flex-col h-full bg-background pb-20">
-                <header className="mb-6 flex items-center gap-4 p-4 border-b border-surface-highlight">
-                    <button
-                        onClick={onBack}
-                        className="p-2 rounded-full hover:bg-surface-highlight transition-colors"
-                    >
-                        <ArrowLeft size={24} className="text-text-primary" />
-                    </button>
+            {reviewingAssignmentId && (() => {
+                const assignment = assignedRoutines.find((a) => a.id === reviewingAssignmentId);
+                if (!assignment) return null;
+                return (
+                    <RoutineReviewModal
+                        key={reviewingAssignmentId}
+                        exercises={assignment.routine.exercises.map((ex) => ({
+                            name: ex.name,
+                            category: ex.category,
+                            series: ex.series,
+                            reps: ex.reps,
+                        }))}
+                        routineName={assignment.routine.name}
+                        clientGoal={client?.goal}
+                        onClose={() => setReviewingAssignmentId(null)}
+                    />
+                );
+            })()}
+
+            <div className={embedded ? '' : 'flex flex-col h-full bg-background pb-20'}>
+                <header className={`flex items-center gap-4 border-b border-surface-highlight ${embedded ? 'mb-4 pb-3' : 'mb-6 p-4'}`}>
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className={`p-2 rounded-full hover:bg-surface-highlight transition-colors ${embedded ? 'md:hidden' : ''}`}
+                        >
+                            <ArrowLeft size={24} className="text-text-primary" />
+                        </button>
+                    )}
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-surface-highlight overflow-hidden flex-shrink-0">
                             <img
@@ -298,6 +398,26 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                 {loading ? '—' : assignedRoutines.length}
                             </p>
                             <p className="text-xs text-text-secondary">asignadas</p>
+                        </div>
+                        <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-red-500">
+                                <Flame size={18} />
+                                <span className="font-bold text-xs uppercase tracking-wider">Racha</span>
+                            </div>
+                            <p className="text-2xl font-black text-text-primary">
+                                {historyLoading ? '—' : streak}
+                            </p>
+                            <p className="text-xs text-text-secondary">días seguidos</p>
+                        </div>
+                        <div className="bg-surface p-4 rounded-2xl border border-surface-highlight flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-blue-400">
+                                <Calendar size={18} />
+                                <span className="font-bold text-xs uppercase tracking-wider">Última sesión</span>
+                            </div>
+                            <p className="text-lg font-black text-text-primary">
+                                {lastSessionLabel}
+                            </p>
+                            <p className="text-xs text-text-secondary">última actividad</p>
                         </div>
                     </div>
 
@@ -369,6 +489,13 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                     </div>
                                                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                                                         <button
+                                                            onClick={() => setReviewingAssignmentId(assignment.id)}
+                                                            className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                            title="Revisar con IA"
+                                                        >
+                                                            <Sparkles size={15} />
+                                                        </button>
+                                                        <button
                                                             onClick={() => { setEditingRoutineNameId(assignment.id); setEditingRoutineNameValue(routine.name); }}
                                                             className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                                                         >
@@ -410,14 +537,27 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                     {routine.exercises.length === 0 ? (
                                                         <p className="text-xs text-text-secondary">Sin ejercicios.</p>
                                                     ) : (
-                                                        routine.exercises.map((ex) => {
+                                                        routine.exercises.map((ex, idx) => {
                                                             const isEditing = editingExercise?.id === ex.id;
                                                             return (
-                                                                <div
-                                                                    key={ex.id}
-                                                                    onClick={(e) => e.stopPropagation()}
-                                                                    className="flex items-center gap-3 bg-background/40 rounded-xl px-2 py-2"
-                                                                >
+                                                              <div key={ex.id} onClick={(e) => e.stopPropagation()} className="bg-background/40 rounded-xl">
+                                                                <div className="flex items-center gap-3 px-2 py-2">
+                                                                    <div className="flex flex-col flex-shrink-0 -my-1">
+                                                                        <button
+                                                                            onClick={() => handleReorderExercise(assignment.id, ex.id, -1)}
+                                                                            disabled={idx === 0}
+                                                                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                                                                        >
+                                                                            <ChevronUp size={13} />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleReorderExercise(assignment.id, ex.id, 1)}
+                                                                            disabled={idx === routine.exercises.length - 1}
+                                                                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                                                                        >
+                                                                            <ChevronDown size={13} />
+                                                                        </button>
+                                                                    </div>
                                                                     <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-surface-highlight flex items-center justify-center">
                                                                         {ex.image_url ? (
                                                                             <img src={ex.image_url} alt={ex.name} className="h-full w-full object-contain" loading="lazy" />
@@ -463,7 +603,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                         </div>
                                                                     ) : (
                                                                         <div className="flex items-center gap-1 flex-shrink-0">
-                                                                            <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">{ex.series}×{ex.reps}{isTimeBasedExercise(ex) ? 'm' : ''}</span>
+                                                                            <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">
+                                                                                {ex.series}×{ex.reps}{isTimeBasedExercise(ex) ? 'm' : ''}
+                                                                                {ex.target_weight != null && ` · ${String(ex.target_weight).replace('.', ',')}kg`}
+                                                                                {ex.target_rir != null && ` · RIR${ex.target_rir}`}
+                                                                            </span>
                                                                             <button
                                                                                 onClick={(e) => startEditExercise(e, ex, assignment.id)}
                                                                                 className="w-7 h-7 rounded-full hover:bg-surface-highlight flex items-center justify-center transition-colors"
@@ -479,6 +623,42 @@ export function ClientProfileView({ client, onBack, onAssignRoutine }) {
                                                                         </div>
                                                                     )}
                                                                 </div>
+
+                                                                {isEditing && (
+                                                                    <div className="px-2 pb-3 pt-1 grid grid-cols-2 gap-2 border-t border-surface-highlight/60 mt-1">
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Peso objetivo (kg)
+                                                                            <input type="number" inputMode="decimal" value={editingExercise.target_weight}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, target_weight: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
+                                                                        </label>
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            RIR (0-5)
+                                                                            <input type="number" min="0" max="5" value={editingExercise.target_rir}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, target_rir: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
+                                                                        </label>
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Descanso (s)
+                                                                            <input type="number" min="0" value={editingExercise.rest_seconds}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, rest_seconds: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
+                                                                        </label>
+                                                                        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Tempo
+                                                                            <input type="text" value={editingExercise.tempo}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, tempo: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="3-1-2" />
+                                                                        </label>
+                                                                        <label className="col-span-2 flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Notas
+                                                                            <textarea rows={2} value={editingExercise.notes}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, notes: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary resize-none" placeholder="Indicaciones técnicas…" />
+                                                                        </label>
+                                                                    </div>
+                                                                )}
+                                                              </div>
                                                             );
                                                         })
                                                     )}

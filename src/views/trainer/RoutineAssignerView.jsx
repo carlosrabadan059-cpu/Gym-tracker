@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
+import { cloneRoutineToClient } from '../../lib/trainerUtils';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star } from 'lucide-react';
+import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -95,6 +97,50 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
     );
 }
 
+// Lista de ejercicios elegidos con reordenar/quitar. Se reusa en el rail
+// derecho (md+) y en la barra inferior colapsable (móvil).
+function SelectedExerciseList({ selected, onMove, onRemove }) {
+    return (
+        <div className="space-y-2">
+            {selected.map((ex, idx) => (
+                <div key={ex.catalog_id} className="flex items-center gap-3 bg-background rounded-xl px-3 py-2">
+                    <div className="flex flex-col flex-shrink-0 -my-1">
+                        <button
+                            onClick={() => onMove(ex.catalog_id, -1)}
+                            disabled={idx === 0}
+                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                        >
+                            <ChevronUp size={13} />
+                        </button>
+                        <button
+                            onClick={() => onMove(ex.catalog_id, 1)}
+                            disabled={idx === selected.length - 1}
+                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                        >
+                            <ChevronDown size={13} />
+                        </button>
+                    </div>
+                    {ex.image_url ? (
+                        <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
+                    ) : (
+                        <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
+                            <Dumbbell size={12} className="text-text-secondary" />
+                        </div>
+                    )}
+                    <span className="flex-1 text-xs text-text-primary truncate">{ex.name}</span>
+                    <span className="text-xs text-text-secondary font-bold">{ex.series}×{ex.reps}</span>
+                    <button
+                        onClick={() => onRemove(ex.catalog_id)}
+                        className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors"
+                    >
+                        <X size={12} />
+                    </button>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 // ─── Assign Existing Routine Tab ────────────────────────────────────────────
 
 function AssignExistingTab({ client, user, onSuccess, onBack }) {
@@ -110,9 +156,13 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
     useEffect(() => {
         const fetchRoutines = async () => {
             try {
+                // owner_client_id null: fuera las copias privadas de cada
+                // cliente (clones). Solo plantillas, estáticas y rutinas del
+                // entrenador aún sin dueño.
                 const { data: routinesData, error } = await supabase
                     .from('routines')
-                    .select('*');
+                    .select('*')
+                    .is('owner_client_id', null);
                 if (error) throw error;
 
                 const ids = (routinesData || []).map(r => r.id);
@@ -136,6 +186,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                     return match ? parseInt(match[1], 10) : null;
                 };
                 const sorted = Object.values(map).sort((a, b) => {
+                    if (!!a.is_template !== !!b.is_template) return a.is_template ? -1 : 1;
                     const orderA = extractDayNumber(a.name);
                     const orderB = extractDayNumber(b.name);
                     if (orderA !== null && orderB === null) return -1;
@@ -170,6 +221,17 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
         }
     };
 
+    const handleToggleTemplate = async (routineId, next) => {
+        setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, is_template: next } : r));
+        try {
+            const { error } = await supabase.from('routines').update({ is_template: next }).eq('id', routineId);
+            if (error) throw error;
+        } catch (err) {
+            console.error('Error toggling template:', err);
+            setRoutines(prev => prev.map(r => r.id === routineId ? { ...r, is_template: !next } : r));
+        }
+    };
+
     const handleDeleteRoutine = async (routineId) => {
         try {
             await supabase.from('exercises').delete().eq('routine_id', routineId);
@@ -188,27 +250,9 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
         if (!selectedRoutineId || !client) return;
         setSaving(true);
         try {
-            const { error } = await supabase.from('assigned_routines').insert([{
-                client_id: client.user_id,
-                routine_id: selectedRoutineId,
-                assigned_by: user.id,
-            }]);
-            if (error) throw error;
-
-            const routine = routines.find(r => r.id === selectedRoutineId);
-            if (client.user_id && routine) {
-                try {
-                    await supabase.from('notifications').insert([{
-                        user_id: client.user_id,
-                        title: '¡Nueva Rutina Asignada!',
-                        message: `Tu entrenador te ha asignado: ${routine.name}. ¡A darle duro!`,
-                        read: false,
-                    }]);
-                } catch (notifErr) {
-                    console.warn('Could not insert notification, table likely missing', notifErr);
-                }
-            }
-
+            // Clonar-siempre: el cliente recibe una copia propia, no la rutina
+            // compartida. La notificación la manda cloneRoutineToClient.
+            await cloneRoutineToClient(selectedRoutineId, client, user.id);
             onSuccess();
         } catch (err) {
             console.error('Error assigning routine:', err);
@@ -284,10 +328,20 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <p className={`font-bold text-sm ${routine.text_color || 'text-text-primary'}`}>{routine.name}</p>
-                                            <p className="text-xs text-text-secondary">{routine.exercises.length} ejercicios</p>
+                                            <p className="text-xs text-text-secondary">
+                                                {routine.exercises.length} ejercicios
+                                                {routine.is_template && <span className="text-primary font-semibold"> · Plantilla</span>}
+                                            </p>
                                         </div>
                                     </div>
                                 <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                                    <button
+                                        onClick={() => handleToggleTemplate(routine.id, !routine.is_template)}
+                                        title={routine.is_template ? 'Quitar de plantillas' : 'Marcar como plantilla'}
+                                        className={`p-1.5 rounded-full transition-colors ${routine.is_template ? 'text-primary hover:bg-primary/10' : 'text-text-secondary hover:text-primary hover:bg-primary/10'}`}
+                                    >
+                                        <Star size={14} fill={routine.is_template ? 'currentColor' : 'none'} />
+                                    </button>
                                     <button
                                         onClick={() => { setEditingNameId(routine.id); setEditingNameValue(routine.name); }}
                                         className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
@@ -381,6 +435,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
     const [collapsedGroups, setCollapsedGroups] = useState({});
     const [showSelected, setShowSelected] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [showReview, setShowReview] = useState(false);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -439,6 +494,20 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
         );
     };
 
+    // El orden de esta lista es el ui_order con el que se guarda la rutina
+    // (handleSave usa el índice del array) — sin esto, el único orden posible
+    // era el orden en que se tocaron los ejercicios en el catálogo.
+    const moveSelected = (catalogId, direction) => {
+        setSelectedExercises(prev => {
+            const index = prev.findIndex(s => s.catalog_id === catalogId);
+            const targetIndex = index + direction;
+            if (index === -1 || targetIndex < 0 || targetIndex >= prev.length) return prev;
+            const next = [...prev];
+            [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+            return next;
+        });
+    };
+
     const toggleGroup = (group) => {
         setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
     };
@@ -462,6 +531,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     border_color: routineColor.border,
                     text_color: routineColor.text,
                     trainer_id: user.id,
+                    owner_client_id: client.user_id,
                 }]);
             if (routineError) throw routineError;
 
@@ -526,13 +596,22 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     <p className="text-xs text-text-secondary truncate">{client?.fullName || client?.username}</p>
                 </div>
                 {mode === 'new' && (
-                    <button
-                        onClick={handleSave}
-                        disabled={!canSave || saving}
-                        className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
-                    >
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </button>
+                    <>
+                        <button
+                            onClick={() => setShowReview(true)}
+                            disabled={selectedExercises.length === 0}
+                            className="border border-primary text-primary font-bold px-3 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/10 transition-colors flex-shrink-0"
+                        >
+                            Revisar con IA
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={!canSave || saving}
+                            className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
+                        >
+                            {saving ? 'Guardando...' : 'Guardar'}
+                        </button>
+                    </>
                 )}
             </header>
 
@@ -561,9 +640,10 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
             {mode === 'existing' ? (
                 <AssignExistingTab client={client} user={user} onSuccess={onSuccess} onBack={onBack} />
             ) : (
-                <div className="flex-1 overflow-y-auto">
-                    {/* Routine config */}
-                    <div className="p-4 space-y-3 border-b border-surface-highlight">
+                <div className="md:flex md:flex-1 md:min-h-0">
+                  <div className="flex-1 overflow-y-auto md:border-r md:border-surface-highlight">
+                    {/* Routine config — en md se repite en el rail derecho */}
+                    <div className="md:hidden p-4 space-y-3 border-b border-surface-highlight">
                         <input
                             type="text"
                             placeholder="Nombre de la rutina (ej: Día 1 - Pecho)"
@@ -600,7 +680,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     </div>
 
                     {/* Exercise grid by group */}
-                    <div className="px-4 pb-32 pt-4 space-y-6">
+                    <div className="px-4 pb-32 md:pb-8 pt-4 space-y-6">
                         {loading ? (
                             <div className="grid grid-cols-4 gap-2">
                                 {Array.from({ length: 12 }).map((_, i) => (
@@ -655,12 +735,50 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                             })
                         )}
                     </div>
+                  </div>
+
+                  {/* Rail derecho — md+: configuración + rutina en construcción */}
+                  <aside className="hidden md:flex md:w-80 md:flex-col md:overflow-y-auto md:flex-shrink-0 p-4 space-y-4">
+                    <input
+                        type="text"
+                        placeholder="Nombre de la rutina (ej: Día 1 - Pecho)"
+                        value={routineName}
+                        onChange={(e) => setRoutineName(e.target.value)}
+                        className="w-full bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-text-primary text-sm focus:outline-none focus:border-primary transition-colors"
+                    />
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-text-secondary">Color:</span>
+                        <div className="flex gap-2">
+                            {COLORS.map(c => (
+                                <button
+                                    key={c.value}
+                                    onClick={() => setRoutineColor(c)}
+                                    className={`w-6 h-6 rounded-full ${c.value} transition-all ${routineColor.value === c.value ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' : 'opacity-40 hover:opacity-70'}`}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="border-t border-surface-highlight pt-3">
+                        <p className="text-sm font-bold text-text-primary mb-2">
+                            {selectedExercises.length} ejercicio{selectedExercises.length !== 1 ? 's' : ''}
+                        </p>
+                        {selectedExercises.length > 0 ? (
+                            <SelectedExerciseList
+                                selected={selectedExercises}
+                                onMove={moveSelected}
+                                onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
+                            />
+                        ) : (
+                            <p className="text-xs text-text-secondary">Toca ejercicios del catálogo para añadirlos a la rutina.</p>
+                        )}
+                    </div>
+                  </aside>
                 </div>
             )}
 
-            {/* Bottom selected bar — only for new routine mode */}
+            {/* Barra inferior de seleccionados — solo móvil */}
             {mode === 'new' && selectedExercises.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
+                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
                     <button
                         onClick={() => setShowSelected(!showSelected)}
                         className="w-full flex items-center justify-between"
@@ -672,29 +790,30 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     </button>
 
                     {showSelected && (
-                        <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-                            {selectedExercises.map((ex) => (
-                                <div key={ex.catalog_id} className="flex items-center gap-3 bg-background rounded-xl px-3 py-2">
-                                    {ex.image_url ? (
-                                        <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
-                                    ) : (
-                                        <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
-                                            <Dumbbell size={12} className="text-text-secondary" />
-                                        </div>
-                                    )}
-                                    <span className="flex-1 text-xs text-text-primary truncate">{ex.name}</span>
-                                    <span className="text-xs text-text-secondary font-bold">{ex.series}×{ex.reps}</span>
-                                    <button
-                                        onClick={() => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== ex.catalog_id))}
-                                        className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors"
-                                    >
-                                        <X size={12} />
-                                    </button>
-                                </div>
-                            ))}
+                        <div className="mt-3 max-h-48 overflow-y-auto">
+                            <SelectedExerciseList
+                                selected={selectedExercises}
+                                onMove={moveSelected}
+                                onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
+                            />
                         </div>
                     )}
                 </div>
+            )}
+
+            {showReview && (
+                <RoutineReviewModal
+                    key={routineName}
+                    exercises={selectedExercises.map((ex) => ({
+                        name: ex.name,
+                        category: catalog.find((c) => c.id === ex.catalog_id)?.category,
+                        series: ex.series,
+                        reps: ex.reps,
+                    }))}
+                    routineName={routineName}
+                    clientGoal={client?.goal}
+                    onClose={() => setShowReview(false)}
+                />
             )}
         </div>
     );

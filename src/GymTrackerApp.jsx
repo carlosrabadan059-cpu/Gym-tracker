@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAppUpdate } from './hooks/useAppUpdate';
 import { Header } from './components/layout/Header';
 import { BottomNavigation } from './components/layout/BottomNavigation';
+import { TrainerShell } from './components/layout/TrainerShell';
 import { DashboardView } from './views/DashboardView';
 import { TrainingView } from './views/OtherViews';
 const ProgressView = lazy(() => import('./views/StatisticsView').then(m => ({ default: m.StatisticsView })));
@@ -16,28 +17,52 @@ import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { TRAINER_ROLES, isTrainer } from './lib/constants';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
-import { ClientsListView } from './views/trainer/ClientsListView';
-import { ClientProfileView } from './views/trainer/ClientProfileView';
+import { TrainerClientsView } from './components/layout/TrainerClientsView';
 import { RoutineAssignerView } from './views/trainer/RoutineAssignerView';
 import { TrainerLibraryView } from './views/trainer/TrainerLibraryView';
 
 /**
  * Previene el diálogo nativo de iOS "Shake to Undo" (Deshacer escritura).
- * Detecta el movimiento del dispositivo y desenfoca el input activo ANTES
- * de que iOS alcance su propio umbral de detección (~15 m/s²).
- * Umbral de 8 m/s² da margen suficiente para evitar el diálogo sin
- * interferir con el uso normal del móvil.
+ * Desenfoca el input activo ANTES de que iOS alcance su propio umbral de
+ * detección (~15 m/s²): sin campo enfocado, iOS no tiene nada que deshacer
+ * y no muestra el diálogo.
+ *
+ * Para adelantarse a iOS el umbral tiene que estar POR DEBAJO del suyo, pero
+ * un umbral bajo y un solo pico bastaban para desenfocar con cualquier golpe
+ * (el móvil en el bolsillo, dejarlo en el banco). De ahí que antes se subiera
+ * a 22 — con el efecto de que dejó de adelantarse a iOS y el diálogo volvió a
+ * salir entrenando.
+ *
+ * La solución no es el número, es el criterio: una sacudida real oscila, así
+ * que se exigen varios picos seguidos en una ventana corta. Eso permite bajar
+ * el umbral por debajo del de iOS sin disparar con un golpe suelto.
  */
 function useShakeToUndoPrevention() {
     useEffect(() => {
         if (!window.DeviceMotionEvent) return;
 
-        const BLUR_THRESHOLD = 22;   // m/s² sin gravedad — umbral alto para evitar bolsillo
+        const PEAK_THRESHOLD = 12;   // m/s² sin gravedad — por debajo del umbral de iOS (~15)
+        const PEAKS_NEEDED   = 3;    // una sacudida real oscila; un golpe suelto no
+        const PEAK_WINDOW_MS = 600;  // ventana en la que deben caer esos picos
+        const PEAK_GAP_MS    = 60;   // ignora lecturas consecutivas del mismo pico
         const COOLDOWN_MS    = 2500; // evita disparos múltiples consecutivos
+
         let lastBlurTime = 0;
+        let peaks = [];
         let registered = false;
 
+        const isEditing = () => {
+            const el = document.activeElement;
+            return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+        };
+
         const handleMotion = (event) => {
+            // Sin campo enfocado no hay diálogo que prevenir: ni medimos.
+            if (!isEditing()) {
+                if (peaks.length) peaks = [];
+                return;
+            }
+
             const acc = event.acceleration;
             if (!acc) return;
 
@@ -46,14 +71,19 @@ function useShakeToUndoPrevention() {
                 (acc.y || 0) ** 2 +
                 (acc.z || 0) ** 2
             );
+            if (magnitude <= PEAK_THRESHOLD) return;
 
             const now = Date.now();
-            if (magnitude > BLUR_THRESHOLD && now - lastBlurTime > COOLDOWN_MS) {
+            if (now - lastBlurTime <= COOLDOWN_MS) return;
+            if (peaks.length && now - peaks[peaks.length - 1] < PEAK_GAP_MS) return;
+
+            peaks.push(now);
+            peaks = peaks.filter(t => now - t <= PEAK_WINDOW_MS);
+
+            if (peaks.length >= PEAKS_NEEDED) {
                 lastBlurTime = now;
-                const active = document.activeElement;
-                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-                    active.blur();
-                }
+                peaks = [];
+                document.activeElement.blur();
             }
         };
 
@@ -304,39 +334,35 @@ const AuthenticatedApp = () => {
                 />
             )}
 
+            {isTrainer(profile) && view.startsWith('trainer') ? (
+                <TrainerShell view={view} onNavigate={handleNavigate}>
+                    {view === 'trainer' && (
+                        <TrainerDashboardView onNavigate={handleNavigate} />
+                    )}
+                    {(view === 'trainer_clients' || view === 'trainer_client_profile') && (
+                        <TrainerClientsView
+                            view={view}
+                            client={currentClient}
+                            onSelectClient={setCurrentClient}
+                            onOpenProfile={() => setView('trainer_client_profile')}
+                            onBackToList={() => setView('trainer_clients')}
+                            onBackToDashboard={() => setView('trainer')}
+                            onAssignRoutine={() => setView('trainer_assign_routine')}
+                        />
+                    )}
+                    {view === 'trainer_assign_routine' && (
+                        <RoutineAssignerView
+                            client={currentClient}
+                            onBack={() => setView('trainer_client_profile')}
+                            onSuccess={() => setView('trainer_client_profile')}
+                        />
+                    )}
+                    {view === 'trainer_library' && (
+                        <TrainerLibraryView onBack={() => setView('trainer')} />
+                    )}
+                </TrainerShell>
+            ) : (
             <main className={`flex-1 overflow-y-auto px-4 pb-32 scrollbar-hide ${['dashboard', 'progress', 'chat'].includes(view) ? 'pt-2' : 'pt-safe'}`}>
-                {/* Vistas exclusivas de entrenador */}
-                {isTrainer(profile) && view === 'trainer' && (
-                    <TrainerDashboardView onNavigate={handleNavigate} />
-                )}
-                {isTrainer(profile) && view === 'trainer_clients' && (
-                    <ClientsListView
-                        onBack={() => setView('trainer')}
-                        onSelectClient={(client) => {
-                            setCurrentClient(client);
-                            setView('trainer_client_profile');
-                        }}
-                    />
-                )}
-                {isTrainer(profile) && view === 'trainer_client_profile' && (
-                    <ClientProfileView
-                        client={currentClient}
-                        onBack={() => setView('trainer_clients')}
-                        onAssignRoutine={() => setView('trainer_assign_routine')}
-                    />
-                )}
-                {isTrainer(profile) && view === 'trainer_assign_routine' && (
-                    <RoutineAssignerView
-                        client={currentClient}
-                        onBack={() => setView('trainer_client_profile')}
-                        onSuccess={() => setView('trainer_client_profile')}
-                    />
-                )}
-                {isTrainer(profile) && view === 'trainer_library' && (
-                    <TrainerLibraryView
-                        onBack={() => setView('trainer')}
-                    />
-                )}
                 {view === 'dashboard' && (
                     <DashboardView
                         onStartDaily={(routine) => handleStartWorkout(routine || { id: 'day1' })}
@@ -371,6 +397,7 @@ const AuthenticatedApp = () => {
                 {view === 'profile' && <ProfileView />}
                 {view === 'notifications' && <NotificationsListView onClose={() => setView('dashboard')} />}
             </main>
+            )}
 
             {/* Banner de actualización disponible */}
             {updateAvailable && (

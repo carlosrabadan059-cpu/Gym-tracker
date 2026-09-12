@@ -5,10 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev        # Start dev server (Vite)
+npm run dev        # Start dev server (Vite) — port 5173
 npm run build      # Production build
 npm run lint       # ESLint
 npm run preview    # Preview production build
+npm run browse     # Headless browser driver (screenshots, clicks, console errors)
 npm test           # Vitest (una pasada)
 npm run test:watch # Vitest en modo watch
 ```
@@ -24,6 +25,15 @@ Vitest, configurado en el bloque `test` de [vite.config.js](vite.config.js). Los
 Cubierto: `constants.js`, `exerciseUtils.js`, `routineUtils.js` y las funciones puras de `utils.js`. Sin cubrir: la capa de datos de Supabase, la lógica de estadísticas (aún dentro de `StatisticsView.jsx`) y los componentes.
 
 > ⚠️ **Definición de semana inconsistente, pendiente de unificar.** `loadCompletedRoutines` ([utils.js](src/lib/utils.js)) y `TrainingView` ([OtherViews.jsx](src/views/OtherViews.jsx)) empiezan la semana en **domingo**; `getWeekStart` ([StatisticsView.jsx](src/views/StatisticsView.jsx)) la empieza en **lunes**. El Dashboard y las Estadísticas cuentan por tanto semanas distintas. No añadir lógica semanal nueva sin decidir cuál es la buena.
+
+**`.env.local` is required to run the app at all.** `src/lib/supabase.js` calls
+`createClient()` at module import with `VITE_SUPABASE_URL` /
+`VITE_SUPABASE_ANON_KEY`. If they're missing, `createClient` throws before React
+mounts and the page renders **completely blank with no error** — the most
+confusing failure mode in this repo. See [README.md](README.md).
+
+To run and drive the app (screenshots, checking a change works), use the
+`run-rutinex` skill — it has the full startup sequence and the gotchas.
 
 ## Architecture Overview
 
@@ -58,6 +68,18 @@ Workout completion data lives in the `workout_logs` Supabase table (JSONB `logs`
 
 SQL migrations are in [supabase/migrations/](supabase/migrations/).
 
+### Producción real — no tocar los datos de Carlos
+
+**Carlos** (`user_id 0c561e91-…`, el propio dueño del proyecto) es el **único
+usuario en producción real**. `admin@gymtracker.com` es la cuenta de
+entrenador de prueba y su único cliente es Carlos.
+
+No modificar nunca sus filas de `exercises` ni sus datos de entreno
+(`workout_logs`). Migraciones que solo añaden columnas nullable: OK. Drives
+de verificación (Playwright/`npm run browse`): solo navegar y capturar,
+nunca pulsar Guardar/Asignar/Terminar sobre su cuenta. No dejar datos de
+prueba en `workout_logs` de ningún usuario.
+
 ### Views Structure
 
 ```
@@ -80,7 +102,40 @@ Tailwind CSS with CSS variables for theming (light/dark). Theme state is in [The
 - iOS-specific handling: shake-to-undo prevention, safe area insets, mobile viewport meta
 - Pull-to-refresh on Dashboard is implemented with custom touch event handlers
 
+## Product planning
+
+Live plans live in `docs/`, versioned:
+
+- [docs/plan-apple-health-integration.md](docs/plan-apple-health-integration.md) — **v2**: Apple Health/Watch via Capacitor + HealthKit, cardio/strength detection, Live Activity. UI already decided (prototyped).
+- [docs/plan-gym-app-features.md](docs/plan-gym-app-features.md) — **v3**: plate calculator, 1RM + PR alerts, RPE/RIR, supersets, muscle recovery map.
+- [docs/plan-trainer-improvements.md](docs/plan-trainer-improvements.md) — trainer side: full prescription (weight, rest, tempo, RIR, notes), scheduling, adherence tracking.
+
+## UI prototypes
+
+Throwaway UI prototypes use a **standalone harness** so they run without a
+Supabase login: `prototype-<name>.html` at the repo root + a
+`src/prototype-<name>-main.jsx` entry that mounts only the component with mock
+data. Open at `http://localhost:5173/prototype-<name>.html`.
+
+Finished prototypes are kept on throwaway branches, not `main`:
+`prototype/statistics-health-ui`, `prototype/logging-ui`. Each has a `NOTES.md`
+with the verdict.
+
 ## Agent skills
+
+### Running the app
+
+`run-rutinex` — start the dev server and drive it in a browser. Covers the
+`.env.local` requirement, the standalone prototype harnesses, and the known
+gotchas (`npm run build` dirties the tracked `public/version.json`, macOS has no
+`timeout`, playwright is pinned).
+
+### Legacy skill copies
+
+`.agents/skills/prototype-legacy` and `.agents/skills/tdd-legacy` are older
+vendored copies of skills the `mattpocock-skills` plugin already provides. They
+were renamed because the bare names collided with the maintained plugin
+versions. Prefer `mattpocock-skills:prototype` and `mattpocock-skills:tdd`.
 
 ### Issue tracker
 

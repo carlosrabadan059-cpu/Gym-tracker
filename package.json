@@ -7,11 +7,15 @@
     "dev": "vite",
     "build": "node -e \"require('fs').writeFileSync('public/version.json', JSON.stringify({v: Date.now()}))\" && vite build",
     "lint": "eslint .",
+    "preview": "vite preview",
+    "browse": "node tools/browse.mjs",
     "test": "TZ=UTC vitest run",
-    "test:watch": "TZ=UTC vitest",
-    "preview": "vite preview"
+    "test:watch": "TZ=UTC vitest"
   },
   "dependencies": {
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
+    "@capgo/capacitor-health": "^8.10.5",
     "@supabase/supabase-js": "^2.95.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.563.0",
@@ -21,6 +25,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@eslint/js": "^9.39.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

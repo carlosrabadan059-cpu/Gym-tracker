@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, History } from 'lucide-react';
+import { X, Check, History, Trophy, Sparkles } from 'lucide-react';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
+import { platesPerSide, formatPlates, estimate1RM, RPE_OPTIONS } from '../lib/plates';
+import { suggestNextWeight } from '../lib/progression';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
+import { updateWorkoutActivity } from '../lib/liveActivity';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -14,12 +17,24 @@ function formatRelativeDate(isoDate) {
     return `hace ${diffDays} días`;
 }
 
-export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted, onClose, savedTimerState, onTimerStateChange }) => {
+export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm = null, isCompleted, onClose, savedTimerState, onTimerStateChange }) => {
     const { user, profile } = useAuth();
     const userWeight = profile?.weight || null;
 
     const isBodyweight = isBodyweightExercise(exercise);
     const isTimeBased = isTimeBasedExercise(exercise);
+
+    // Prescripción del entrenador (Fase 1 del plan de entrenador). Campos
+    // opcionales — si ninguno está puesto, el modal se ve como siempre.
+    const prescription = {
+        weight: exercise.target_weight != null ? Number(exercise.target_weight) : null,
+        rir: exercise.target_rir != null ? Number(exercise.target_rir) : null,
+        rest: exercise.rest_seconds != null ? Number(exercise.rest_seconds) : null,
+        tempo: exercise.tempo || null,
+        notes: exercise.notes || null,
+    };
+    const hasPrescription = prescription.weight != null || prescription.rir != null
+        || prescription.rest != null || prescription.tempo || prescription.notes;
 
     const [timerActive, setTimerActive] = useState(() => {
         if (!savedTimerState?.timerActive || !savedTimerState?.targetTime) return false;
@@ -27,7 +42,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     });
     const [showInstructions, setShowInstructions] = useState(false);
     const [timeLeft, setTimeLeft] = useState(() => {
-        const dur = savedTimerState?.selectedDuration ?? 60;
+        const dur = savedTimerState?.selectedDuration ?? (exercise.rest_seconds != null ? Number(exercise.rest_seconds) : 60);
         if (!savedTimerState?.timerActive || !savedTimerState?.targetTime) return dur;
         const remaining = Math.ceil((savedTimerState.targetTime - Date.now()) / 1000);
         return remaining > 0 ? remaining : dur;
@@ -36,7 +51,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (!savedTimerState?.timerActive || !savedTimerState?.targetTime) return null;
         return savedTimerState.targetTime > Date.now() ? savedTimerState.targetTime : null;
     });
-    const [selectedDuration, setSelectedDuration] = useState(savedTimerState?.selectedDuration ?? 60);
+    const [selectedDuration, setSelectedDuration] = useState(
+        savedTimerState?.selectedDuration ?? (exercise.rest_seconds != null ? Number(exercise.rest_seconds) : 60)
+    );
     const [completedSets, setCompletedSets] = useState(initialLog?.completedSets || {});
     const [setsData, setSetsData] = useState(() => {
         if (initialLog && initialLog.setsData) {
@@ -44,8 +61,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         }
         const initial = {};
         const count = parseInt(exercise.series) || 3;
+        // Prefill del peso con el objetivo del entrenador si lo hay (Fase 1).
+        const prefillWeight = exercise.target_weight != null ? String(exercise.target_weight) : '';
         for (let i = 0; i < count; i++) {
-            initial[i] = { weight: '', reps: exercise.reps || '10' };
+            initial[i] = { weight: prefillWeight, reps: exercise.reps || '10' };
         }
         return initial;
     });
@@ -54,6 +73,17 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
     const audioCtxRef = useRef(null);
     const beepFiredRef = useRef(false);
     const scheduledEndNodesRef = useRef([]);
+    // Instante del reloj de audio en el que debe sonar el pitido final. Sirve
+    // para saber si llegó a sonar: si iOS suspendió el contexto, su reloj se
+    // queda congelado por debajo de este valor.
+    const endBeepAtRef = useRef(null);
+    // Cada descanso (empezado o cancelado) sube este contador. El push del
+    // servidor y el mensaje local del SW viajan con el id de su momento; si
+    // llegan tarde (el descanso ya se canceló, o empezó otro distinto) el id
+    // ya no coincide con el actual y se ignoran — sin esto, un push huérfano
+    // de un descanso cancelado puede cortar en corto uno nuevo que sí está
+    // en marcha.
+    const timerSessionIdRef = useRef(0);
     const timerStateRef = useRef({ timerActive: false, targetTime: null, selectedDuration: 60 });
     const onTimerStateChangeRef = useRef(onTimerStateChange);
     useEffect(() => { onTimerStateChangeRef.current = onTimerStateChange; }, [onTimerStateChange]);
@@ -100,7 +130,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
 
     // Se eliminó el auto-subscribe y los logs de depuración (ya no son necesarios en UI)
 
-    const scheduleSWNotification = (targetTime, isStart = false) => {
+    const scheduleSWNotification = (targetTime, isStart = false, sessionId = null) => {
         if (!('serviceWorker' in navigator)) return;
         const msg = targetTime !== null
             ? {
@@ -108,7 +138,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 targetTime,
                 title: isStart ? '¡Descanso iniciado! ⏱️' : '¡Recuperación completada! 💪',
                 body: isStart ? 'El temporizador ha comenzado.' : '¡Es hora de tu siguiente serie!',
-                isStart
+                isStart,
+                sessionId
               }
             : { type: 'CANCEL_NOTIFICATION' };
 
@@ -136,6 +167,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (!ctx || ctx.state === 'closed') return;
 
         const baseTime = ctx.currentTime + delaySec;
+        endBeepAtRef.current = { due: baseTime, sessionId: timerSessionIdRef.current };
         const makeNote = (startTime, freq, dur, waveType = 'square') => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -203,6 +235,22 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         }
     };
 
+    const setRpe = (index, value) => {
+        setSetsData(prev => ({
+            ...prev,
+            [index]: { ...prev[index], rpe: prev[index]?.rpe === value ? null : value }
+        }));
+    };
+
+    // Un 1RM estimado de una serie cuenta como récord si supera el mejor
+    // histórico (bestOneRm). Sin historial (bestOneRm null) no se marca nada:
+    // no hay contra qué comparar todavía.
+    const isSetPr = (set) => {
+        if (bestOneRm == null || isBodyweight || isTimeBased) return false;
+        const oneRm = estimate1RM(set?.weight, set?.reps);
+        return oneRm != null && oneRm > bestOneRm;
+    };
+
     const toggleSet = (index) => {
         const currentSet = setsData[index];
         if (!isBodyweight && !isTimeBased && (!currentSet || !currentSet.weight)) {
@@ -222,15 +270,23 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         if (isCompleting) {
             const dur = selectedDuration;
             const target = Date.now() + dur * 1000;
+            const sessionId = ++timerSessionIdRef.current;
             setTargetTime(target);
             setTimeLeft(dur);
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
-            scheduleSWNotification(target, false); // Schedule END notification
+            scheduleSWNotification(target, false, sessionId); // Schedule END notification
+            updateWorkoutActivity({
+                exerciseName: exercise.name,
+                currentSet: index + 1,
+                totalSets: parseInt(exercise.series) || 3,
+                phase: 'resting',
+                restEndDate: target,
+            });
             if (user?.id) {
                 subscribeToPush(user.id)
-                    .then(() => scheduleServerPush(user.id, target))
+                    .then(() => scheduleServerPush(user.id, target, sessionId))
                     .catch(e => console.error('[Push] Repair failed on toggle', e));
             }
         }
@@ -275,6 +331,34 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         }
     }, []);
 
+    // El pitido final se programa al empezar el descanso, hasta 60 s antes de
+    // que suene. Si iOS suspende el AudioContext en ese intervalo (pantalla
+    // bloqueada, cambio de app, llamada entrante) su reloj se congela y el
+    // pitido no llega nunca. Aquí se comprueba al vuelo y se repone en directo.
+    //
+    // messageSessionId es el id que traía el aviso (push del servidor o
+    // mensaje local del SW) que disparó esta llamada; null cuando el disparo
+    // viene del propio setInterval de la sesión activa, que por construcción
+    // ya es el de ahora mismo. Si no coincide con la sesión activa, el aviso
+    // es de un descanso cancelado o ya terminado y se ignora sin más.
+    const ensureEndBeepPlayed = useCallback((messageSessionId = null) => {
+        if (messageSessionId !== null && messageSessionId !== timerSessionIdRef.current) return;
+
+        const ctx = audioCtxRef.current;
+        const stored = endBeepAtRef.current;
+        endBeepAtRef.current = null;
+
+        if (!ctx || ctx.state === 'closed') {
+            playBeep('end');
+            return;
+        }
+        if (ctx.state === 'suspended') ctx.resume();
+        if (stored !== null && ctx.currentTime < stored.due) {
+            cancelScheduledEndBeep();
+            playBeep('end');
+        }
+    }, [cancelScheduledEndBeep, playBeep]);
+
     useEffect(() => {
         let interval = null;
 
@@ -289,11 +373,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     setTimerActive(false);
                     setTargetTime(null);
         
-                    // End beep was pre-scheduled via Web Audio at timer start.
-                    // Vibrate as additional feedback (Android only).
+                    ensureEndBeepPlayed();
                     if ('vibrate' in navigator) {
                         navigator.vibrate([500, 200, 500, 200, 800]);
                     }
+                    updateWorkoutActivity({ phase: 'restFinished' });
                     setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
                 }
             }, 500);
@@ -302,11 +386,14 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
         return () => {
             clearInterval(interval);
         };
-    }, [timerActive, targetTime, playBeep]);
+    }, [timerActive, targetTime, ensureEndBeepPlayed]);
 
     useEffect(() => {
         const handleSWMessage = (event) => {
             if (event.data?.type !== 'TIMER_FIRED') return;
+            // Mensaje huérfano de un descanso ya cancelado o distinto del que
+            // está activo ahora mismo: no toca nada del estado actual.
+            if (event.data.sessionId !== timerSessionIdRef.current) return;
             if (beepFiredRef.current) return;
             beepFiredRef.current = true;
             const { selectedDuration } = timerStateRef.current;
@@ -314,16 +401,24 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
             setTargetTime(null);
             setTimeLeft(0);
 
+            ensureEndBeepPlayed(event.data.sessionId);
             if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
         navigator.serviceWorker?.addEventListener('message', handleSWMessage);
         return () => navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
-    }, [playBeep]);
+    }, [ensureEndBeepPlayed]);
 
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState !== 'visible') return;
+
+            // iOS suspende el AudioContext al salir de la app. Si no se reanuda
+            // al volver, su reloj sigue congelado y el pitido ya programado no
+            // suena nunca.
+            const ctx = audioCtxRef.current;
+            if (ctx && ctx.state === 'suspended') ctx.resume();
+
             const { timerActive, targetTime, selectedDuration } = timerStateRef.current;
             if (!timerActive || !targetTime) return;
             if (Date.now() >= targetTime) {
@@ -332,32 +427,39 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                 setTimerActive(false);
                 setTargetTime(null);
                 setTimeLeft(0);
-    
+
+                ensureEndBeepPlayed();
                 if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [playBeep]);
+    }, [ensureEndBeepPlayed]);
 
     const toggleTimer = () => {
         unlockAudio();
         if (!timerActive) {
             const dur = selectedDuration;
             const t = Date.now() + dur * 1000;
+            const sessionId = ++timerSessionIdRef.current;
             setTargetTime(t);
             setTimeLeft(dur);
             setTimerActive(true);
             playBeep('start');
             scheduleEndBeep(dur);
 
-            scheduleSWNotification(t, false); // Schedule END notification
-            if (user?.id) scheduleServerPush(user.id, t);
+            scheduleSWNotification(t, false, sessionId); // Schedule END notification
+            if (user?.id) scheduleServerPush(user.id, t, sessionId);
         } else {
             setTimerActive(false);
             setTargetTime(null);
             cancelScheduledEndBeep();
+            endBeepAtRef.current = null;
+            // Sube el id de sesión aunque no arranque otro descanso ahora
+            // mismo: cualquier push o mensaje local que ya estuviera en
+            // vuelo para este descanso deja de coincidir con el id activo.
+            timerSessionIdRef.current += 1;
 
             scheduleSWNotification(null);
         }
@@ -502,7 +604,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
                         <h3 className="text-xs text-text-secondary uppercase tracking-wider mb-3">Temporizador de Descanso</h3>
                         <div className="flex items-center gap-4 mb-4">
-                            {[60, 90].map(duration => (
+                            {[...new Set([prescription.rest, 60, 90].filter(Boolean))].sort((a, b) => a - b).map(duration => (
                                 <button
                                     key={duration}
                                     onClick={() => handleDurationSelect(duration)}
@@ -554,6 +656,41 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                         </div>
                     </div>
 
+                    {/* Objetivo del entrenador (Fase 1 del plan de entrenador) */}
+                    {hasPrescription && (
+                        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Objetivo del entrenador</p>
+                            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+                                {prescription.weight != null && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">{String(prescription.weight).replace('.', ',')} kg</span>
+                                        <span className="text-text-secondary"> objetivo</span>
+                                    </span>
+                                )}
+                                {prescription.rir != null && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">RIR {prescription.rir}</span>
+                                        <span className="text-text-secondary"> (reps en reserva)</span>
+                                    </span>
+                                )}
+                                {prescription.rest != null && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">{prescription.rest}s</span>
+                                        <span className="text-text-secondary"> descanso</span>
+                                    </span>
+                                )}
+                                {prescription.tempo && (
+                                    <span className="text-text-primary">
+                                        <span className="font-bold">Tempo {prescription.tempo}</span>
+                                    </span>
+                                )}
+                            </div>
+                            {prescription.notes && (
+                                <p className="text-sm text-text-secondary border-t border-primary/15 pt-2">{prescription.notes}</p>
+                            )}
+                        </div>
+                    )}
+
                     {/* Referencia Última Vez */}
                     {(() => {
                         const sets = lastLog ? Object.entries(lastLog.setsData) : [];
@@ -570,6 +707,18 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                         ].filter(Boolean).join(' × ') : null;
 
                         const needsPerSeriesList = lastLog && sets.length > 0 && (!sharedWeight || !sharedReps);
+
+                        const suggestion = !isBodyweight && !isTimeBased
+                            ? suggestNextWeight(lastLog, exercise.reps)
+                            : null;
+
+                        // Mejor 1RM estimado de la última sesión (Epley).
+                        const lastOneRm = !isBodyweight && !isTimeBased
+                            ? sets.reduce((best, [, s]) => {
+                                const v = estimate1RM(s.weight, s.reps);
+                                return v != null && (best == null || v > best) ? v : best;
+                            }, null)
+                            : null;
 
                         return (
                             <div className="rounded-2xl border p-4"
@@ -615,6 +764,32 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                                     </div>
                                 )}
 
+                                {suggestion && (
+                                    <div className="border-t border-amber-500/20 pt-2 mt-2">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="flex items-center gap-1.5 text-text-secondary">
+                                                <Sparkles size={12} className="text-primary" /> Sugerencia
+                                            </span>
+                                            <span className="font-mono font-bold text-primary">
+                                                {String(suggestion.weight).replace('.', ',')} kg × {suggestion.reps}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-text-secondary mt-0.5">{suggestion.reason}</p>
+                                    </div>
+                                )}
+
+                                {(lastOneRm != null || bestOneRm != null) && (
+                                    <div className="flex items-center justify-between text-xs text-text-secondary border-t border-amber-500/20 pt-2 mt-2">
+                                        <span>1RM estimado</span>
+                                        <span className="font-mono">
+                                            {lastOneRm != null ? `${String(lastOneRm).replace('.', ',')} kg` : '—'}
+                                            {bestOneRm != null && (
+                                                <span className="text-amber-400/70"> · récord {String(bestOneRm).replace('.', ',')} kg</span>
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
+
                                 {!lastLog && (
                                     <p className="text-xs text-text-secondary mt-1">Aún no hay datos históricos para este ejercicio. ¡Registra tu primera sesión!</p>
                                 )}
@@ -625,8 +800,13 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                     {/* Logging Inputs */}
                     <div className="space-y-3">
                         <h3 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-2">Registrar Series</h3>
-                        {Array.from({ length: parseInt(exercise.series) || 3 }).map((_, i) => (
-                            <div key={i} className="flex items-center gap-3">
+                        {Array.from({ length: parseInt(exercise.series) || 3 }).map((_, i) => {
+                          const set = setsData[i];
+                          const plates = !isBodyweight && !isTimeBased ? platesPerSide(parseFloat(set?.weight)) : null;
+                          const showPr = isSetPr(set);
+                          return (
+                            <div key={i}>
+                              <div className="flex items-center gap-3">
                                 <span className="w-8 text-center font-bold text-text-secondary">{i + 1}</span>
                                 {!isBodyweight && !isTimeBased && (
                                     <div className={`flex-1 rounded-xl bg-background border px-4 py-3 flex items-center gap-2 transition-colors ${inputErrors[i] ? 'border-red-500 bg-red-500/10' : 'border-surface-highlight'
@@ -664,8 +844,42 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, isCompleted
                                 >
                                     {completedSets[i] && <Check size={14} strokeWidth={3} />}
                                 </div>
+                              </div>
+
+                              {/* Discos por lado + badge de récord: texto fino, sin bloque propio */}
+                              {(plates?.length > 0 || showPr) && (
+                                <div className="flex items-center gap-2 pl-11 mt-1">
+                                    {plates?.length > 0 && (
+                                        <span className="text-[11px] text-text-secondary font-mono">
+                                            {formatPlates(plates)} /lado
+                                        </span>
+                                    )}
+                                    {showPr && (
+                                        <span className="text-[10px] font-bold text-primary flex items-center gap-1">
+                                            <Trophy size={10} /> Récord estimado
+                                        </span>
+                                    )}
+                                </div>
+                              )}
+
+                              {/* RPE: solo tras marcar la serie. Opcional, se puede ignorar. */}
+                              {completedSets[i] && (
+                                <div className="flex items-center gap-1.5 pl-11 mt-1.5">
+                                    <span className="text-[10px] text-text-secondary uppercase tracking-wider">RPE</span>
+                                    {RPE_OPTIONS.map((v) => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setRpe(i, v)}
+                                            className={`h-6 w-6 rounded-full text-[11px] font-bold transition-colors ${set?.rpe === v ? 'bg-primary text-black' : 'bg-surface-highlight text-text-secondary'}`}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                              )}
                             </div>
-                        ))}
+                          );
+                        })}
                     </div>
 
                 </div>

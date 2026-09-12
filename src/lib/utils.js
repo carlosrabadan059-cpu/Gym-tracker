@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { supabase } from "./supabase";
+import { estimate1RM } from "./plates";
 
 export function cn(...inputs) {
     return twMerge(clsx(inputs));
@@ -35,6 +36,7 @@ export function enrichExercisesWithCatalog(exercises) {
             name: catalogData.name || exercise.name,
             image_url: catalogData.image_url || exercise.image_url,
             instructions: catalogData.instructions || exercise.instructions,
+            category: catalogData.category || exercise.category,
         };
     });
 }
@@ -93,7 +95,7 @@ export async function saveWorkoutLog(userId, routineId, logs) {
 
         const { data: existingLogs, error: searchError } = await supabase
             .from('workout_logs')
-            .select('id')
+            .select('id, logs')
             .eq('user_id', userId)
             .eq('routine_id', routineId)
             .gte('date', todayStart.toISOString());
@@ -101,10 +103,19 @@ export async function saveWorkoutLog(userId, routineId, logs) {
         if (searchError) throw searchError;
 
         if (existingLogs && existingLogs.length > 0) {
-            // Sobrescribir el de hoy
+            // Red de seguridad: si ya hay una duración real guardada hoy y la
+            // que llega es 0 (p.ej. "Revisar Entrenamiento" reabre la rutina
+            // con el cronómetro a cero), se conserva la buena en vez de
+            // machacarla — los datos de la sesión no se pierden.
+            const prev = existingLogs[0].logs?.workoutDuration;
+            const next = logs?.workoutDuration;
+            const merged = (prev?.durationMinutes > 0 && !(next?.durationMinutes > 0))
+                ? { ...logs, workoutDuration: prev }
+                : logs;
+
             const { error: updateError } = await supabase
                 .from('workout_logs')
-                .update({ logs: logs, date: new Date().toISOString() })
+                .update({ logs: merged, date: new Date().toISOString() })
                 .eq('id', existingLogs[0].id);
 
             if (updateError) throw updateError;
@@ -192,6 +203,89 @@ export async function loadLastExerciseLog(userId, routineId, exerciseId) {
     } catch (e) {
         console.error("Error loading last exercise log from Supabase:", e);
         return null;
+    }
+}
+
+/**
+ * Carga la duración y kcal de la última vez que se completó una rutina,
+ * para mostrarla como referencia hasta que se vuelva a hacer (tarjeta de
+ * "última sesión"). Incluye la de hoy si es la única — se actualiza sola
+ * en cuanto se registra una nueva.
+ *
+ * @param {string} userId
+ * @param {string} routineId
+ * @returns {{ durationMinutes: number, totalCalories: number, caloriesSource: string, date: string } | null}
+ */
+export async function loadLastRoutineSummary(userId, routineId) {
+    if (!userId || !routineId) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('workout_logs')
+            .select('logs, date')
+            .eq('user_id', userId)
+            .eq('routine_id', routineId)
+            .order('date', { ascending: false })
+            .limit(10);
+
+        if (error) throw error;
+        if (!data || data.length === 0) return null;
+
+        // Salta las sesiones marcadas completadas sin cronómetro
+        // (durationMinutes 0) — no son una "última vez" útil como referencia.
+        const row = data.find(r => (r.logs?.workoutDuration?.durationMinutes ?? 0) > 0);
+        if (!row) return null;
+        const summary = row.logs.workoutDuration;
+
+        return {
+            durationMinutes: summary.durationMinutes,
+            // Filas antiguas guardaban realCalories pero no totalCalories.
+            totalCalories: summary.totalCalories ?? summary.realCalories ?? null,
+            caloriesSource: summary.caloriesSource,
+            date: row.date,
+        };
+    } catch (e) {
+        console.error("Error loading last routine summary from Supabase:", e);
+        return null;
+    }
+}
+
+/**
+ * Kcal de fuerza de las últimas `limit` sesiones con dato de duración
+ * (solo las hechas con la app tras v2 Fase 2), para la card "Kcal reales
+ * vs. estimadas" de Estadísticas. Viene de `workout_logs`, no de Health —
+ * funciona igual en la PWA y en la app nativa.
+ *
+ * @param {string} userId
+ * @param {number} limit
+ * @returns {Array<{ date: string, calories: number, source: 'health' | 'estimated' }>} Cronológico (antiguo → reciente)
+ */
+export async function loadRecentCaloriesComparison(userId, limit = 8) {
+    if (!userId) return [];
+
+    try {
+        const { data, error } = await supabase
+            .from('workout_logs')
+            .select('logs, date')
+            .eq('user_id', userId)
+            .order('date', { ascending: false })
+            .limit(50);
+
+        if (error) throw error;
+
+        const withDuration = (data || [])
+            .filter(row => row.logs?.workoutDuration?.realCalories != null)
+            .slice(0, limit)
+            .reverse();
+
+        return withDuration.map(row => ({
+            date: new Date(row.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+            calories: Math.round(row.logs.workoutDuration.realCalories),
+            source: row.logs.workoutDuration.caloriesSource === 'health' ? 'health' : 'estimated',
+        }));
+    } catch (e) {
+        console.error("Error loading calories comparison from Supabase:", e);
+        return [];
     }
 }
 
@@ -303,4 +397,23 @@ export async function loadExerciseHistory(userId, exerciseName) {
         console.error('Error loading exercise history:', e);
         return [];
     }
+}
+
+/**
+ * Mejor 1RM estimado (Epley) histórico de un ejercicio, mirando todas las
+ * series de todas las sesiones. Sirve para el aviso de PR "en el momento"
+ * dentro de ExerciseDetailModal. null si no hay historial con peso×reps.
+ *
+ * @returns {number | null}
+ */
+export async function loadExerciseBest1RM(userId, exerciseName) {
+    const history = await loadExerciseHistory(userId, exerciseName);
+    let best = null;
+    for (const session of history) {
+        for (const set of Object.values(session.setsData || {})) {
+            const oneRm = estimate1RM(set.weight, set.reps);
+            if (oneRm && (best === null || oneRm > best)) best = oneRm;
+        }
+    }
+    return best;
 }

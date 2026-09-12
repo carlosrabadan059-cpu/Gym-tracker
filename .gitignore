@@ -38,3 +38,13 @@ scripts/
 
 # Graphify knowledge graph (regenerable)
 graphify-out/
+
+# iOS (Capacitor) — el proyecto Xcode (ios/App/App.xcodeproj) sí se versiona,
+# esto es solo lo generado o específico de cada máquina:
+ios/App/App/public/
+ios/App/build/
+ios/**/xcuserdata/
+ios/**/*.xcworkspace/xcuserdata/
+ios/DerivedData/
+ios/.build/
+ios/App/Pods/

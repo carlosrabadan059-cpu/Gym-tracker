@@ -1,0 +1,541 @@
+# Versión 2: integración con Apple Health
+
+**Fecha:** 2026-09-04 (fases 4-5 y estado añadidos el 2026-09-07)
+**Estado:** es la **versión 2** de Rutinex — todas las fases de este documento
+(0 a 5) entran aquí. Las mejoras de tipo "funciones de apps de gimnasio"
+(calculadora de discos, RPE, superseries, mapa de recuperación muscular)
+quedan para la **versión 3**, en [plan-gym-app-features.md](plan-gym-app-features.md).
+**Objetivo:** enriquecer Rutinex con datos de Apple Health/Apple Watch para que la app se sienta más completa y cuidada (calidad percibida — no implica añadir un nivel de pago ni infraestructura de suscripción).
+
+---
+
+## Restricción de partida
+
+HealthKit es un framework nativo de iOS. No existe ni ha existido nunca una API web para acceder a él — ninguna PWA, por buena que sea la instalación en pantalla de inicio, puede leerlo. Cualquier integración pasa por código nativo o por una app puente.
+
+## Decisión: ruta elegida
+
+**Capacitor + plugin HealthKit**, envolviendo el build web actual (Vite) en un shell nativo iOS. Se descartaron:
+
+- **Terra / Vital (Junction)** — APIs de agregación de wearables de terceros, pensadas para SaaS multiusuario. Desde $399/mes. Descartado por coste, absurdo para una app de un solo usuario.
+- **Health Auto Export** — app de terceros que exporta a un endpoint REST vía automatización. Es de pago y no permite escribir de vuelta a Health (solo lectura). Descartado por ser de pago y por sentirse como un workaround externo, no como parte de la app.
+- **iOS Shortcuts → webhook (DIY gratis)** — viable y a coste cero, pero solo lectura, depende de automatizaciones frágiles (no corren con el móvil bloqueado) y no da la sensación de integración nativa que se busca. Queda como opción de validación rápida si en algún momento se quiere probar el concepto sin tocar Xcode, pero no es la ruta recomendada para el resultado final.
+
+### Componentes de la ruta elegida
+
+- `@capacitor/core` + `@capacitor/ios` — envuelve el build de Vite existente sin reescribir la app. El build web/PWA actual no se toca; el shell nativo es un target adicional.
+- Plugin [`@capgo/capacitor-health`](https://github.com/Cap-go/capacitor-health) — gratuito, licencia MPL-2.0, sin paywall. Expone `queryWorkouts()`, `readSamples()`, `saveSample()`, `queryAggregated()` sobre HealthKit (iOS) y Health Connect (Android). Se evita el plugin de Capawesome por ser de pago (suscripción Insiders).
+- Capability HealthKit en Xcode + claves `NSHealthShareUsageDescription` / `NSHealthUpdateUsageDescription` en Info.plist (obligatorias, Apple rechaza el build sin ellas).
+
+### Coste real
+
+- Sin coste de software (Capacitor y el plugin son gratis).
+- Instalación en el propio iPhone vía Xcode + cable, cuenta Apple gratuita: **$0**, pero el certificado expira cada 7 días → hay que reabrir Xcode y reinstalar semanalmente.
+- Para evitar esa fricción (instalar y olvidar, o usar TestFlight): entitlement HealthKit exige **Apple Developer Program, $99/año** — no disponible en cuenta personal gratuita para builds persistentes. Decisión pendiente, no bloquea el arranque del plan.
+
+### Riesgo técnico principal — confirmado, no solo sospechado
+
+**Actualización 2026-09-07:** ya no es una duda. Se instaló
+`@capgo/capacitor-health` (versión 8.10.5) y se leyó su código, tanto la
+interfaz TypeScript (`node_modules/@capgo/capacitor-health/dist/esm/definitions.d.ts`)
+como el nativo (`.../ios/Sources/HealthPlugin/Health.swift`), sin necesidad de
+dispositivo:
+
+- `Workout` (lo que devuelve `queryWorkouts()`) tiene `workoutEvents` — laps,
+  pausas, marcadores — pero **no tiene ningún campo con el tipo de actividad
+  por segmento**.
+- El Swift del plugin lee `workout.workoutActivityType`: el tipo **único** de
+  todo el `HKWorkout`. **Nunca lee `workout.workoutActivities`**, el array de
+  `HKWorkoutActivity` con el tipo por segmento que introdujo iOS 16/watchOS 9.
+
+Con el uso real del usuario en el Watch — una sola sesión con segmento
+aeróbico + segmento de fuerza (`functionalStrengthTraining`), cambiando entre
+ambos sin parar la grabación — `queryWorkouts()` devuelve **un solo workout
+con un solo `workoutType`**. No hay forma de distinguir los dos segmentos con
+este plugin tal cual está, en ninguna versión de su API.
+
+**Conclusión, ya no condicional:** hace falta una extensión Swift pequeña
+dentro del proyecto Capacitor iOS que lea `workoutActivities` directamente
+sobre el objeto `HKWorkout` — el dato existe en HealthKit, el plugin
+simplemente no lo expone. Esto entra en la Fase 2 (detección de cardio/fuerza
+por segmento), no bloquea el resto de la Fase 0.
+
+Sigue pendiente, y esa parte sí necesita dispositivo: confirmar contra un
+entreno real que `workoutActivityType` (el que el plugin sí lee) no rompe
+nada mientras tanto — es decir, qué tipo único devuelve HealthKit para una
+sesión mixta hasta que exista la extensión Swift.
+
+---
+
+## Mapeo de tipos de cardio
+
+| Eliges en Watch | HealthKit devuelve | Etiqueta en Rutinex (`CARDIO_TYPES`, `src/lib/routineUtils.js`) |
+|---|---|---|
+| Correr en interior | `.running` + `HKMetadataKeyIndoorWorkout = true` | "Correr en cinta" |
+| Caminar en interior | `.walking` + `HKMetadataKeyIndoorWorkout = true` | "Andar en cinta" |
+| Elíptica | `.elliptical` | "Elíptica" |
+| Ciclismo en interior | `.cycling` + `HKMetadataKeyIndoorWorkout = true` | "Bicicleta" |
+
+Mapeo directo, sin heurística de "asumir cinta" — el Watch ya distingue indoor de outdoor de forma explícita.
+
+---
+
+## Roadmap por fases
+
+### Fase 0 — Cimiento
+
+**Estado (2026-09-08): cerrada.** Verificada de extremo a extremo: compila
+sin firma en simulador, instalada y firmada con Team personal, y **abierta
+en el iPhone físico del usuario** — pantalla de login real, conectando a
+Supabase.
+
+Hecho:
+- `@capacitor/core`, `@capacitor/cli` y `@capgo/capacitor-health` instalados
+  (`package.json`). `capacitor.config.json` creado (JSON y no `.ts`: el
+  proyecto no usa TypeScript en ningún otro sitio) — **su `appId`
+  (`com.rutinex.app`) es un placeholder, hay que confirmarlo o cambiarlo antes
+  de `cap add ios`**, porque debe coincidir con lo que se registre en el
+  Apple Developer Program.
+- Tabla `health_metrics` (user_id, date, steps, weight, active_energy,
+  resting_hr, source) creada en Supabase, con RLS y migración en
+  `supabase/migrations/20260907_create_health_metrics.sql`.
+- Módulo `src/lib/appleHealth.js`: `requestHealthAuthorization`,
+  `getTodayMetrics`, `getMostRecentWorkout`, `writeWorkoutToHealth` — todo
+  gateado por `Capacitor.isNativePlatform()`, así que hoy son no-ops y el
+  build web/PWA no cambia de comportamiento (verificado: `npm run build` sin
+  cambios de tamaño de bundle relevantes).
+- **Riesgo técnico de `queryWorkouts()` confirmado por lectura de código**
+  (ver sección de arriba) — ya no hace falta un dispositivo para saberlo.
+
+- Capability HealthKit activada en Xcode (Signing & Capabilities), generó
+  `App.entitlements` y quedó enlazada en Debug/Release. Team de firma:
+  cuenta Apple personal gratuita del usuario — certificado caduca cada 7
+  días, hay que repetir el Run desde Xcode cada semana mientras no se pague
+  el Developer Program ($99/año, sigue como decisión pendiente y no
+  bloqueante).
+- `appId` sigue siendo el placeholder `com.rutinex.app` — el usuario no lo
+  ha cambiado, y no hace falta para seguir probando en local.
+
+No bloquea nada de la Fase 0, pero queda anotado por si se retoma en otra
+máquina: instalar `Xcode.app` completo (no solo las Command Line Tools) es
+obligatorio para `npx cap add ios` y para compilar/firmar.
+
+### Fase 1 — Conexión visible ✅ Hecho (2026-09-08)
+
+Pantalla "Conectar Apple Health" en Perfil → nueva entrada de menú.
+`src/views/profile/AppleHealthView.jsx`, enlazada desde `ProfileView.jsx`.
+
+- Fuera de la app nativa (web/PWA): tarjeta explicando que Health es nativo
+  de iOS, sin CTA que no pueda funcionar.
+- Sin conectar: CTA "Conectar con Apple Health" → `requestHealthAuthorization()`
+  + una primera sincronización de prueba.
+- Conectado: card con pasos/kcal activas/FC en reposo de hoy, última
+  sincronización, botón "Sincronizar ahora" y "Desconectar".
+- **Decisión de diseño importante:** HealthKit no permite saber si el
+  usuario denegó la lectura de un tipo concreto — es privacidad por diseño
+  de Apple (el estado de denegación solo es consultable para permisos de
+  escritura, nunca de lectura). Por eso "conectado" aquí significa
+  "completó el diálogo de permiso alguna vez" (guardado en `localStorage`,
+  es un estado de este iPhone, no de la cuenta), no "dio el sí a todo". Si
+  el usuario denegó todo, simplemente no llegan datos y se muestra un
+  aviso explicando dónde comprobar los permisos manualmente.
+- `src/lib/appleHealth.js` ganó `checkHealthAuthorization()` (comprobar sin
+  disparar el diálogo del sistema) — construida pero sin consumidor
+  todavía; queda para cuando Fase 3 quiera saber el estado sin que el
+  usuario tenga que entrar a esta pantalla.
+- "Desconectar" es solo una preferencia de la app (deja de llamar a
+  Health) — revocar el permiso de verdad se hace desde Ajustes del iPhone,
+  y la propia pantalla lo explica al confirmar.
+
+### Fase 2 — La función que motivó el plan
+
+**✅ Hecho y validado en real (2026-09-09).** Cubre el caso de un tipo de
+workout por sesión de Watch (cardio grabado aparte de fuerza). No cubre
+sesión continua multideporte — sigue haciendo falta la extensión Swift de
+`workoutActivities` para eso (ver "Riesgo técnico principal").
+
+- Modal "Añadir Cardio Previo" (`src/views/DashboardView.jsx`): al abrirlo, un
+  `useEffect` busca el workout de Watch más reciente (últimos 90 min,
+  `getMostRecentWorkout`) y si mapea a uno de los 4 tipos reconocidos
+  (`mapWorkoutToCardioType`, `src/lib/appleHealth.js`) muestra un banner
+  "Detectado en tu Watch: Correr en cinta · 22 min · 245 kcal" — un toque lo
+  usa (`cardio.source = 'health'`), si no sigue el flujo manual de siempre.
+  `resolveCardioCalories` (`src/lib/routineUtils.js`) decide real vs.
+  estimado según ese `source`.
+- En el botón "Terminar Entrenamiento" (`src/views/OtherViews.jsx`): si hay un
+  workout de Watch tipo fuerza (`isStrengthWorkout`) que cubre la duración de
+  la sesión, sus kcal reales sustituyen `calculateRealCalories` — se guarda
+  `caloriesSource: 'health' | 'estimated'` en `workoutDuration` para saber
+  cuál se usó.
+- El entreno completado (kcal totales = fuerza + cardio, reales o estimadas)
+  se escribe de vuelta a Health con `writeWorkoutToHealth`. Best-effort en
+  los tres puntos — si Health falla, el flujo manual/estimado de siempre
+  sigue funcionando sin bloquear nada.
+- **Límite de plugin encontrado al implementar**: `queryWorkouts()` no expone
+  el flag `HKMetadataKeyIndoorWorkout` que asumía la tabla de mapeo original
+  — no se puede distinguir cinta/interior de exterior. Se asume contexto de
+  gimnasio (interior) para los 4 tipos, documentado en el código
+  (`CARDIO_WORKOUT_TYPE_MAP`, `appleHealth.js`).
+- **Validado en real (2026-09-09)**, entreno real de gimnasio con build
+  standalone de Xcode (no dev-server bridge, red distinta al Mac): banner de
+  cardio detectado y kcal reales de fuerza sustituyendo la estimación MET,
+  ambos confirmados en la sesión de esa misma mañana
+  (`caloriesSource: "health"`, kcal de fuerza reales ≈ kcal del entreno en
+  Salud). Primer intento en el gimnasio salió en falso porque el build
+  standalone se había quedado desincronizado (`npm run build && npx cap sync
+  ios` pendiente tras el último commit) — nada que ver con la lógica.
+- **Extra pedido tras la validación**: tarjeta-resumen al terminar el
+  entreno (duración, kcal total, desglose fuerza real/estimado con badge
+  "Watch", cardio) antes de volver al Dashboard, y tarjeta "Última sesión"
+  (duración/kcal de la vez anterior) en el Dashboard y en la ficha del
+  entrenamiento — se actualiza sola al completar la rutina de nuevo
+  (`LastSessionCard`, `src/components/ui/LastSessionCard.jsx`;
+  `loadLastRoutineSummary`, `src/lib/utils.js`).
+- **Distinción visual fuerza/cardio en la tarjeta-resumen**: icono de
+  mancuerna (violeta) en la fila "Fuerza", de corazón (azul) en la fila
+  "Cardio" (`src/views/OtherViews.jsx`). **Pendiente de comprobar en real**
+  con un entreno que incluya cardio previo — solo se ha visto en el
+  prototipo con datos mock; la fila "Cardio" solo aparece si se añadió
+  cardio en el modal previo al entreno.
+
+### Fase 3 — Superficie de datos
+
+**✅ Hecho (2026-09-09).** UI decidida en el prototipo `prototype/statistics-health-ui`
+(Variante B — secciones dedicadas, veredicto en su `NOTES.md`), llevada a
+código real conectado a HealthKit/`workout_logs` (sin mock data):
+
+- **Dashboard** (`src/views/DashboardView.jsx`): card "Salud de hoy" — pasos
+  y kcal activas de hoy (`getTodayMetrics`, ya existía desde Fase 1) + hora
+  de última sincronización.
+- **Estadísticas** (`src/views/StatisticsView.jsx`), las 3 piezas de la
+  Variante B:
+  - Resumen: card "Salud (7 días)" — pasos/día promedio, kcal activas
+    semana, FC en reposo (`getWeeklyHealthSummary`, appleHealth.js).
+  - Progresión: card "Peso corporal" con mostrar/ocultar, distinta de la
+    gráfica de peso LEVANTADO que ya existía (`getBodyWeightHistory`); card
+    "Kcal de fuerza: reales vs. estimadas" — **no viene de Health**, viene de
+    `workout_logs` (`loadRecentCaloriesComparison`, utils.js), así que
+    funciona igual en la PWA. Es una barra por sesión coloreada por
+    `caloriesSource` (no dos barras real/estimado por sesión como en el mock
+    del prototipo — ese dato doble no existe: al sustituir por kcal reales
+    del Watch se pierde la estimación MET de esa misma sesión, no se guardan
+    las dos).
+  - Actividad: card "FC en reposo" bajo el heatmap (`getRestingHrHistory`).
+- **Peso corporal automático**: `EditProfileView.jsx` autorrellena el campo
+  "Peso" desde Health si está vacío (`getLatestBodyWeight`), con botón de
+  resincronizar y badge "Health" — sigue editable a mano, esto solo propone
+  un valor en vez de pedirlo siempre en blanco.
+- Todo lo anclado a Health (todo excepto la comparativa de kcal) es no-op en
+  la PWA — las cards simplemente no aparecen, sin romper nada.
+
+### Fase 4 — Live Activity durante el entreno · ✅ Foreground/local hecho y validado en real (2026-09-10)
+
+**Estado:**
+- ✅ Puente Capacitor→ActivityKit (`ios/App/App/LiveActivityPlugin.swift`,
+  plugin LOCAL registrado en `SceneDelegate` vía `MainViewController` /
+  `bridge?.registerPluginInstance`). Wrapper JS: `src/lib/liveActivity.js`.
+- ✅ Widget extension `RutinexWidgetsExtension` con la Live Activity (lock
+  screen + Dynamic Island). Tipo compartido `LiveActivityAttributes.swift`
+  con Target Membership en app y extensión.
+- ✅ Wiring React: `TrainingView` arranca al entrar al primer ejercicio y
+  actualiza en los siguientes (`handleOpenExercise`); `ExerciseDetailModal`
+  actualiza a fase `resting` con cuenta atrás al marcar serie y a
+  `restFinished` cuando el descanso llega a 0; `end()` al terminar la rutina
+  y como red de seguridad al desmontar `TrainingView`.
+- ✅ Validado en iPhone 13 Pro (iOS 26): banner en lock screen, cuenta atrás
+  local, transición "¡Descanso terminado!", y desaparición al terminar.
+- ⏳ **Dynamic Island**: código presente, no probable en 13 Pro (sin
+  hardware). Pendiente de validar en 14 Pro o posterior.
+- ⏸️ **Caso "descanso acaba con el móvil bloqueado del todo" — descartado por
+  ahora (2026-09-10).** La transición a `restFinished` la dispara JS, que se
+  suspende con la pantalla apagada. Para actualizar la tarjeta sin abrir la
+  app haría falta push APNs de tipo `liveactivity`: es un canal distinto del
+  Web Push (VAPID) que ya usa `send-timer-push` — no se reutiliza nada.
+  Requeriría: capability Push Notifications (`aps-environment`), volver a
+  `pushType: .token` + `observePushToken`, guardar el token en Supabase,
+  clave APNs `.p8` (key ID + team ID) como secrets, y una Edge Function que
+  mande el push APNs a `targetTime`. **No se hace** porque la ganancia es
+  cosmética: con la pantalla apagada el usuario ya recibe el Web Push
+  "¡Recuperación completada!" (enciende pantalla + banner). Lo único que
+  falta es que la tarjeta de la Live Activity en sí cambie de estado sin
+  abrir la app. Se retoma solo si se pide expresamente.
+
+`Activity.request` usa `pushType: nil` de momento. El plugin limpia
+Activities huérfanas en `load()` (proceso matado sin `end()`), antes de cada
+`start()`, y `update()` adopta una Activity viva si el proceso es nuevo
+(reanudar entreno tras reabrir la app).
+
+Mapeo del flujo real de uso (entras al ejercicio → marcas serie → arranca
+descanso → termina descanso → completas ejercicio → siguiente) a eventos de
+una Live Activity (Dynamic Island + pantalla bloqueada):
+
+| Acción en la app | Disparador en código | Qué hace la Live Activity |
+|---|---|---|
+| Entras al ejercicio | se abre `ExerciseDetailModal` | **Arranca** la Activity: nombre del ejercicio, "0/X series" |
+| Marcas serie completada | `toggleSet()` ([ExerciseDetailModal.jsx:206](../src/views/ExerciseDetailModal.jsx#L206)) — ya calcula `targetTime` y programa `scheduleServerPush` ([línea 233](../src/views/ExerciseDetailModal.jsx#L233)) | **Actualiza** a "Descanso" con cuenta atrás — mismo `targetTime`, se le pasa tal cual a la Activity |
+| Descanso llega a 0 | dispara el beep/push existente | **Actualiza** a "Descanso terminado" — reutilizando la MISMA notificación push, no hay que montar nada nuevo del lado servidor |
+| Tocas "Completar Ejercicio" | footer ([ExerciseDetailModal.jsx:686-698](../src/views/ExerciseDetailModal.jsx#L686-L698)), `onClose(true,...)` | **Actualiza** al siguiente ejercicio |
+| Terminas la rutina | `onFinish` en `GymTrackerApp.jsx` | **Termina** la Activity |
+
+En foreground, arrancar/actualizar/terminar se hace directo desde Swift vía
+Capacitor, sin pasar por push. El caso que sí depende de push es "descanso
+termina con el móvil bloqueado" — y ahí se reutiliza la infraestructura que
+ya existe (`scheduleServerPush` en
+[pushNotifications.js](../src/lib/pushNotifications.js)): se le añade el
+payload de actualización de la Activity (vía token APNs de tipo
+`liveactivity`) a la misma llamada que ya manda el push web actual.
+
+Falta construir (nativo, fuera de React): el puente Capacitor→ActivityKit
+para arrancar/actualizar/terminar la Activity, y extender la Edge Function
+`send-timer-push` para incluir ese payload.
+
+**⚠️ Prerrequisito — el push actual falla de forma intermitente:**
+investigando `send-timer-push` ([Supabase Edge Function](https://supabase.com/dashboard/project/jqpyqqlkgisykgywilrf/functions/send-timer-push)),
+usa `EdgeRuntime.waitUntil()` con un loop que espera hasta `targetTime`
+haciendo heartbeats a la DB cada 5s para evitar que Deno pause la función.
+Esto es fràgil por diseño:
+- Las *background tasks* de Edge Functions tienen un tope de duración — un
+  descanso largo (3+ min) puede superar ese tope y la función muere antes
+  de enviar el push, mientras que un descanso corto (60-90s) sí funciona.
+  Esto encaja con el síntoma descrito ("a veces fallan") — probablemente
+  correlaciona con la duración del descanso, no es aleatorio.
+- Si `webPush.sendNotification()` falla (suscripción caducada, red
+  intermitente), el error solo se hace `console.error` dentro de la Edge
+  Function — nadie lo ve nunca, ni en el cliente ni en ningún sitio visible.
+  Sin reintento.
+- Web Push en iOS solo funciona si la PWA está instalada a pantalla de
+  inicio (no en una pestaña normal de Safari) — si alguna vez se abre desde
+  un marcador/pestaña, el push no llega y no hay forma de saberlo desde la
+  app.
+
+Antes de construir la Live Activity sobre este mecanismo, conviene
+arreglarlo: mover el rest-timer-push a un cron/queue con reintento real (o
+acortar el heartbeat y loguear a una tabla consultable en vez de solo
+`console.error`) en vez del loop actual dentro de la función.
+
+### Fase 5 — Pulido opcional
+- Notificaciones (`src/context/NotificationsContext.jsx`): aviso si llevan varios días sin sincronizar, insight semanal de actividad.
+- **Notificación proactiva**: Health detecta un entreno (fuerza o cardio) sin log correspondiente en Rutinex ese día → notificación "Detectamos 42 min de fuerza sin registrar, ¿lo añades?". Usa el mismo `NotificationsContext.jsx`, cero infraestructura nueva.
+- **Haptics** (`@capacitor/haptics`, oficial, gratis): vibración al marcar serie completada y al terminar el descanso — barato de construir, alto impacto percibido, no depende de Health.
+- **Widget de pantalla de inicio** (`Cap-go/capacitor-widget-kit`, gratis): racha + pasos del día, sin abrir la app.
+- Frecuencia cardiaca en vivo durante el entreno — más caro técnicamente (requiere sesión HealthKit en vivo, `HKWorkoutSession`, no una simple lectura por lotes). Dejar para el final.
+- Vista de entrenador viendo datos de salud de un cliente — implica compartir datos de salud entre usuarios, tema de privacidad que se decide aparte; no entra en el alcance de este plan.
+
+**Orden de ataque recomendado:** Fase 0 → validar el riesgo técnico de Fase 2 con un entreno real → resto de Fase 2 → Fase 1 → Fase 3 → arreglar el push (prerrequisito de Fase 4) → Fase 4 → Fase 5.
+
+---
+
+## Notas fuera del alcance de Health, encontradas durante esta planificación
+
+No forman parte de la integración con Apple Health, pero se detectaron
+revisando código relacionado — quedan aquí para no perderlas; encajaría
+también abrirlas como issues sueltos en GitHub si se prefiere seguir el
+flujo normal de `docs/agents/issue-tracker.md`.
+
+- **Diálogo nativo de iOS "Shake to Undo" apareciendo durante el entreno**
+  (el usuario lo describe como "me pregunta si deseo cancelar" al mover el
+  móvil). Causa real encontrada en
+  [GymTrackerApp.jsx:31-87](../src/GymTrackerApp.jsx#L31-L87)
+  (`useShakeToUndoPrevention`): el hook está pensado para desenfocar el
+  input activo ANTES de que iOS muestre su diálogo nativo (~15 m/s²), pero
+  el umbral se subió de `8` a `22` en el commit `bfd20fe` ("shake threshold")
+  para evitar falsos positivos por el móvil en el bolsillo. El problema: 22
+  está POR ENCIMA del umbral real de iOS (~15), así que ya no lo adelanta —
+  durante un entreno (brazo moviéndose, móvil en banda/soporte) el diálogo
+  nativo de iOS dispara igual. Bajar el número sin más reintroduce el
+  problema original (falsos positivos en bolsillo) que motivó subirlo a 22.
+  Mejor solución probable: en vez de un único umbral instantáneo, exigir 2+
+  cruces del umbral en una ventana corta (p. ej. 500ms) antes de desenfocar
+  — distingue una sacudida real (oscilación rápida) de un solo golpe o
+  vibración continua, permitiendo bajar el umbral base sin disparar tanto
+  por movimiento normal.
+- **Fallos intermitentes del aviso de fin de descanso**: ver el prerrequisito
+  documentado en la Fase 4 arriba — mismo mecanismo (`send-timer-push`),
+  mismo diagnóstico.
+
+---
+
+## Diseño de UI — decidido
+
+Se prototipó la UI con 3 variantes (datos mock, sin backend real) para validar
+cómo debía verse la card de salud del Dashboard y el modal "Añadir Cardio
+Previo" antes de construir nada. **Ganadora: Variante B — "Detección
+primero"**, confirmada por el usuario el 2026-09-04:
+
+- Card de salud grande y prominente arriba del Dashboard (pasos, kcal activas, última sync).
+- En el modal de cardio, el workout detectado por Health es la ruta principal (hero, CTA "Usar estos datos"), no un añadido secundario.
+- El grid manual de tipos de cardio (Andar/Correr en cinta, Elíptica, Bicicleta) queda colapsado detrás de "Elegir manualmente" — sigue disponible, pero deja de ser lo primero que se ve.
+- Estado "no conectado": card con CTA "Conectar con Apple Health" en vez de las estadísticas.
+
+Marcado de referencia (mock, a reescribir con datos reales al implementar la Fase 0-2 — quitar el botón "Ver demo", `mockData.js`, y conectar a `health_metrics`/HealthKit real):
+
+```jsx
+const VariantB = ({ connected, onToggleConnected }) => {
+    const [showModal, setShowModal] = useState(false);
+    const [useDetected, setUseDetected] = useState(null); // null = sin decidir, true/false
+    const [showManual, setShowManual] = useState(false);
+    const [selectedType, setSelectedType] = useState(null);
+
+    return (
+        <div className="space-y-4">
+            {connected ? (
+                <Card className="border border-surface-highlight">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-bold text-text-primary flex items-center gap-2">
+                            <Activity size={16} className="text-primary" />
+                            Salud de hoy
+                        </h4>
+                        <span className="flex items-center gap-1 text-[10px] text-text-secondary">
+                            <RefreshCw size={10} /> {lastSync}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-surface-highlight/60 p-3">
+                            <p className="text-xl font-black text-text-primary">{steps.toLocaleString('es-ES')}</p>
+                            <p className="text-[11px] text-text-secondary">de {stepsGoal.toLocaleString('es-ES')} pasos</p>
+                        </div>
+                        <div className="rounded-xl bg-surface-highlight/60 p-3">
+                            <p className="text-xl font-black text-text-primary flex items-center gap-1">
+                                <Flame size={16} className="text-orange-400" />{activeKcal}
+                            </p>
+                            <p className="text-[11px] text-text-secondary">kcal activas</p>
+                        </div>
+                    </div>
+                </Card>
+            ) : (
+                <Card className="border border-primary/30 bg-gradient-to-br from-primary/10 to-transparent text-center py-6">
+                    <Sparkles size={28} className="text-primary mx-auto mb-2" />
+                    <h4 className="font-bold text-text-primary mb-1">Conecta Apple Health</h4>
+                    <p className="text-xs text-text-secondary mb-4 max-w-[16rem] mx-auto">
+                        Detecta tu cardio automáticamente y trae kcal reales del Watch a cada entreno.
+                    </p>
+                    <Button onClick={onToggleConnected} className="bg-primary text-black font-bold rounded-full px-6">
+                        Conectar con Apple Health
+                    </Button>
+                </Card>
+            )}
+
+            {/* Modal "Añadir Cardio Previo" — extiende el existente en DashboardView.jsx */}
+            {connected && useDetected !== false ? (
+                <div className="rounded-2xl border-2 border-primary bg-primary/10 p-4 mb-4 text-center">
+                    <Sparkles size={22} className="text-primary mx-auto mb-1" />
+                    <p className="text-xs text-text-secondary mb-1">Detectado en tu Apple Watch</p>
+                    <p className="text-lg font-black text-text-primary">{detectedWorkout.type}</p>
+                    <p className="text-sm text-text-secondary mb-4">{detectedWorkout.duration} min · {detectedWorkout.kcal} kcal reales · {detectedWorkout.detectedAgo}</p>
+                    <div className="flex flex-col gap-2">
+                        <Button className="w-full bg-primary text-black font-bold h-11 rounded-xl" onClick={() => { setUseDetected(true); setSelectedType(detectedWorkout.type); }}>
+                            Usar estos datos
+                        </Button>
+                        <button onClick={() => { setUseDetected(false); setShowManual(true); }} className="text-xs text-text-secondary underline">
+                            Elegir manualmente
+                        </button>
+                    </div>
+                </div>
+            ) : null}
+            {/* si !connected || useDetected === false: grid manual existente, colapsado tras "Elegir manualmente" */}
+        </div>
+    );
+};
+```
+
+Prototipo ya borrado (`src/views/prototype-apple-health/`, `prototype-health.html`, `src/prototype-health-main.jsx`) — este bloque es la única referencia que queda.
+
+### Extensión: detección del segmento de fuerza al finalizar
+
+Mismo patrón que la detección de cardio (hero + "Usar estos datos"), pero en
+el otro extremo del entreno: al finalizar, no al empezar. Sin cambios de
+comportamiento si no hay Watch — cero fricción añadida para quien no lo use.
+
+Hoy, [OtherViews.jsx:273-298](../src/views/OtherViews.jsx#L273-L298) guarda al
+instante en cuanto se toca "Finalizar": calcula `realCalories` con
+`calculateRealCalories` (estimación MET) y llama a `onFinish(finalLogs)` sin
+ninguna pantalla intermedia.
+
+Cambio propuesto:
+
+- **Sin segmento de fuerza detectado** (sin Watch, o Health no conectado): comportamiento idéntico al actual — un toque en "Finalizar" y guarda, sin pantalla añadida.
+- **Con segmento detectado**: al tocar "Finalizar", antes de guardar, mostrar un hero con la misma identidad visual que el de cardio de la Variante B:
+
+```
+┌─────────────────────────────────────┐
+│         ✨ Detectado en tu Watch      │
+│      Entrenamiento de fuerza         │
+│   42 min · 310 kcal reales           │
+│                                       │
+│   [ Usar estos datos ]  ← primario   │
+│   Usar estimación (298 kcal)         │
+└─────────────────────────────────────┘
+```
+
+Sigue siendo un solo toque — la única decisión es qué número de kcal se
+guarda (real del Watch vs. estimación MET actual). `finalLogs.workoutDuration.realCalories`
+pasa a venir del Watch cuando el usuario acepta, en vez de
+`calculateRealCalories`.
+
+**Detección técnica:** mismo `queryWorkouts()` que la detección de cardio,
+filtrando por tipo `functionalStrengthTraining` (o `traditionalStrengthTraining`)
+y por solape de rango horario con `workoutStartTime` → momento de tocar
+"Finalizar". Sujeto al mismo riesgo técnico ya anotado arriba (confirmar qué
+devuelve el plugin por segmento antes de construir esto).
+
+## Diseño de Estadísticas — decidido
+
+Se prototiparon 3 variantes (datos mock) para las 4 piezas de Health en
+`StatisticsView.jsx`: card semanal en Resumen, peso corporal + kcal real vs.
+estimado en Progresión, FC en reposo en Actividad. **Ganadora: Variante B —
+"Secciones dedicadas"**, con un detalle prestado de la Variante C, confirmado
+por el usuario el 2026-09-04:
+
+- **Resumen**: card propia "Salud (7 días)" debajo del grid de 3 números existente (pasos/día, kcal activas, FC reposo) — no se mezcla con el grid, va aparte.
+- **Progresión**: sección "Peso corporal" separada de la gráfica de progresión por ejercicio ya existente (kg levantado ≠ peso corporal — importante no confundirlas), colapsable con "Mostrar/Ocultar". Debajo, sección "Kcal reales vs. estimadas" con `BarChart` de dos series y **chips de leyenda con color** (● Reales (Watch) / ● Estimadas (MET)) — este detalle viene de la Variante C, más claro que el texto plano.
+- **Actividad**: card aparte bajo el heatmap de 90 días, "FC en reposo" con su propia mini-gráfica de línea.
+
+Se descartó la Variante A (fusionar todo en los elementos existentes) por un
+bug real que expuso el prototipo: al superponer barras de sesiones (escala
+0-3) y línea de FC en reposo (escala 54-61) en el mismo eje Y, las barras
+quedaban aplastadas — arreglarlo exigiría un eje Y secundario, quitándole a
+A su ventaja de "no añadir nada nuevo". Se descartó la Variante C completa
+(chips activables sobre una única gráfica compartida) por pedir más
+interacción para ver lo mismo que B muestra directo — se quedó solo con el
+detalle de los chips de leyenda.
+
+El set completo de las 3 variantes (código real, no solo capturas) se
+conserva como fuente primaria en la rama `prototype/statistics-health-ui`,
+fuera de `main`. Ver `src/views/prototype-statistics-health/NOTES.md` en esa
+rama para el detalle de cada variante.
+
+## Estado
+
+Documento de planificación + diseño de UI decidido para Dashboard (Variante
+B) y Estadísticas (Variante B + chips de C) + mapeo de eventos para la Live
+Activity (Fase 4). **Fase 0 cerrada y verificada en dispositivo real
+(2026-09-08)**; el push actual ya se arregló (ver "Notas fuera del alcance
+de Health" — desplegado y confirmado con logs reales, no solo teoría).
+
+**Validado contra un entreno real (2026-09-08).** Primer entreno con la app
+nativa: andar 8 min (41,8 kcal) + fuerza con máquinas 1h10 (298 kcal), total
+339 kcal. En la app Salud aparece como un único card "Entrenos" con los dos
+segmentos desglosados debajo — la firma visual de un `HKWorkout` multideporte
+con dos `HKWorkoutActivity` dentro, no dos sesiones sueltas — y lo confirma
+el gráfico de frecuencia cardiaca: un único bloque continuo de 11:00 a 12:12,
+sin corte entre segmentos, propio de una sola sesión grabada de principio a
+fin.
+
+Esto cierra la validación del riesgo técnico: confirmado por lectura de
+código (el plugin no lee `workoutActivities`) **y** confirmado con datos
+reales (HealthKit sí graba esta sesión como una sola, con dos segmentos
+dentro). Construir el desglose por segmento en Rutinex sigue necesitando la
+extensión Swift ya anotada arriba — sin ella, `queryWorkouts()` solo daría
+la sesión completa como un tipo único, perdiendo el desglose 41,8/298 kcal
+que si importa mostrar.
+
+**Fase 2 (versión simple) cerrada y validada en real (2026-09-09)** —
+grabando cardio y fuerza como dos entrenos separados en el Watch (no la
+sesión continua multideporte de arriba, que sigue sin desglose posible sin
+la extensión Swift): banner de cardio detectado y sustitución de kcal
+reales de fuerza, ambos confirmados en una sesión real de gimnasio con el
+build standalone de Xcode. Ver detalle en "Fase 2" arriba.
+
+Ver también [docs/plan-gym-app-features.md](plan-gym-app-features.md) —
+estudio de funciones de las apps de gimnasio mejor valoradas y propuesta de
+cuáles añadir a Rutinex, más allá de la integración con Health.
