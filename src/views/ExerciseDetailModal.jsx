@@ -7,6 +7,7 @@ import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils'
 import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
 import { updateWorkoutActivity } from '../lib/liveActivity';
+import { ExerciseCommentThread } from '../components/shared/ExerciseCommentThread';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -17,7 +18,7 @@ function formatRelativeDate(isoDate) {
     return `hace ${diffDays} días`;
 }
 
-export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm = null, isCompleted, onClose, savedTimerState, onTimerStateChange }) => {
+export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm = null, isCompleted, onClose, savedTimerState, onTimerStateChange, trainerId = null }) => {
     const { user, profile } = useAuth();
     const userWeight = profile?.weight || null;
 
@@ -690,6 +691,16 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                             )}
                         </div>
                     )}
+
+                    {/* Comentarios del entrenador sobre este ejercicio (Fase 4) */}
+                    <div className="rounded-2xl bg-surface-highlight p-4 border border-surface-highlight">
+                        <ExerciseCommentThread
+                            exerciseId={exercise.id}
+                            exerciseName={exercise.name}
+                            recipientId={trainerId}
+                            counterpartLabel="Entrenador"
+                        />
+                    </div>
 
                     {/* Referencia Última Vez */}
                     {(() => {

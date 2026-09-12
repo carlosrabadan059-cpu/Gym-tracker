@@ -429,6 +429,7 @@ const TrainingView = ({ workout, onFinish }) => {
                     onTimerStateChange={(state) =>
                         setTimerStates(prev => ({ ...prev, [activeExercise.id]: state }))
                     }
+                    trainerId={workout?.trainer_id ?? null}
                 />
             )}
 
