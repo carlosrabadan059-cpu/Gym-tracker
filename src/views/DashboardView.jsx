@@ -350,7 +350,7 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                         </h4>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge className={cn("bg-opacity-20", routine.color, routine.text_color)}>
+                                        <Badge className={cn(`${routine.color}/20`, routine.text_color)}>
                                             {routine.exercises.length} Ejercicios • {totalCalories} kcal
                                         </Badge>
                                         <ChevronRight
