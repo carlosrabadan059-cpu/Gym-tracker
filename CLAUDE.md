@@ -5,14 +5,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Start dev server (Vite) — port 5173
-npm run build     # Production build
-npm run lint      # ESLint
-npm run preview   # Preview production build
-npm run browse    # Headless browser driver (screenshots, clicks, console errors)
+npm run dev        # Start dev server (Vite) — port 5173
+npm run build      # Production build
+npm run lint       # ESLint
+npm run preview    # Preview production build
+npm run browse     # Headless browser driver (screenshots, clicks, console errors)
+npm test           # Vitest (una pasada)
+npm run test:watch # Vitest en modo watch
 ```
 
-No test suite is configured.
+### Tests
+
+Vitest, configurado en el bloque `test` de [vite.config.js](vite.config.js). Los tests viven junto al código que cubren (`src/**/*.test.js`).
+
+- El entorno por defecto es `node` porque lo cubierto hasta ahora son funciones puras. Un test de componente debe pedir DOM con `// @vitest-environment jsdom` en la primera línea.
+- Los scripts fuerzan `TZ=UTC`: buena parte de la lógica de fechas (inicio de semana, "hoy", caducidad semanal) depende de la zona horaria local, y sin fijarla los tests fallarían según la máquina.
+- `src/lib/utils.js` importa el cliente de Supabase en tiempo de import; para testearlo hay que mockear el módulo (`vi.mock('./supabase', ...)`) antes de importarlo.
+
+Cubierto: `constants.js`, `exerciseUtils.js`, `routineUtils.js` y las funciones puras de `utils.js`. Sin cubrir: la capa de datos de Supabase, la lógica de estadísticas (aún dentro de `StatisticsView.jsx`) y los componentes.
+
+> ⚠️ **Definición de semana inconsistente, pendiente de unificar.** `loadCompletedRoutines` ([utils.js](src/lib/utils.js)) y `TrainingView` ([OtherViews.jsx](src/views/OtherViews.jsx)) empiezan la semana en **domingo**; `getWeekStart` ([StatisticsView.jsx](src/views/StatisticsView.jsx)) la empieza en **lunes**. El Dashboard y las Estadísticas cuentan por tanto semanas distintas. No añadir lógica semanal nueva sin decidir cuál es la buena.
 
 **`.env.local` is required to run the app at all.** `src/lib/supabase.js` calls
 `createClient()` at module import with `VITE_SUPABASE_URL` /
