@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, User, ChevronRight, UserPlus, Search, X } from 'lucide-react';
+import { computeDaysSinceLastSession, INACTIVITY_ALERT_DAYS } from '../../lib/adherence';
 
 export function ClientsListView({ onBack, onSelectClient, embedded = false, selectedId = null }) {
     const { user } = useAuth();
@@ -28,13 +29,33 @@ export function ClientsListView({ onBack, onSelectClient, embedded = false, sele
                 return;
             }
 
-            const { data: profiles, error: profilesError } = await supabase
-                .from('profiles')
-                .select('*')
-                .in('user_id', clientIds);
+            const [
+                { data: profiles, error: profilesError },
+                { data: logs, error: logsError },
+            ] = await Promise.all([
+                supabase.from('profiles').select('*').in('user_id', clientIds),
+                supabase.from('workout_logs').select('user_id, date').in('user_id', clientIds),
+            ]);
             if (profilesError) throw profilesError;
+            if (logsError) throw logsError;
 
-            setClients(profiles || []);
+            // Fecha más reciente de workout_logs por cliente, sin N+1 queries.
+            const lastSessionByClient = {};
+            (logs || []).forEach((log) => {
+                const current = lastSessionByClient[log.user_id];
+                if (!current || new Date(log.date) > new Date(current)) {
+                    lastSessionByClient[log.user_id] = log.date;
+                }
+            });
+
+            const clientsWithActivity = (profiles || []).map((profile) => ({
+                ...profile,
+                daysSinceLastSession: computeDaysSinceLastSession(
+                    lastSessionByClient[profile.user_id] ? [lastSessionByClient[profile.user_id]] : []
+                ),
+            }));
+
+            setClients(clientsWithActivity);
         } catch (error) {
             console.error('Error fetching clients:', error);
         } finally {
@@ -107,6 +128,11 @@ export function ClientsListView({ onBack, onSelectClient, embedded = false, sele
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className={`font-bold text-text-primary truncate ${embedded ? 'text-sm' : 'text-lg'}`}>{client.fullName || client.username}</h3>
+                                    {(client.daysSinceLastSession === null || client.daysSinceLastSession >= INACTIVITY_ALERT_DAYS) && (
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full mt-1">
+                                            ⚠️ {client.daysSinceLastSession === null ? 'Sin sesiones' : `Hace ${client.daysSinceLastSession} días`}
+                                        </span>
+                                    )}
                                     {!embedded && <p className="text-xs text-text-secondary">Ver progreso y asignar rutinas</p>}
                                 </div>
                             </div>
