@@ -4,6 +4,7 @@ import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { cloneRoutineToClient } from '../../lib/trainerUtils';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star } from 'lucide-react';
+import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -434,6 +435,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
     const [collapsedGroups, setCollapsedGroups] = useState({});
     const [showSelected, setShowSelected] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [showReview, setShowReview] = useState(false);
 
     useEffect(() => {
         const fetchCatalog = async () => {
@@ -594,13 +596,22 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     <p className="text-xs text-text-secondary truncate">{client?.fullName || client?.username}</p>
                 </div>
                 {mode === 'new' && (
-                    <button
-                        onClick={handleSave}
-                        disabled={!canSave || saving}
-                        className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
-                    >
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </button>
+                    <>
+                        <button
+                            onClick={() => setShowReview(true)}
+                            disabled={selectedExercises.length === 0}
+                            className="border border-primary text-primary font-bold px-3 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary/10 transition-colors flex-shrink-0"
+                        >
+                            Revisar con IA
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={!canSave || saving}
+                            className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
+                        >
+                            {saving ? 'Guardando...' : 'Guardar'}
+                        </button>
+                    </>
                 )}
             </header>
 
@@ -788,6 +799,21 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                         </div>
                     )}
                 </div>
+            )}
+
+            {showReview && (
+                <RoutineReviewModal
+                    key={routineName}
+                    exercises={selectedExercises.map((ex) => ({
+                        name: ex.name,
+                        category: catalog.find((c) => c.id === ex.catalog_id)?.category,
+                        series: ex.series,
+                        reps: ex.reps,
+                    }))}
+                    routineName={routineName}
+                    clientGoal={client?.goal}
+                    onClose={() => setShowReview(false)}
+                />
             )}
         </div>
     );

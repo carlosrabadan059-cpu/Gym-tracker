@@ -36,6 +36,7 @@ export function enrichExercisesWithCatalog(exercises) {
             name: catalogData.name || exercise.name,
             image_url: catalogData.image_url || exercise.image_url,
             instructions: catalogData.instructions || exercise.instructions,
+            category: catalogData.category || exercise.category,
         };
     });
 }
