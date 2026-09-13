@@ -107,3 +107,25 @@ export async function deleteClientRoutineCopy(routineId) {
     await supabase.from('exercises').delete().eq('routine_id', routineId);
     await supabase.from('routines').delete().eq('id', routineId);
 }
+
+/**
+ * Resume el historial reciente de un cliente en texto plano, para pasarlo
+ * como contexto a la IA del borrador de rutina (Fase 2.1) sin mandar el
+ * JSON crudo de `workout_logs`.
+ *
+ * @param {Array<{routine_id: string, date: string, logs: object}>} logs
+ * @param {Record<string, string>} nameById  routine_id -> nombre de rutina
+ * @returns {string}
+ */
+export function summarizeWorkoutHistory(logs, nameById) {
+    if (!logs || logs.length === 0) return 'Sin historial de entrenamientos registrado.';
+
+    return logs.map(log => {
+        const routineName = nameById[log.routine_id] || log.routine_id;
+        const exerciseCount = log.logs
+            ? Object.keys(log.logs).filter(key => key !== 'workoutDuration' && key !== 'cardio').length
+            : 0;
+        const dateOnly = log.date.slice(0, 10);
+        return `${dateOnly} · ${routineName} · ${exerciseCount} ejercicios`;
+    }).join('\n');
+}
