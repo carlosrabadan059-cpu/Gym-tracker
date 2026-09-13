@@ -127,8 +127,13 @@ function SelectedExerciseList({ selected, onMove, onRemove }) {
                             <Dumbbell size={12} className="text-text-secondary" />
                         </div>
                     )}
-                    <span className="flex-1 text-xs text-text-primary truncate">{ex.name}</span>
-                    <span className="text-xs text-text-secondary font-bold">{ex.series}×{ex.reps}</span>
+                    <div className="flex-1 min-w-0">
+                        <span className="block text-xs text-text-primary truncate">{ex.name}</span>
+                        {ex.motivo && (
+                            <span className="block text-[10px] text-text-secondary italic truncate">{ex.motivo}</span>
+                        )}
+                    </div>
+                    <span className="text-xs text-text-secondary font-bold flex-shrink-0">{ex.series}×{ex.reps}</span>
                     <button
                         onClick={() => onRemove(ex.catalog_id)}
                         className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors"
@@ -604,7 +609,7 @@ function AssignExistingTab({ client, user, onSuccess, onBack }) {
 
 export function RoutineAssignerView({ client, onBack, onSuccess }) {
     const { user } = useAuth();
-    const [mode, setMode] = useState('existing'); // 'existing' | 'new'
+    const [mode, setMode] = useState('existing'); // 'existing' | 'new' | 'ai'
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -726,6 +731,10 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     image_url: ex.image_url,
                     catalog_id: ex.catalog_id ?? null,
                     ui_order: i + 1,
+                    target_weight: ex.target_weight ?? null,
+                    target_rir: ex.target_rir ?? null,
+                    rest_seconds: ex.rest_seconds ?? null,
+                    notes: ex.notes ?? null,
                 }))
             );
             if (exError) {
@@ -817,10 +826,26 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 >
                     Crear nueva
                 </button>
+                <button
+                    onClick={() => setMode('ai')}
+                    className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${mode === 'ai' ? 'bg-primary text-black' : 'bg-surface text-text-secondary hover:text-text-primary'}`}
+                >
+                    Con IA
+                </button>
             </div>
 
             {mode === 'existing' ? (
                 <AssignExistingTab client={client} user={user} onSuccess={onSuccess} onBack={onBack} />
+            ) : mode === 'ai' ? (
+                <GenerateWithAiTab
+                    client={client}
+                    catalog={catalog}
+                    onDraftGenerated={(name, exercises) => {
+                        setRoutineName(name);
+                        setSelectedExercises(exercises);
+                        setMode('new');
+                    }}
+                />
             ) : (
                 <div className="md:flex md:flex-1 md:min-h-0">
                   <div className="flex-1 overflow-y-auto md:border-r md:border-surface-highlight">
