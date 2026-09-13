@@ -155,6 +155,13 @@ function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [warning, setWarning] = useState('');
 
+    const isMountedRef = React.useRef(true);
+    useEffect(() => {
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, []);
+
     const handleGenerate = async () => {
         const webhookUrl = import.meta.env.VITE_N8N_ROUTINE_DRAFT_WEBHOOK_URL;
         if (!webhookUrl) {
@@ -196,6 +203,7 @@ function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
 
             if (!response.ok) throw new Error('Respuesta HTTP ' + response.status);
             const data = await response.json();
+            if (!isMountedRef.current) return;
 
             const { matched, unmatched } = matchDraftExercisesToCatalog(data.ejercicios, catalog);
             if (matched.length === 0) {
@@ -212,6 +220,7 @@ function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
             onDraftGenerated(data.nombre || 'Rutina generada con IA', matched);
         } catch (err) {
             clearTimeout(timer);
+            if (!isMountedRef.current) return;
             console.error('Error generando borrador con IA:', err);
             setStatus('error');
             setErrorMessage('No se pudo generar el borrador. Inténtalo de nuevo.');
