@@ -160,8 +160,20 @@ function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
     const [errorMessage, setErrorMessage] = useState('');
     const [warning, setWarning] = useState('');
 
+    // isMountedRef.current se pone a true aquí dentro (no solo en el
+    // useRef(true) inicial) porque en StrictMode (dev) React simula un
+    // montaje→desmontaje→remontaje del efecto sobre la MISMA instancia del
+    // componente: el cleanup de abajo deja isMountedRef.current en false, y
+    // si el efecto no lo repone al volver a ejecutarse, se queda en false
+    // para siempre aunque el componente esté realmente montado — dejando
+    // cualquier generación en curso colgada en "Generando..." sin error ni
+    // log, porque el guard de después de `await response.json()` (más abajo)
+    // corta silenciosamente. Mismo tipo de gotcha que ya está documentado en
+    // RoutineReviewModal.jsx sobre no usar guards de un solo sentido bajo
+    // StrictMode.
     const isMountedRef = React.useRef(true);
     useEffect(() => {
+        isMountedRef.current = true;
         return () => {
             isMountedRef.current = false;
         };
