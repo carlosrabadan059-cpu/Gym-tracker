@@ -321,24 +321,33 @@ const TrainingView = ({ workout, onFinish }) => {
                     setFinishing(true);
                     const endTime = Date.now();
 
-                    // Al "Revisar Entrenamiento" de una rutina ya completada,
-                    // workoutStartTime se reinicia a ahora → duración ~0. Si no
-                    // es una sesión en vivo y ya hay un workoutDuration real
-                    // guardado, se conserva tal cual en vez de machacarlo.
+                    // Al "Revisar Entrenamiento" de una rutina ya completada sin
+                    // tocar ningún ejercicio en esta apertura, workoutStartTime
+                    // se ha inicializado a ahora mismo → cualquier duración
+                    // calculada aquí sería falsa (segundos, no la sesión real).
+                    // No es una sesión en vivo: no hay nada nuevo que guardar,
+                    // así que nunca se llega a computar ni persistir una
+                    // duración fresca — como mucho se reutiliza el resumen que
+                    // ya hubiera. Evita duplicar la fila con fecha de hoy y
+                    // duración ≈0 (bug real: ver git blame de este comentario).
                     const prevDuration = exerciseLogs.workoutDuration;
-                    if (!isLiveSessionRef.current && prevDuration?.durationMinutes > 0) {
-                        const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
-                        const filteredExerciseLogs = {};
-                        Object.entries(exerciseLogs).forEach(([id, log]) => {
-                            if (currentExerciseIds.has(String(id))) filteredExerciseLogs[id] = log;
-                        });
-                        const finalLogs = { ...filteredExerciseLogs, workoutDuration: prevDuration };
-                        if (activeWorkout?.cardio || exerciseLogs.cardio) {
-                            finalLogs.cardio = exerciseLogs.cardio ?? activeWorkout.cardio;
-                        }
+                    if (!isLiveSessionRef.current) {
                         endWorkoutActivity();
                         setFinishing(false);
-                        setFinishSummary(finalLogs);
+                        if (prevDuration?.durationMinutes > 0) {
+                            const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
+                            const filteredExerciseLogs = {};
+                            Object.entries(exerciseLogs).forEach(([id, log]) => {
+                                if (currentExerciseIds.has(String(id))) filteredExerciseLogs[id] = log;
+                            });
+                            const finalLogs = { ...filteredExerciseLogs, workoutDuration: prevDuration };
+                            if (activeWorkout?.cardio || exerciseLogs.cardio) {
+                                finalLogs.cardio = exerciseLogs.cardio ?? activeWorkout.cardio;
+                            }
+                            setFinishSummary(finalLogs);
+                        } else {
+                            onFinish(null);
+                        }
                         return;
                     }
 

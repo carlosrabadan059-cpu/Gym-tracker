@@ -376,13 +376,17 @@ const AuthenticatedApp = () => {
                         onFinish={async (logs) => {
                             if (currentWorkout) {
                                 localStorage.removeItem(`gymTracker_workout_${currentWorkout.id}`);
-                                setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
-                                try {
-                                    await saveWorkoutLog(user?.id, currentWorkout.id, logs || {});
-                                    const refreshed = await loadCompletedRoutines(user?.id);
-                                    setCompletedRoutines(refreshed);
-                                } catch {
-                                    alert('No se pudo guardar el entrenamiento. Comprueba tu conexión e inténtalo de nuevo.');
+                                // logs === null: relectura pasiva de una rutina ya
+                                // completada, sin ejercicios nuevos que guardar.
+                                if (logs) {
+                                    setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
+                                    try {
+                                        await saveWorkoutLog(user?.id, currentWorkout.id, logs);
+                                        const refreshed = await loadCompletedRoutines(user?.id);
+                                        setCompletedRoutines(refreshed);
+                                    } catch {
+                                        alert('No se pudo guardar el entrenamiento. Comprueba tu conexión e inténtalo de nuevo.');
+                                    }
                                 }
                             }
                             setCurrentWorkout(null);
