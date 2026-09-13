@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
-import { cloneRoutineToClient } from '../../lib/trainerUtils';
+import { cloneRoutineToClient, fetchRecentHistorySummary, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from '../../lib/trainerUtils';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2 } from 'lucide-react';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 
 const COLORS = [
@@ -137,6 +137,179 @@ function SelectedExerciseList({ selected, onMove, onRemove }) {
                     </button>
                 </div>
             ))}
+        </div>
+    );
+}
+
+const REQUEST_TIMEOUT_MS = 30000;
+
+// ─── Generate With AI Tab ───────────────────────────────────────────────────
+
+function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
+    const [clientGoal, setClientGoal] = useState(client?.goal || '');
+    const [level, setLevel] = useState('intermedio');
+    const [daysPerWeek, setDaysPerWeek] = useState(4);
+    const [equipment, setEquipment] = useState('');
+    const [limitations, setLimitations] = useState('');
+    const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
+    const [errorMessage, setErrorMessage] = useState('');
+    const [warning, setWarning] = useState('');
+
+    const handleGenerate = async () => {
+        const webhookUrl = import.meta.env.VITE_N8N_ROUTINE_DRAFT_WEBHOOK_URL;
+        if (!webhookUrl) {
+            setStatus('error');
+            setErrorMessage('Falta configurar VITE_N8N_ROUTINE_DRAFT_WEBHOOK_URL.');
+            return;
+        }
+
+        setStatus('loading');
+        setErrorMessage('');
+        setWarning('');
+
+        let controller;
+        let timer;
+        try {
+            const recentHistorySummary = client?.user_id
+                ? await fetchRecentHistorySummary(client.user_id)
+                : 'Sin historial de entrenamientos registrado.';
+
+            const payload = buildRoutineDraftPayload({
+                clientGoal,
+                level,
+                daysPerWeek,
+                equipment,
+                limitations,
+                exerciseNames: catalog.map(ex => ex.name),
+                recentHistorySummary,
+            });
+
+            controller = new AbortController();
+            timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+            clearTimeout(timer);
+
+            if (!response.ok) throw new Error('Respuesta HTTP ' + response.status);
+            const data = await response.json();
+
+            const { matched, unmatched } = matchDraftExercisesToCatalog(data.ejercicios, catalog);
+            if (matched.length === 0) {
+                setStatus('error');
+                setErrorMessage('La IA no devolvió ningún ejercicio reconocible del catálogo. Inténtalo de nuevo.');
+                return;
+            }
+
+            if (unmatched.length > 0) {
+                setWarning(`La IA sugirió ${unmatched.length} ejercicio(s) que no existen en el catálogo y se han omitido.`);
+            }
+
+            setStatus('idle');
+            onDraftGenerated(data.nombre || 'Rutina generada con IA', matched);
+        } catch (err) {
+            clearTimeout(timer);
+            console.error('Error generando borrador con IA:', err);
+            setStatus('error');
+            setErrorMessage('No se pudo generar el borrador. Inténtalo de nuevo.');
+        }
+    };
+
+    return (
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex items-center gap-2 text-text-primary">
+                <Sparkles size={18} className="text-primary" />
+                <h3 className="text-sm font-bold">Generar borrador con IA</h3>
+            </div>
+
+            <div className="space-y-3">
+                <div>
+                    <label className="text-xs text-text-secondary">Objetivo del cliente</label>
+                    <input
+                        type="text"
+                        value={clientGoal}
+                        onChange={(e) => setClientGoal(e.target.value)}
+                        className="w-full mt-1 bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                        placeholder="Ej: Fuerza, hipertrofia, pérdida de grasa..."
+                    />
+                </div>
+
+                <div>
+                    <label className="text-xs text-text-secondary">Nivel</label>
+                    <select
+                        value={level}
+                        onChange={(e) => setLevel(e.target.value)}
+                        className="w-full mt-1 bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                    >
+                        <option value="principiante">Principiante</option>
+                        <option value="intermedio">Intermedio</option>
+                        <option value="avanzado">Avanzado</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label className="text-xs text-text-secondary">Días por semana</label>
+                    <input
+                        type="number"
+                        min={1}
+                        max={7}
+                        value={daysPerWeek}
+                        onChange={(e) => setDaysPerWeek(e.target.value)}
+                        className="w-full mt-1 bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                    />
+                </div>
+
+                <div>
+                    <label className="text-xs text-text-secondary">Material disponible</label>
+                    <input
+                        type="text"
+                        value={equipment}
+                        onChange={(e) => setEquipment(e.target.value)}
+                        className="w-full mt-1 bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                        placeholder="Ej: gimnasio completo, mancuernas en casa..."
+                    />
+                </div>
+
+                <div>
+                    <label className="text-xs text-text-secondary">Lesiones o limitaciones (opcional)</label>
+                    <input
+                        type="text"
+                        value={limitations}
+                        onChange={(e) => setLimitations(e.target.value)}
+                        className="w-full mt-1 bg-surface border border-surface-highlight rounded-xl px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                        placeholder="Ej: molestia en el hombro derecho"
+                    />
+                </div>
+            </div>
+
+            {status === 'error' && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2.5 text-red-400 text-xs font-medium">
+                    {errorMessage}
+                </div>
+            )}
+            {warning && (
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl px-4 py-2.5 text-yellow-500 text-xs font-medium">
+                    {warning}
+                </div>
+            )}
+
+            <button
+                onClick={handleGenerate}
+                disabled={status === 'loading'}
+                className="w-full bg-primary text-black font-bold px-4 py-3 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+            >
+                {status === 'loading' ? (
+                    <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Generando...
+                    </>
+                ) : (
+                    'Generar borrador'
+                )}
+            </button>
         </div>
     );
 }
