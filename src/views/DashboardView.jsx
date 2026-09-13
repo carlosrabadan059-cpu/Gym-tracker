@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, TrendingUp, ChevronRight, Check, ClockArrowUp, Activity, Flame, Footprints } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
-import { getRoutineIcon, calculateCaloriesByVolume } from '../lib/routineUtils';
+import { getRoutineIcon } from '../lib/routineUtils';
 import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
@@ -31,8 +30,6 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const containerRef = useRef(null);
     const pullDistanceRef = useRef(0);
     const isRefreshingRef = useRef(false);
-
-    const userWeight = profile?.weight || null;
 
     // v2 Fase 2 — al abrir el selector, mira si hay un workout de cardio
     // reciente en el Watch (última hora y media) para ofrecer kcal reales en
@@ -315,7 +312,6 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                         const isCompleted = completedRoutines.includes(routine.id);
                         const visibleExercises = isExpanded ? routine.exercises : routine.exercises.slice(0, 3);
                         const routineIcon = getRoutineIcon(routine.name);
-                        const totalCalories = routine.exercises.reduce((sum, ex) => sum + calculateCaloriesByVolume(ex, userWeight), 0);
 
                         return (
                             <Card
@@ -350,9 +346,6 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                                         </h4>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Badge className={cn(`${routine.color}/20`, routine.text_color)}>
-                                            {routine.exercises.length} Ejercicios • {totalCalories} kcal
-                                        </Badge>
                                         <ChevronRight
                                             className={cn(
                                                 "h-5 w-5 text-gray-400 transition-transform duration-300",
