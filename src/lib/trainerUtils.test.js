@@ -115,6 +115,11 @@ describe('matchDraftExercisesToCatalog', () => {
         expect(matchDraftExercisesToCatalog([], catalog)).toEqual({ matched: [], unmatched: [] });
         expect(matchDraftExercisesToCatalog(null, catalog)).toEqual({ matched: [], unmatched: [] });
     });
+
+    it('no revienta si catalog es null o undefined', () => {
+        expect(matchDraftExercisesToCatalog([{catalogName: 'x'}], null)).toEqual({ matched: [], unmatched: ['x'] });
+        expect(matchDraftExercisesToCatalog([], undefined)).toEqual({ matched: [], unmatched: [] });
+    });
 });
 
 describe('buildRoutineDraftPayload', () => {
@@ -146,5 +151,10 @@ describe('buildRoutineDraftPayload', () => {
         });
         expect(payload.clientGoal).toBe('Hipertrofia');
         expect(payload.daysPerWeek).toBe(5);
+    });
+
+    it('daysPerWeek inválido cae a null en vez de NaN', () => {
+        const payload = buildRoutineDraftPayload({ daysPerWeek: 'abc', exerciseNames: [], recentHistorySummary: '' });
+        expect(payload.daysPerWeek).toBeNull();
     });
 });

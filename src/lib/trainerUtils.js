@@ -142,8 +142,8 @@ export function summarizeWorkoutHistory(logs, nameById = {}) {
  * @param {Array<{id: number, name: string, image_url: string|null}>} catalog
  * @returns {{ matched: Array<object>, unmatched: string[] }}
  */
-export function matchDraftExercisesToCatalog(draftExercises, catalog) {
-    const byName = new Map(catalog.map(ex => [ex.name.trim().toLowerCase(), ex]));
+export function matchDraftExercisesToCatalog(draftExercises, catalog = []) {
+    const byName = new Map((catalog || []).map(ex => [ex.name.trim().toLowerCase(), ex]));
     const matched = [];
     const unmatched = [];
 
@@ -177,10 +177,12 @@ export function matchDraftExercisesToCatalog(draftExercises, catalog) {
  * en el formulario "Con IA".
  */
 export function buildRoutineDraftPayload({ clientGoal, level, daysPerWeek, equipment, limitations, exerciseNames, recentHistorySummary }) {
+    const parsedDays = Number(daysPerWeek);
+    const daysPerWeekValue = daysPerWeek && !isNaN(parsedDays) ? parsedDays : null;
     return {
         clientGoal: clientGoal || 'No especificado',
         level: level || 'intermedio',
-        daysPerWeek: daysPerWeek ? Number(daysPerWeek) : null,
+        daysPerWeek: daysPerWeekValue,
         equipment: equipment || 'No especificado',
         limitations: limitations || 'Ninguna',
         exerciseNames,
