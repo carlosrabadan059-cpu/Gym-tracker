@@ -189,3 +189,35 @@ export function buildRoutineDraftPayload({ clientGoal, level, daysPerWeek, equip
         recentHistorySummary,
     };
 }
+
+/**
+ * Últimas `limit` sesiones de un cliente, ya resumidas en texto, para el
+ * formulario "Con IA" (Fase 2.1). Mismo patrón de dos consultas que
+ * ClientProfileView.jsx (routine_id no tiene FK real a `routines.id`, puede
+ * ser un id estático tipo "day1" que ni existe como fila).
+ *
+ * @param {string} clientUserId
+ * @param {number} limit
+ * @returns {Promise<string>}
+ */
+export async function fetchRecentHistorySummary(clientUserId, limit = 10) {
+    const { data: logs, error } = await supabase
+        .from('workout_logs')
+        .select('routine_id, date, logs')
+        .eq('user_id', clientUserId)
+        .order('date', { ascending: false })
+        .limit(limit);
+    if (error) throw error;
+
+    const routineIds = [...new Set((logs || []).map(l => l.routine_id).filter(Boolean))];
+    let nameById = {};
+    if (routineIds.length > 0) {
+        const { data: routinesData } = await supabase
+            .from('routines')
+            .select('id, name')
+            .in('id', routineIds);
+        nameById = Object.fromEntries((routinesData || []).map(r => [r.id, r.name]));
+    }
+
+    return summarizeWorkoutHistory(logs, nameById);
+}
