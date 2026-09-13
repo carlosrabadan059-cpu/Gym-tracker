@@ -130,3 +130,60 @@ export function summarizeWorkoutHistory(logs, nameById = {}) {
         return `${dateOnly} · ${routineName} · ${exerciseCount} ${ejercicioLabel}`;
     }).join('\n');
 }
+
+/**
+ * Casa el borrador que devuelve la IA (Fase 2.1) contra el catálogo maestro
+ * ya cargado en RoutineAssignerView. La IA solo puede elegir nombres de
+ * `exerciseNames` (ver buildRoutineDraftPayload), pero puede equivocarse o
+ * el modelo puede alucinar — por eso el match es defensivo: lo que no casa
+ * se descarta y se reporta, no rompe el resto del borrador.
+ *
+ * @param {Array<object>} draftExercises  el array `ejercicios` que devuelve el webhook
+ * @param {Array<{id: number, name: string, image_url: string|null}>} catalog
+ * @returns {{ matched: Array<object>, unmatched: string[] }}
+ */
+export function matchDraftExercisesToCatalog(draftExercises, catalog) {
+    const byName = new Map(catalog.map(ex => [ex.name.trim().toLowerCase(), ex]));
+    const matched = [];
+    const unmatched = [];
+
+    for (const item of (draftExercises || [])) {
+        const key = String(item.catalogName || '').trim().toLowerCase();
+        const catalogEx = byName.get(key);
+        if (!catalogEx) {
+            unmatched.push(item.catalogName);
+            continue;
+        }
+        matched.push({
+            catalog_id: catalogEx.id,
+            name: catalogEx.name,
+            image_url: catalogEx.image_url || null,
+            series: item.series ?? 3,
+            reps: item.reps ?? 10,
+            target_weight: item.target_weight ?? null,
+            target_rir: item.target_rir ?? null,
+            rest_seconds: item.rest_seconds ?? null,
+            notes: item.notes ?? null,
+            motivo: item.motivo ?? null,
+        });
+    }
+
+    return { matched, unmatched };
+}
+
+/**
+ * Arma el cuerpo del POST al webhook `Gym_App_RoutineDraft` (Fase 2.1),
+ * con defaults en español para los campos que el entrenador deje en blanco
+ * en el formulario "Con IA".
+ */
+export function buildRoutineDraftPayload({ clientGoal, level, daysPerWeek, equipment, limitations, exerciseNames, recentHistorySummary }) {
+    return {
+        clientGoal: clientGoal || 'No especificado',
+        level: level || 'intermedio',
+        daysPerWeek: daysPerWeek ? Number(daysPerWeek) : null,
+        equipment: equipment || 'No especificado',
+        limitations: limitations || 'Ninguna',
+        exerciseNames,
+        recentHistorySummary,
+    };
+}

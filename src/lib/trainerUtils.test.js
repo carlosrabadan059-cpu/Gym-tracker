@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { summarizeWorkoutHistory } from './trainerUtils';
+import { summarizeWorkoutHistory, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from './trainerUtils';
 
 describe('summarizeWorkoutHistory', () => {
     it('devuelve un texto sin historial cuando no hay logs', () => {
@@ -61,5 +61,90 @@ describe('summarizeWorkoutHistory', () => {
         ];
         const result = summarizeWorkoutHistory(logs, { day1: 'Día 1' });
         expect(result.split('\n')).toHaveLength(2);
+    });
+});
+
+describe('matchDraftExercisesToCatalog', () => {
+    const catalog = [
+        { id: 1, name: 'Sentadilla trasera', image_url: 'img1.jpg' },
+        { id: 2, name: 'Press banca', image_url: null },
+    ];
+
+    it('casa por nombre exacto y arma el objeto con la forma de selectedExercises', () => {
+        const draft = [
+            { catalogName: 'Sentadilla trasera', series: 4, reps: 8, target_weight: 60, target_rir: 2, rest_seconds: 120, notes: null, motivo: 'Prioridad de pierna.' },
+        ];
+        const { matched, unmatched } = matchDraftExercisesToCatalog(draft, catalog);
+        expect(unmatched).toEqual([]);
+        expect(matched).toEqual([{
+            catalog_id: 1,
+            name: 'Sentadilla trasera',
+            image_url: 'img1.jpg',
+            series: 4,
+            reps: 8,
+            target_weight: 60,
+            target_rir: 2,
+            rest_seconds: 120,
+            notes: null,
+            motivo: 'Prioridad de pierna.',
+        }]);
+    });
+
+    it('casa sin distinguir mayúsculas ni espacios sobrantes', () => {
+        const draft = [{ catalogName: '  press banca  ', series: 3, reps: 10 }];
+        const { matched, unmatched } = matchDraftExercisesToCatalog(draft, catalog);
+        expect(unmatched).toEqual([]);
+        expect(matched[0].catalog_id).toBe(2);
+    });
+
+    it('devuelve el nombre en unmatched cuando no hay ningún ejercicio del catálogo con ese nombre', () => {
+        const draft = [{ catalogName: 'Ejercicio inventado', series: 3, reps: 10 }];
+        const { matched, unmatched } = matchDraftExercisesToCatalog(draft, catalog);
+        expect(matched).toEqual([]);
+        expect(unmatched).toEqual(['Ejercicio inventado']);
+    });
+
+    it('aplica defaults de series/reps cuando la IA no los manda', () => {
+        const draft = [{ catalogName: 'Press banca' }];
+        const { matched } = matchDraftExercisesToCatalog(draft, catalog);
+        expect(matched[0].series).toBe(3);
+        expect(matched[0].reps).toBe(10);
+    });
+
+    it('devuelve listas vacías si el borrador no trae ejercicios', () => {
+        expect(matchDraftExercisesToCatalog([], catalog)).toEqual({ matched: [], unmatched: [] });
+        expect(matchDraftExercisesToCatalog(null, catalog)).toEqual({ matched: [], unmatched: [] });
+    });
+});
+
+describe('buildRoutineDraftPayload', () => {
+    it('rellena defaults para los campos opcionales que falten', () => {
+        const payload = buildRoutineDraftPayload({
+            exerciseNames: ['Sentadilla trasera'],
+            recentHistorySummary: 'Sin historial de entrenamientos registrado.',
+        });
+        expect(payload).toEqual({
+            clientGoal: 'No especificado',
+            level: 'intermedio',
+            daysPerWeek: null,
+            equipment: 'No especificado',
+            limitations: 'Ninguna',
+            exerciseNames: ['Sentadilla trasera'],
+            recentHistorySummary: 'Sin historial de entrenamientos registrado.',
+        });
+    });
+
+    it('usa los valores dados cuando vienen informados', () => {
+        const payload = buildRoutineDraftPayload({
+            clientGoal: 'Hipertrofia',
+            level: 'avanzado',
+            daysPerWeek: '5',
+            equipment: 'mancuernas en casa',
+            limitations: 'molestia en el hombro',
+            exerciseNames: ['Press banca'],
+            recentHistorySummary: '2026-09-10 · Día 4 · 8 ejercicios',
+        });
+        expect(payload.clientGoal).toBe('Hipertrofia');
+        expect(payload.daysPerWeek).toBe(5);
     });
 });
