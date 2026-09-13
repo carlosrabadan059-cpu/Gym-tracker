@@ -29,7 +29,24 @@ describe('summarizeWorkoutHistory', () => {
                 logs: { '5': {}, workoutDuration: {}, cardio: {} },
             },
         ];
-        expect(summarizeWorkoutHistory(logs, { day1: 'Día 1' })).toBe('2026-09-01 · Día 1 · 1 ejercicios');
+        expect(summarizeWorkoutHistory(logs, { day1: 'Día 1' })).toBe('2026-09-01 · Día 1 · 1 ejercicio');
+    });
+
+    it('usa "1 ejercicio" en singular cuando solo hay un ejercicio contado', () => {
+        const logs = [
+            { routine_id: 'day1', date: '2026-09-03T00:00:00+00:00', logs: { '1': {} } },
+        ];
+        expect(summarizeWorkoutHistory(logs, { day1: 'Día 1' })).toBe('2026-09-03 · Día 1 · 1 ejercicio');
+    });
+
+    it('usa un texto de fecha desconocida si falta log.date, sin lanzar error', () => {
+        const logs = [{ routine_id: 'day1', date: null, logs: { a: {} } }];
+        expect(summarizeWorkoutHistory(logs, { day1: 'Día 1' })).toBe('fecha desconocida · Día 1 · 1 ejercicio');
+    });
+
+    it('no lanza error si nameById es undefined', () => {
+        const logs = [{ routine_id: 'day1', date: '2026-09-01T00:00:00+00:00', logs: {} }];
+        expect(summarizeWorkoutHistory(logs)).toBe('2026-09-01 · day1 · 0 ejercicios');
     });
 
     it('usa el routine_id como nombre si no hay match en nameById', () => {

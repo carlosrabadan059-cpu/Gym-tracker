@@ -117,7 +117,7 @@ export async function deleteClientRoutineCopy(routineId) {
  * @param {Record<string, string>} nameById  routine_id -> nombre de rutina
  * @returns {string}
  */
-export function summarizeWorkoutHistory(logs, nameById) {
+export function summarizeWorkoutHistory(logs, nameById = {}) {
     if (!logs || logs.length === 0) return 'Sin historial de entrenamientos registrado.';
 
     return logs.map(log => {
@@ -125,7 +125,8 @@ export function summarizeWorkoutHistory(logs, nameById) {
         const exerciseCount = log.logs
             ? Object.keys(log.logs).filter(key => key !== 'workoutDuration' && key !== 'cardio').length
             : 0;
-        const dateOnly = log.date.slice(0, 10);
-        return `${dateOnly} · ${routineName} · ${exerciseCount} ejercicios`;
+        const dateOnly = log.date ? log.date.slice(0, 10) : 'fecha desconocida';
+        const ejercicioLabel = exerciseCount === 1 ? 'ejercicio' : 'ejercicios';
+        return `${dateOnly} · ${routineName} · ${exerciseCount} ${ejercicioLabel}`;
     }).join('\n');
 }
