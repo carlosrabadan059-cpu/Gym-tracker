@@ -221,3 +221,61 @@ export async function fetchRecentHistorySummary(clientUserId, limit = 10) {
 
     return summarizeWorkoutHistory(logs, nameById);
 }
+
+/**
+ * Resume el historial real de UN ejercicio (peso/reps/RPE por sesión) en
+ * texto plano para la IA de progresión (Fase 2.3). A diferencia de
+ * summarizeWorkoutHistory (Fase 2.1, resume sesiones completas), esto
+ * resume series de un solo ejercicio con su dato de intensidad real.
+ *
+ * @param {Array<{date: string, setsData: object}>} history  de loadExerciseHistory (utils.js), más reciente primero
+ * @returns {string}
+ */
+export function summarizeExerciseHistoryForAI(history) {
+    const fallback = 'Sin historial de entrenamientos registrado para este ejercicio.';
+    if (!history || history.length === 0) return fallback;
+
+    const lines = [];
+    for (const entry of history) {
+        const sets = Object.values(entry.setsData || {})
+            .map(s => ({
+                weight: parseFloat(s.weight),
+                reps: parseInt(s.reps, 10),
+                rpe: s.rpe != null ? Number(s.rpe) : null,
+            }))
+            .filter(s => s.weight > 0 && s.reps > 0);
+
+        if (sets.length === 0) continue;
+
+        // Peso de trabajo = el más alto movido esa sesión (mismo criterio
+        // que src/lib/progression.js usa para la sugerencia de próxima sesión).
+        const topWeight = Math.max(...sets.map(s => s.weight));
+        const topSets = sets.filter(s => s.weight === topWeight);
+        const minReps = Math.min(...topSets.map(s => s.reps));
+        const maxRpe = topSets.reduce((m, s) => (s.rpe != null && s.rpe > m ? s.rpe : m), 0);
+
+        const dateOnly = entry.date ? entry.date.slice(0, 10) : 'fecha desconocida';
+        const rpeSuffix = maxRpe ? ` RPE${maxRpe}` : '';
+        lines.push(`${dateOnly}: ${topSets.length}×${minReps} @${topWeight}kg${rpeSuffix}`);
+    }
+
+    return lines.length > 0 ? lines.join('\n') : fallback;
+}
+
+/**
+ * Arma el cuerpo del POST al webhook `Gym_App_ProgressionSuggestion`
+ * (Fase 2.3), con defaults en español para los campos que falten.
+ */
+export function buildProgressionSuggestionPayload({ exerciseName, category, clientGoal, level, currentSeries, currentReps, currentTargetWeight, currentTargetRir, historySummary }) {
+    return {
+        exerciseName,
+        category: category || 'No especificado',
+        clientGoal: clientGoal || 'No especificado',
+        level: level || 'intermedio',
+        currentSeries: currentSeries ?? null,
+        currentReps: currentReps ?? null,
+        currentTargetWeight: currentTargetWeight ?? null,
+        currentTargetRir: currentTargetRir ?? null,
+        historySummary,
+    };
+}

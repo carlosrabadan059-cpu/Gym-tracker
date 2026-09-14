@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { summarizeWorkoutHistory, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from './trainerUtils';
+import { summarizeWorkoutHistory, matchDraftExercisesToCatalog, buildRoutineDraftPayload, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from './trainerUtils';
 
 describe('summarizeWorkoutHistory', () => {
     it('devuelve un texto sin historial cuando no hay logs', () => {
@@ -156,5 +156,83 @@ describe('buildRoutineDraftPayload', () => {
     it('daysPerWeek inválido cae a null en vez de NaN', () => {
         const payload = buildRoutineDraftPayload({ daysPerWeek: 'abc', exerciseNames: [], recentHistorySummary: '' });
         expect(payload.daysPerWeek).toBeNull();
+    });
+});
+
+describe('summarizeExerciseHistoryForAI', () => {
+    it('returns fallback text for empty or missing history', () => {
+        expect(summarizeExerciseHistoryForAI([])).toBe('Sin historial de entrenamientos registrado para este ejercicio.');
+        expect(summarizeExerciseHistoryForAI(null)).toBe('Sin historial de entrenamientos registrado para este ejercicio.');
+    });
+
+    it('summarizes a session with RPE', () => {
+        const history = [{
+            date: '2026-09-08T10:00:00Z',
+            setsData: { 0: { weight: '60', reps: '10', rpe: 8 }, 1: { weight: '60', reps: '10', rpe: 7 } },
+        }];
+        expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-08: 2×10 @60kg RPE8');
+    });
+
+    it('summarizes a session without RPE, omitting the suffix', () => {
+        const history = [{ date: '2026-09-01T10:00:00Z', setsData: { 0: { weight: '57.5', reps: '10' } } }];
+        expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-01: 1×10 @57.5kg');
+    });
+
+    it('uses the highest-weight sets when a session mixes weights', () => {
+        const history = [{
+            date: '2026-09-05T10:00:00Z',
+            setsData: { 0: { weight: '40', reps: '12' }, 1: { weight: '60', reps: '8', rpe: 9 } },
+        }];
+        expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-05: 1×8 @60kg RPE9');
+    });
+
+    it('skips a session with no valid sets, keeps the rest', () => {
+        const history = [
+            { date: '2026-09-01T10:00:00Z', setsData: { 0: { weight: '0', reps: '0' } } },
+            { date: '2026-09-08T10:00:00Z', setsData: { 0: { weight: '60', reps: '10' } } },
+        ];
+        expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-08: 1×10 @60kg');
+    });
+});
+
+describe('buildProgressionSuggestionPayload', () => {
+    it('passes through all fields when provided', () => {
+        const result = buildProgressionSuggestionPayload({
+            exerciseName: 'Press de banca',
+            category: 'Pecho',
+            clientGoal: 'Hipertrofia',
+            level: 'avanzado',
+            currentSeries: 4,
+            currentReps: 10,
+            currentTargetWeight: 60,
+            currentTargetRir: 2,
+            historySummary: 'algo',
+        });
+        expect(result).toEqual({
+            exerciseName: 'Press de banca',
+            category: 'Pecho',
+            clientGoal: 'Hipertrofia',
+            level: 'avanzado',
+            currentSeries: 4,
+            currentReps: 10,
+            currentTargetWeight: 60,
+            currentTargetRir: 2,
+            historySummary: 'algo',
+        });
+    });
+
+    it('applies defaults when category/clientGoal/level are missing', () => {
+        const result = buildProgressionSuggestionPayload({
+            exerciseName: 'Sentadilla',
+            currentSeries: 3,
+            currentReps: 8,
+            currentTargetWeight: null,
+            currentTargetRir: null,
+            historySummary: 'Sin historial de entrenamientos registrado para este ejercicio.',
+        });
+        expect(result.category).toBe('No especificado');
+        expect(result.clientGoal).toBe('No especificado');
+        expect(result.level).toBe('intermedio');
+        expect(result.currentTargetWeight).toBeNull();
     });
 });
