@@ -5,7 +5,7 @@ import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
-import { getCurrentMesocycleWeek } from '../../lib/mesocycle';
+import { getCurrentMesocycleWeek, applyMesocycleWeek } from '../../lib/mesocycle';
 import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
@@ -321,6 +321,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
 
     const startEditExercise = (e, ex, assignmentId) => {
         e.stopPropagation();
+        const hasProgression = Array.isArray(ex.weekly_progression) && ex.weekly_progression.length > 0;
         setEditingExercise({
             id: ex.id,
             assignmentId,
@@ -332,7 +333,38 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             rest_seconds: ex.rest_seconds ?? '',
             tempo: ex.tempo ?? '',
             notes: ex.notes ?? '',
+            // Progresión por semanas (Fase 3 parte 2).
+            useWeeklyProgression: hasProgression,
+            weeklyProgression: hasProgression
+                ? [...ex.weekly_progression].sort((a, b) => a.week - b.week)
+                : [{ week: 1, series: Number(ex.series) || 3, reps: Number(ex.reps) || 10, target_weight: ex.target_weight ?? '', target_rir: ex.target_rir ?? '' }],
         });
+    };
+
+    const addProgressionWeek = () => {
+        setEditingExercise(prev => {
+            const rows = prev.weeklyProgression;
+            const last = rows[rows.length - 1];
+            return { ...prev, weeklyProgression: [...rows, { ...last, week: last.week + 1 }] };
+        });
+    };
+
+    const removeProgressionWeek = (week) => {
+        setEditingExercise(prev => ({
+            ...prev,
+            weeklyProgression: prev.weeklyProgression.length > 1
+                ? prev.weeklyProgression.filter(row => row.week !== week)
+                : prev.weeklyProgression,
+        }));
+    };
+
+    const updateProgressionRow = (week, field, value) => {
+        setEditingExercise(prev => ({
+            ...prev,
+            weeklyProgression: prev.weeklyProgression.map(row =>
+                row.week === week ? { ...row, [field]: value } : row
+            ),
+        }));
     };
 
     const handleSaveEdit = async (e) => {
@@ -342,15 +374,38 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         try {
             const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
             const strOrNull = (v) => (v?.trim() ? v.trim() : null);
-            const patch = {
-                series: String(editingExercise.series),
-                reps: String(editingExercise.reps),
-                target_weight: numOrNull(editingExercise.target_weight),
-                target_rir: numOrNull(editingExercise.target_rir),
-                rest_seconds: numOrNull(editingExercise.rest_seconds),
-                tempo: strOrNull(editingExercise.tempo),
-                notes: strOrNull(editingExercise.notes),
-            };
+            let patch;
+            if (editingExercise.useWeeklyProgression) {
+                const weeklyProgression = editingExercise.weeklyProgression.map(row => ({
+                    week: Number(row.week),
+                    series: Number(row.series),
+                    reps: Number(row.reps),
+                    target_weight: numOrNull(row.target_weight),
+                    target_rir: numOrNull(row.target_rir),
+                }));
+                const firstWeek = weeklyProgression[0];
+                patch = {
+                    series: String(firstWeek.series),
+                    reps: String(firstWeek.reps),
+                    target_weight: firstWeek.target_weight,
+                    target_rir: firstWeek.target_rir,
+                    rest_seconds: numOrNull(editingExercise.rest_seconds),
+                    tempo: strOrNull(editingExercise.tempo),
+                    notes: strOrNull(editingExercise.notes),
+                    weekly_progression: weeklyProgression,
+                };
+            } else {
+                patch = {
+                    series: String(editingExercise.series),
+                    reps: String(editingExercise.reps),
+                    target_weight: numOrNull(editingExercise.target_weight),
+                    target_rir: numOrNull(editingExercise.target_rir),
+                    rest_seconds: numOrNull(editingExercise.rest_seconds),
+                    tempo: strOrNull(editingExercise.tempo),
+                    notes: strOrNull(editingExercise.notes),
+                    weekly_progression: null,
+                };
+            }
 
             const { error } = await supabase.from('exercises').update(patch).eq('id', editingExercise.id);
             if (error) throw error;
@@ -637,13 +692,16 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                 </>
                                             )}
 
-                                            {isExpanded && (
+                                            {isExpanded && (() => {
+                                                const activeWeek = getCurrentMesocycleWeek(routine.mesocycle_start_date, new Date());
+                                                return (
                                                 <div className="mt-4 space-y-2 pt-4 border-t border-surface-highlight">
                                                     {routine.exercises.length === 0 ? (
                                                         <p className="text-xs text-text-secondary">Sin ejercicios.</p>
                                                     ) : (
                                                         routine.exercises.map((ex, idx) => {
                                                             const isEditing = editingExercise?.id === ex.id;
+                                                            const effectiveEx = applyMesocycleWeek(ex, activeWeek);
                                                             return (
                                                               <div key={ex.id} onClick={(e) => e.stopPropagation()} className="bg-background/40 rounded-xl">
                                                                 <div className="flex items-center gap-3 px-2 py-2">
@@ -709,9 +767,9 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                     ) : (
                                                                         <div className="flex items-center gap-1 flex-shrink-0">
                                                                             <span className="text-xs text-text-secondary font-mono bg-surface px-2 py-1 rounded-md">
-                                                                                {ex.series}×{ex.reps}{isTimeBasedExercise(ex) ? 'm' : ''}
-                                                                                {ex.target_weight != null && ` · ${String(ex.target_weight).replace('.', ',')}kg`}
-                                                                                {ex.target_rir != null && ` · RIR${ex.target_rir}`}
+                                                                                {effectiveEx.series}×{effectiveEx.reps}{isTimeBasedExercise(ex) ? 'm' : ''}
+                                                                                {effectiveEx.target_weight != null && ` · ${String(effectiveEx.target_weight).replace('.', ',')}kg`}
+                                                                                {effectiveEx.target_rir != null && ` · RIR${effectiveEx.target_rir}`}
                                                                             </span>
                                                                             <button
                                                                                 onClick={(e) => startEditExercise(e, ex, assignment.id)}
@@ -731,6 +789,50 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
 
                                                                 {isEditing && (
                                                                     <div className="px-2 pb-3 pt-1 grid grid-cols-2 gap-2 border-t border-surface-highlight/60 mt-1">
+                                                                        <label className="col-span-2 flex items-center gap-2 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={editingExercise.useWeeklyProgression}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, useWeeklyProgression: e.target.checked }))}
+                                                                                className="accent-primary"
+                                                                            />
+                                                                            Progresión por semanas
+                                                                        </label>
+                                                                        {editingExercise.useWeeklyProgression ? (
+                                                                            <div className="col-span-2 space-y-1.5">
+                                                                                {editingExercise.weeklyProgression.map((row) => (
+                                                                                    <div key={row.week} className="flex items-center gap-1.5">
+                                                                                        <span className="w-14 flex-shrink-0 text-[10px] text-text-secondary">Sem. {row.week}</span>
+                                                                                        <input type="number" min="1" value={row.series}
+                                                                                            onChange={(e) => updateProgressionRow(row.week, 'series', e.target.value)}
+                                                                                            className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Ser." />
+                                                                                        <input type="number" min="1" value={row.reps}
+                                                                                            onChange={(e) => updateProgressionRow(row.week, 'reps', e.target.value)}
+                                                                                            className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Reps" />
+                                                                                        <input type="number" inputMode="decimal" value={row.target_weight}
+                                                                                            onChange={(e) => updateProgressionRow(row.week, 'target_weight', e.target.value)}
+                                                                                            className="w-16 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Kg" />
+                                                                                        <input type="number" min="0" max="5" value={row.target_rir}
+                                                                                            onChange={(e) => updateProgressionRow(row.week, 'target_rir', e.target.value)}
+                                                                                            className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="RIR" />
+                                                                                        <button
+                                                                                            onClick={() => removeProgressionWeek(row.week)}
+                                                                                            disabled={editingExercise.weeklyProgression.length === 1}
+                                                                                            className="w-6 h-6 flex-shrink-0 rounded-md hover:bg-red-500/10 flex items-center justify-center disabled:opacity-20"
+                                                                                        >
+                                                                                            <X size={11} className="text-text-secondary hover:text-red-500" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                ))}
+                                                                                <button
+                                                                                    onClick={addProgressionWeek}
+                                                                                    className="text-[10px] font-bold text-primary flex items-center gap-1"
+                                                                                >
+                                                                                    <Plus size={11} /> Semana
+                                                                                </button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
                                                                         <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
                                                                             Peso objetivo (kg)
                                                                             <input type="number" inputMode="decimal" value={editingExercise.target_weight}
@@ -743,6 +845,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                 onChange={(e) => setEditingExercise(p => ({ ...p, target_rir: e.target.value }))}
                                                                                 className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="—" />
                                                                         </label>
+                                                                            </>
+                                                                        )}
                                                                         <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
                                                                             Descanso (s)
                                                                             <input type="number" min="0" value={editingExercise.rest_seconds}
@@ -784,7 +888,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         Añadir ejercicio
                                                     </button>
                                                 </div>
-                                            )}
+                                                );
+                                            })()}
                                         </div>
                                     );
                                 })
