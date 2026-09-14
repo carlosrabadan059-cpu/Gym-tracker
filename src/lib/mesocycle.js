@@ -13,7 +13,12 @@
 export function getCurrentMesocycleWeek(startDate, today) {
     if (!startDate) return null;
     const start = new Date(startDate);
-    const diffDays = Math.floor((today.getTime() - start.getTime()) / 86400000);
+    // `today` puede traer hora local (en producción, la hora real del
+    // dispositivo); normalizamos a medianoche UTC de su fecha de calendario
+    // para que la diferencia en días no dependa de la hora del día ni de la
+    // zona horaria del navegador.
+    const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const diffDays = Math.floor((todayUTC - start.getTime()) / 86400000);
     return Math.max(1, Math.floor(diffDays / 7) + 1);
 }
 
@@ -23,6 +28,9 @@ export function getCurrentMesocycleWeek(startDate, today) {
  * `weekly_progression` (null o vacío), devuelve el ejercicio sin cambios.
  * Si `weekNumber` supera la última semana definida, usa la última
  * (congelado, decisión de diseño: nunca vuelve a un estado "vacío").
+ * Si `weekNumber` es anterior a la primera semana definida, no hay ninguna
+ * entrada aplicable todavía: se devuelve el ejercicio sin cambios (valores
+ * base), nunca proyectando hacia atrás los valores de una semana futura.
  */
 export function applyMesocycleWeek(exercise, weekNumber) {
     const progression = exercise.weekly_progression;
@@ -31,7 +39,10 @@ export function applyMesocycleWeek(exercise, weekNumber) {
     }
     const sorted = [...progression].sort((a, b) => a.week - b.week);
     const eligible = sorted.filter(w => w.week <= weekNumber);
-    const entry = eligible.length > 0 ? eligible[eligible.length - 1] : sorted[0];
+    if (eligible.length === 0) {
+        return exercise;
+    }
+    const entry = eligible[eligible.length - 1];
     return {
         ...exercise,
         series: entry.series,

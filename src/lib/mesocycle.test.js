@@ -24,6 +24,10 @@ describe('getCurrentMesocycleWeek', () => {
     it('treats a future start date as week 1, never negative or zero', () => {
         expect(getCurrentMesocycleWeek('2026-10-01', new Date('2026-09-15'))).toBe(1);
     });
+
+    it('is not shifted by a non-midnight local time on today', () => {
+        expect(getCurrentMesocycleWeek('2026-09-15', new Date('2026-09-22T23:30:00'))).toBe(2);
+    });
 });
 
 describe('applyMesocycleWeek', () => {
@@ -67,6 +71,11 @@ describe('applyMesocycleWeek', () => {
         const result = applyMesocycleWeek(ex, 5);
         expect(result.target_weight).toBe(65);
         expect(result.reps).toBe(6);
+    });
+
+    it('leaves the exercise unchanged before the first defined week', () => {
+        const ex = { ...base, weekly_progression: [{ week: 2, series: 4, reps: 6, target_weight: 65, target_rir: 2 }] };
+        expect(applyMesocycleWeek(ex, 1)).toEqual(ex);
     });
 
     it('sorts unordered entries before picking', () => {
