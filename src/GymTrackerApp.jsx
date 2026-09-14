@@ -337,7 +337,10 @@ const AuthenticatedApp = () => {
             {isTrainer(profile) && view.startsWith('trainer') ? (
                 <TrainerShell view={view} onNavigate={handleNavigate}>
                     {view === 'trainer' && (
-                        <TrainerDashboardView onNavigate={handleNavigate} />
+                        <TrainerDashboardView
+                            onNavigate={handleNavigate}
+                            onOpenClient={(client) => { setCurrentClient(client); setView('trainer_client_profile'); }}
+                        />
                     )}
                     {(view === 'trainer_clients' || view === 'trainer_client_profile') && (
                         <TrainerClientsView
