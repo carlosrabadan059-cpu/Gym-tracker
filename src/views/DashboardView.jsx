@@ -371,6 +371,19 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
         </div>
     );
 
+    const { today, rest } = splitRoutinesByToday(routines, new Date().getDay());
+    const renderCard = (routine) => (
+        <RoutineCard
+            key={routine.id}
+            routine={routine}
+            isExpanded={expandedRoutine === routine.id}
+            isCompleted={completedRoutines.includes(routine.id)}
+            lastSummary={lastSummaries[routine.id]}
+            onToggle={() => toggleRoutine(routine.id)}
+            onStart={() => handleStartRoutine(routine)}
+        />
+    );
+
     return (
         <div ref={containerRef} className="space-y-6 pb-24 overflow-y-auto">
             {/* Pull-to-refresh indicator */}
@@ -439,44 +452,26 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 ) : null}
 
                 <div className="space-y-4">
-                    {(() => {
-                        const { today, rest } = splitRoutinesByToday(routines, new Date().getDay());
-                        const renderCard = (routine) => (
-                            <RoutineCard
-                                key={routine.id}
-                                routine={routine}
-                                isExpanded={expandedRoutine === routine.id}
-                                isCompleted={completedRoutines.includes(routine.id)}
-                                lastSummary={lastSummaries[routine.id]}
-                                onToggle={() => toggleRoutine(routine.id)}
-                                onStart={() => handleStartRoutine(routine)}
-                            />
-                        );
-                        return (
-                            <>
-                                <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">
-                                    Hoy toca
-                                </h3>
-                                {today.length > 0 ? (
-                                    today.map(renderCard)
-                                ) : (
-                                    <Card className="p-5 bg-surface border-dashed border-2 border-surface-highlight text-center">
-                                        <p className="text-2xl mb-1">💤</p>
-                                        <p className="text-text-primary font-semibold">Hoy toca descanso</p>
-                                        <p className="text-text-secondary text-xs mt-1">No tienes ninguna rutina programada para hoy.</p>
-                                    </Card>
-                                )}
-                                {rest.length > 0 && (
-                                    <>
-                                        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mt-2">
-                                            {today.length > 0 ? 'Resto de tus rutinas' : 'Tus rutinas'}
-                                        </h3>
-                                        {rest.map(renderCard)}
-                                    </>
-                                )}
-                            </>
-                        );
-                    })()}
+                    <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">
+                        Hoy toca
+                    </h3>
+                    {today.length > 0 ? (
+                        today.map(renderCard)
+                    ) : (
+                        <Card className="p-5 bg-surface border-dashed border-2 border-surface-highlight text-center">
+                            <p className="text-2xl mb-1">💤</p>
+                            <p className="text-text-primary font-semibold">Hoy toca descanso</p>
+                            <p className="text-text-secondary text-xs mt-1">No tienes ninguna rutina programada para hoy.</p>
+                        </Card>
+                    )}
+                    {rest.length > 0 && (
+                        <>
+                            <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mt-2">
+                                {today.length > 0 ? 'Resto de tus rutinas' : 'Tus rutinas'}
+                            </h3>
+                            {rest.map(renderCard)}
+                        </>
+                    )}
                 </div>
             </div>
 
