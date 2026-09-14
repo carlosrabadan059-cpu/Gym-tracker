@@ -24,6 +24,24 @@ function repTarget(exerciseReps) {
 }
 
 /**
+ * De un array de series {weight, reps, rpe}, filtra las válidas (peso y
+ * reps > 0) y devuelve las que se hicieron al peso más alto de la sesión —
+ * el "peso de trabajo" real, con su rango de reps y el RPE más alto
+ * registrado entre ellas.
+ * @param {Array<{weight: number, reps: number, rpe: number|null}>} sets
+ * @returns {{ topWeight: number, topSets: Array, minReps: number, maxRpe: number } | null}
+ */
+export function pickTopWeightSets(sets) {
+    const valid = sets.filter(s => s.weight > 0 && s.reps > 0);
+    if (valid.length === 0) return null;
+    const topWeight = Math.max(...valid.map(s => s.weight));
+    const topSets = valid.filter(s => s.weight === topWeight);
+    const minReps = Math.min(...topSets.map(s => s.reps));
+    const maxRpe = topSets.reduce((m, s) => (s.rpe != null && s.rpe > m ? s.rpe : m), 0);
+    return { topWeight, topSets, minReps, maxRpe };
+}
+
+/**
  * @param {{ setsData: object } | null} lastLog  última sesión del ejercicio
  * @param {string|number} exerciseReps           objetivo de reps ("8-10")
  * @returns {{ weight: number, reps: number, reason: string } | null}
@@ -36,20 +54,15 @@ export function suggestNextWeight(lastLog, exerciseReps) {
             weight: parseFloat(s.weight),
             reps: parseInt(s.reps, 10),
             rpe: s.rpe != null ? Number(s.rpe) : null,
-        }))
-        .filter(s => s.weight > 0 && s.reps > 0);
-
-    if (sets.length === 0) return null;
+        }));
 
     // Peso de trabajo = el más alto que se movió esa sesión.
-    const topWeight = Math.max(...sets.map(s => s.weight));
-    const topSets = sets.filter(s => s.weight === topWeight);
+    const picked = pickTopWeightSets(sets);
+    if (!picked) return null;
+    const { topWeight, minReps, maxRpe } = picked;
 
     const target = repTarget(exerciseReps);
-    const minReps = Math.min(...topSets.map(s => s.reps));
     const hitReps = target == null || minReps >= target;
-
-    const maxRpe = topSets.reduce((m, s) => (s.rpe != null && s.rpe > m ? s.rpe : m), 0);
     const tooHard = maxRpe >= 9;
 
     if (hitReps && !tooHard) {

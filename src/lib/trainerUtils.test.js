@@ -160,12 +160,12 @@ describe('buildRoutineDraftPayload', () => {
 });
 
 describe('summarizeExerciseHistoryForAI', () => {
-    it('returns fallback text for empty or missing history', () => {
+    it('devuelve el texto de fallback si no hay historial', () => {
         expect(summarizeExerciseHistoryForAI([])).toBe('Sin historial de entrenamientos registrado para este ejercicio.');
         expect(summarizeExerciseHistoryForAI(null)).toBe('Sin historial de entrenamientos registrado para este ejercicio.');
     });
 
-    it('summarizes a session with RPE', () => {
+    it('resume una sesión con RPE', () => {
         const history = [{
             date: '2026-09-08T10:00:00Z',
             setsData: { 0: { weight: '60', reps: '10', rpe: 8 }, 1: { weight: '60', reps: '10', rpe: 7 } },
@@ -173,12 +173,12 @@ describe('summarizeExerciseHistoryForAI', () => {
         expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-08: 2×10 @60kg RPE8');
     });
 
-    it('summarizes a session without RPE, omitting the suffix', () => {
+    it('resume una sesión sin RPE, sin el sufijo', () => {
         const history = [{ date: '2026-09-01T10:00:00Z', setsData: { 0: { weight: '57.5', reps: '10' } } }];
         expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-01: 1×10 @57.5kg');
     });
 
-    it('uses the highest-weight sets when a session mixes weights', () => {
+    it('usa las series del peso más alto cuando la sesión mezcla pesos', () => {
         const history = [{
             date: '2026-09-05T10:00:00Z',
             setsData: { 0: { weight: '40', reps: '12' }, 1: { weight: '60', reps: '8', rpe: 9 } },
@@ -186,7 +186,7 @@ describe('summarizeExerciseHistoryForAI', () => {
         expect(summarizeExerciseHistoryForAI(history)).toBe('2026-09-05: 1×8 @60kg RPE9');
     });
 
-    it('skips a session with no valid sets, keeps the rest', () => {
+    it('omite una sesión sin series válidas, conserva el resto', () => {
         const history = [
             { date: '2026-09-01T10:00:00Z', setsData: { 0: { weight: '0', reps: '0' } } },
             { date: '2026-09-08T10:00:00Z', setsData: { 0: { weight: '60', reps: '10' } } },
@@ -196,7 +196,7 @@ describe('summarizeExerciseHistoryForAI', () => {
 });
 
 describe('buildProgressionSuggestionPayload', () => {
-    it('passes through all fields when provided', () => {
+    it('pasa todos los campos cuando se proporcionan', () => {
         const result = buildProgressionSuggestionPayload({
             exerciseName: 'Press de banca',
             category: 'Pecho',
@@ -221,7 +221,7 @@ describe('buildProgressionSuggestionPayload', () => {
         });
     });
 
-    it('applies defaults when category/clientGoal/level are missing', () => {
+    it('aplica valores por defecto cuando faltan category/clientGoal/level', () => {
         const result = buildProgressionSuggestionPayload({
             exerciseName: 'Sentadilla',
             currentSeries: 3,

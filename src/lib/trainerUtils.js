@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { pickTopWeightSets } from './progression';
 
 // Utilidades del lado entrenador. Ver docs/plan-trainer-improvements.md.
 
@@ -242,17 +243,13 @@ export function summarizeExerciseHistoryForAI(history) {
                 weight: parseFloat(s.weight),
                 reps: parseInt(s.reps, 10),
                 rpe: s.rpe != null ? Number(s.rpe) : null,
-            }))
-            .filter(s => s.weight > 0 && s.reps > 0);
-
-        if (sets.length === 0) continue;
+            }));
 
         // Peso de trabajo = el más alto movido esa sesión (mismo criterio
         // que src/lib/progression.js usa para la sugerencia de próxima sesión).
-        const topWeight = Math.max(...sets.map(s => s.weight));
-        const topSets = sets.filter(s => s.weight === topWeight);
-        const minReps = Math.min(...topSets.map(s => s.reps));
-        const maxRpe = topSets.reduce((m, s) => (s.rpe != null && s.rpe > m ? s.rpe : m), 0);
+        const picked = pickTopWeightSets(sets);
+        if (!picked) continue;
+        const { topWeight, topSets, minReps, maxRpe } = picked;
 
         const dateOnly = entry.date ? entry.date.slice(0, 10) : 'fecha desconocida';
         const rpeSuffix = maxRpe ? ` RPE${maxRpe}` : '';
