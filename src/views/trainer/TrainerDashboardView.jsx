@@ -51,8 +51,10 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
     const { user, signOut } = useAuth();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     const fetchClients = useCallback(async () => {
+        setError(false);
         try {
             const { data: links, error: linksError } = await supabase
                 .from('trainer_clients')
@@ -124,9 +126,10 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
             });
 
             setClients(categorized);
-        } catch (error) {
-            console.error('Error fetching trainer dashboard clients:', error);
+        } catch (err) {
+            console.error('Error fetching trainer dashboard clients:', err);
             setClients([]);
+            setError(true);
         } finally {
             setLoading(false);
         }
@@ -206,7 +209,14 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
                             </div>
                         )}
 
-                        {clients.length === 0 && (
+                        {error && (
+                            <div className="text-sm text-red-500 flex items-center justify-between gap-2">
+                                <span>No se pudieron cargar tus clientes.</span>
+                                <button onClick={fetchClients} className="font-bold underline flex-shrink-0">Reintentar</button>
+                            </div>
+                        )}
+
+                        {!error && clients.length === 0 && (
                             <p className="text-sm text-text-secondary">Aún no tienes clientes asignados.</p>
                         )}
                     </>
