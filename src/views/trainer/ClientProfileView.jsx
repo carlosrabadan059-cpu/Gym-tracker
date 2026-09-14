@@ -226,9 +226,23 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             if (error) throw error;
         } catch (error) {
             console.error('Error updating scheduled_days:', error);
-            setAssignedRoutines(prev => prev.map(a =>
-                a.id === assignmentId ? { ...a, routine: { ...a.routine, scheduled_days: current.length > 0 ? current : null } } : a
-            ));
+            // No revertimos a un snapshot local — si otro toggle concurrente ya
+            // tuvo éxito mientras este fallaba, revertir a `current` lo
+            // sobreescribiría con un valor incorrecto. Se relee de Supabase el
+            // valor real en su lugar.
+            try {
+                const { data, error: refetchError } = await supabase
+                    .from('routines')
+                    .select('scheduled_days')
+                    .eq('id', assignment.routine.id)
+                    .single();
+                if (refetchError) throw refetchError;
+                setAssignedRoutines(prev => prev.map(a =>
+                    a.id === assignmentId ? { ...a, routine: { ...a.routine, scheduled_days: data.scheduled_days } } : a
+                ));
+            } catch (refetchErr) {
+                console.error('Error re-fetching scheduled_days after failed update:', refetchErr);
+            }
         }
     };
 
