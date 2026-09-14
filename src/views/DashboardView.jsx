@@ -6,10 +6,127 @@ import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { getRoutineIcon } from '../lib/routineUtils';
+import { splitRoutinesByToday } from '../lib/routineSchedule';
 import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
+
+// Tarjeta de una rutina en el Dashboard. Extraída de DashboardView para
+// poder renderizarse dos veces (grupo "hoy" y grupo "resto") sin duplicar
+// la JSX — Fase 3 (parte 1), calendario semanal.
+function RoutineCard({ routine, isExpanded, isCompleted, lastSummary, onToggle, onStart }) {
+    const visibleExercises = isExpanded ? routine.exercises : routine.exercises.slice(0, 3);
+    const routineIcon = getRoutineIcon(routine.name);
+
+    return (
+        <Card
+            className={cn(
+                "flex flex-col gap-4 p-5 transition-all cursor-pointer border-l-4",
+                routine.border_color,
+                "bg-surface",
+                isExpanded ? "scale-[1.02] shadow-lg" : "hover:scale-[1.01]",
+                isCompleted && "opacity-80"
+            )}
+            onClick={onToggle}
+        >
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {routineIcon && (
+                        <div className="h-14 w-14 rounded-2xl overflow-hidden bg-surface-highlight/50 border border-surface-highlight flex-shrink-0">
+                            <img
+                                src={routineIcon}
+                                alt="icon"
+                                className="h-full w-full object-cover p-1.5"
+                                loading="lazy"
+                                onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=200';
+                                }}
+                            />
+                        </div>
+                    )}
+                    <h4 className={cn("text-lg font-bold leading-tight", routine.text_color)}>
+                        {routine.name}
+                    </h4>
+                </div>
+                <div className="flex items-center gap-2">
+                    <ChevronRight
+                        className={cn(
+                            "h-5 w-5 text-gray-400 transition-transform duration-300",
+                            isExpanded ? "rotate-90" : ""
+                        )}
+                    />
+                </div>
+            </div>
+
+            {lastSummary && (
+                <div className="mt-3">
+                    <LastSessionCard summary={lastSummary} />
+                </div>
+            )}
+
+            <div className="space-y-3">
+                {visibleExercises.map((ex) => (
+                    <div key={ex.id} className="flex items-center gap-3 animate-fadeIn">
+                        <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-gray-700/50">
+                            {ex.image_url ? (
+                                <img
+                                    src={ex.image_url}
+                                    alt={ex.name}
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.classList.add('animate-pulse');
+                                    }}
+                                />
+                            ) : (
+                                <div className="h-full w-full bg-surface-highlight" />
+                            )}
+                        </div>
+                        <div className="flex flex-1 items-center justify-between text-sm text-text-secondary">
+                            <span className="font-medium text-text-primary">{ex.name}</span>
+                            <span className="text-xs opacity-70 ml-2 whitespace-nowrap">{ex.series}x{ex.reps}</span>
+                        </div>
+                    </div>
+                ))}
+                {!isExpanded && routine.exercises.length > 3 && (
+                    <div className="text-xs text-text-secondary opacity-50 pl-[3.25rem]">
+                        + {routine.exercises.length - 3} ejercicios más...
+                    </div>
+                )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-end">
+                <Button
+                    size="sm"
+                    className={cn(
+                        "rounded-full w-full h-9 transition-all font-bold",
+                        isCompleted ? "bg-green-500 text-black shadow-lg shadow-green-500/20" : cn(routine.color, "text-black")
+                    )}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onStart();
+                    }}
+                >
+                    {isCompleted ? (
+                        <>
+                            Revisar Entrenamiento
+                            <Check className="ml-2 h-4 w-4 stroke-black" strokeWidth={3} />
+                        </>
+                    ) : (
+                        <>
+                            Iniciar Rutina
+                            <Play className="ml-2 h-4 w-4 fill-black" />
+                        </>
+                    )}
+                </Button>
+            </div>
+        </Card>
+    );
+}
 
 const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
     const { profile, user } = useAuth();
@@ -214,6 +331,21 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
         setExpandedRoutine(expandedRoutine === id ? null : id);
     };
 
+    const handleStartRoutine = (routine) => {
+        const isCompleted = completedRoutines.includes(routine.id);
+        if (isCompleted) {
+            onStartDaily(routine);
+            return;
+        }
+        const hasSavedSession = !!localStorage.getItem(`gymTracker_workout_${routine.id}`);
+        if (hasSavedSession) {
+            onStartDaily(routine);
+        } else {
+            setPendingRoutine(routine);
+            setShowCardioSelector(true);
+        }
+    };
+
     if (loading) return (
         <div className="space-y-4 pb-24">
             {[1, 2, 3].map(i => (
@@ -307,131 +439,44 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
                 ) : null}
 
                 <div className="space-y-4">
-                    {routines.map((routine) => {
-                        const isExpanded = expandedRoutine === routine.id;
-                        const isCompleted = completedRoutines.includes(routine.id);
-                        const visibleExercises = isExpanded ? routine.exercises : routine.exercises.slice(0, 3);
-                        const routineIcon = getRoutineIcon(routine.name);
-
-                        return (
-                            <Card
+                    {(() => {
+                        const { today, rest } = splitRoutinesByToday(routines, new Date().getDay());
+                        const renderCard = (routine) => (
+                            <RoutineCard
                                 key={routine.id}
-                                className={cn(
-                                    "flex flex-col gap-4 p-5 transition-all cursor-pointer border-l-4",
-                                    routine.border_color,
-                                    "bg-surface",
-                                    isExpanded ? "scale-[1.02] shadow-lg" : "hover:scale-[1.01]",
-                                    isCompleted && "opacity-80"
-                                )}
-                                onClick={() => toggleRoutine(routine.id)}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {routineIcon && (
-                                            <div className="h-14 w-14 rounded-2xl overflow-hidden bg-surface-highlight/50 border border-surface-highlight flex-shrink-0">
-                                                <img
-                                                    src={routineIcon}
-                                                    alt="icon"
-                                                    className="h-full w-full object-cover p-1.5"
-                                                    loading="lazy"
-                                                    onError={(e) => {
-                                                        e.target.onerror = null;
-                                                        e.target.src = 'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&q=80&w=200';
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                        <h4 className={cn("text-lg font-bold leading-tight", routine.text_color)}>
-                                            {routine.name}
-                                        </h4>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <ChevronRight
-                                            className={cn(
-                                                "h-5 w-5 text-gray-400 transition-transform duration-300",
-                                                isExpanded ? "rotate-90" : ""
-                                            )}
-                                        />
-                                    </div>
-                                </div>
-
-                                {lastSummaries[routine.id] && (
-                                    <div className="mt-3">
-                                        <LastSessionCard summary={lastSummaries[routine.id]} />
-                                    </div>
-                                )}
-
-                                <div className="space-y-3">
-                                    {visibleExercises.map((ex) => (
-                                        <div key={ex.id} className="flex items-center gap-3 animate-fadeIn">
-                                            <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-gray-700/50">
-                                                {ex.image_url ? (
-                                                    <img
-                                                        src={ex.image_url}
-                                                        alt={ex.name}
-                                                        className="h-full w-full object-cover"
-                                                        loading="lazy"
-                                                        referrerPolicy="no-referrer"
-                                                        onError={(e) => {
-                                                            e.target.style.display = 'none';
-                                                            e.target.parentElement.classList.add('animate-pulse');
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <div className="h-full w-full bg-surface-highlight" />
-                                                )}
-                                            </div>
-                                            <div className="flex flex-1 items-center justify-between text-sm text-text-secondary">
-                                                <span className="font-medium text-text-primary">{ex.name}</span>
-                                                <span className="text-xs opacity-70 ml-2 whitespace-nowrap">{ex.series}x{ex.reps}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {!isExpanded && routine.exercises.length > 3 && (
-                                        <div className="text-xs text-text-secondary opacity-50 pl-[3.25rem]">
-                                            + {routine.exercises.length - 3} ejercicios más...
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="mt-2 flex items-center justify-end">
-                                    <Button
-                                        size="sm"
-                                        className={cn(
-                                            "rounded-full w-full h-9 transition-all font-bold",
-                                            isCompleted ? "bg-green-500 text-black shadow-lg shadow-green-500/20" : cn(routine.color, "text-black")
-                                        )}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (isCompleted) {
-                                                onStartDaily(routine);
-                                            } else {
-                                                const hasSavedSession = !!localStorage.getItem(`gymTracker_workout_${routine.id}`);
-                                                if (hasSavedSession) {
-                                                    onStartDaily(routine);
-                                                } else {
-                                                    setPendingRoutine(routine);
-                                                    setShowCardioSelector(true);
-                                                }
-                                            }
-                                        }}
-                                    >
-                                        {isCompleted ? (
-                                            <>
-                                                Revisar Entrenamiento
-                                                <Check className="ml-2 h-4 w-4 stroke-black" strokeWidth={3} />
-                                            </>
-                                        ) : (
-                                            <>
-                                                Iniciar Rutina
-                                                <Play className="ml-2 h-4 w-4 fill-black" />
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            </Card>
+                                routine={routine}
+                                isExpanded={expandedRoutine === routine.id}
+                                isCompleted={completedRoutines.includes(routine.id)}
+                                lastSummary={lastSummaries[routine.id]}
+                                onToggle={() => toggleRoutine(routine.id)}
+                                onStart={() => handleStartRoutine(routine)}
+                            />
                         );
-                    })}
+                        return (
+                            <>
+                                <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">
+                                    Hoy toca
+                                </h3>
+                                {today.length > 0 ? (
+                                    today.map(renderCard)
+                                ) : (
+                                    <Card className="p-5 bg-surface border-dashed border-2 border-surface-highlight text-center">
+                                        <p className="text-2xl mb-1">💤</p>
+                                        <p className="text-text-primary font-semibold">Hoy toca descanso</p>
+                                        <p className="text-text-secondary text-xs mt-1">No tienes ninguna rutina programada para hoy.</p>
+                                    </Card>
+                                )}
+                                {rest.length > 0 && (
+                                    <>
+                                        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mt-2">
+                                            {today.length > 0 ? 'Resto de tus rutinas' : 'Tus rutinas'}
+                                        </h3>
+                                        {rest.map(renderCard)}
+                                    </>
+                                )}
+                            </>
+                        );
+                    })()}
                 </div>
             </div>
 
