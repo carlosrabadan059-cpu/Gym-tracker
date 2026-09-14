@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { getRoutineIcon } from '../lib/routineUtils';
 import { splitRoutinesByToday } from '../lib/routineSchedule';
+import { getCurrentMesocycleWeek, applyMesocycleWeek } from '../lib/mesocycle';
 import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
@@ -227,10 +228,14 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
 
             if (exercisesError) throw exercisesError;
 
-            const mergedRoutines = routinesData.map(routine => ({
-                ...routine,
-                exercises: exercisesData.filter(ex => ex.routine_id === routine.id)
-            }));
+            const today = new Date();
+            const mergedRoutines = routinesData.map(routine => {
+                const week = getCurrentMesocycleWeek(routine.mesocycle_start_date, today);
+                const exercises = exercisesData
+                    .filter(ex => ex.routine_id === routine.id)
+                    .map(ex => applyMesocycleWeek(ex, week));
+                return { ...routine, exercises };
+            });
 
             // Ordenar: primero por sort_order (columna de BD), luego por número
             // extraído del nombre como fallback para rutinas legacy sin sort_order.
