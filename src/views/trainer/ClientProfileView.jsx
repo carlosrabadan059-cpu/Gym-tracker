@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { enrichExercisesWithCatalog } from '../../lib/utils';
-import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
+import { enrichExercisesWithCatalog, loadExerciseHistory } from '../../lib/utils';
+import { deleteClientRoutineCopy, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
@@ -11,6 +11,8 @@ import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 import { ExerciseCommentThread } from '../../components/shared/ExerciseCommentThread';
+
+const PROGRESSION_SUGGESTION_TIMEOUT_MS = 30000;
 
 function Stepper({ value, onChange, min = 1, max = 99 }) {
     return (
@@ -43,6 +45,31 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
 
     const [editingExercise, setEditingExercise] = useState(null);
     const [savingEdit, setSavingEdit] = useState(false);
+    const [editingExerciseHistory, setEditingExerciseHistory] = useState(null);
+    const [suggestingProgression, setSuggestingProgression] = useState(false);
+    const [suggestionError, setSuggestionError] = useState('');
+    const isMountedForSuggestionRef = useRef(true);
+
+    useEffect(() => {
+        isMountedForSuggestionRef.current = true;
+        return () => { isMountedForSuggestionRef.current = false; };
+    }, []);
+
+    // Fase 2.3: historial real de este ejercicio, para decidir si el botón
+    // "Sugerir con IA" tiene datos suficientes y para resumirlo en el
+    // payload. Se recarga cada vez que se abre un ejercicio distinto.
+    useEffect(() => {
+        if (!editingExercise) {
+            setEditingExerciseHistory(null);
+            return;
+        }
+        let cancelled = false;
+        setEditingExerciseHistory(null);
+        loadExerciseHistory(client.user_id, editingExercise.name).then((history) => {
+            if (!cancelled) setEditingExerciseHistory(history);
+        });
+        return () => { cancelled = true; };
+    }, [editingExercise?.id, editingExercise?.name, client.user_id]);
 
     const [editingRoutineNameId, setEditingRoutineNameId] = useState(null);
     const [editingRoutineNameValue, setEditingRoutineNameValue] = useState('');
@@ -324,6 +351,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         const hasProgression = Array.isArray(ex.weekly_progression) && ex.weekly_progression.length > 0;
         setEditingExercise({
             id: ex.id,
+            name: ex.name,
+            category: ex.category,
             assignmentId,
             series: Number(ex.series) || 3,
             reps: Number(ex.reps) || 10,
@@ -365,6 +394,73 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                 row.week === week ? { ...row, [field]: value } : row
             ),
         }));
+    };
+
+    const handleSuggestProgression = async () => {
+        const webhookUrl = import.meta.env.VITE_N8N_PROGRESSION_SUGGESTION_WEBHOOK_URL;
+        if (!webhookUrl) {
+            setSuggestionError('Falta configurar VITE_N8N_PROGRESSION_SUGGESTION_WEBHOOK_URL.');
+            return;
+        }
+
+        setSuggestingProgression(true);
+        setSuggestionError('');
+
+        let controller;
+        let timer;
+        try {
+            const historySummary = summarizeExerciseHistoryForAI(editingExerciseHistory || []);
+            const payload = buildProgressionSuggestionPayload({
+                exerciseName: editingExercise.name,
+                category: editingExercise.category,
+                clientGoal: client.goal,
+                level: 'intermedio',
+                currentSeries: editingExercise.series,
+                currentReps: editingExercise.reps,
+                currentTargetWeight: editingExercise.target_weight === '' ? null : Number(editingExercise.target_weight),
+                currentTargetRir: editingExercise.target_rir === '' ? null : Number(editingExercise.target_rir),
+                historySummary,
+            });
+
+            controller = new AbortController();
+            timer = setTimeout(() => controller.abort(), PROGRESSION_SUGGESTION_TIMEOUT_MS);
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal,
+            });
+            clearTimeout(timer);
+
+            if (!response.ok) throw new Error('Respuesta HTTP ' + response.status);
+            const data = await response.json();
+            if (!isMountedForSuggestionRef.current) return;
+
+            if (!Array.isArray(data.semanas) || data.semanas.length === 0) {
+                setSuggestionError('La IA no devolvió ninguna semana. Inténtalo de nuevo.');
+                return;
+            }
+
+            setEditingExercise(prev => ({
+                ...prev,
+                useWeeklyProgression: true,
+                weeklyProgression: data.semanas.map(w => ({
+                    week: w.week,
+                    series: w.series,
+                    reps: w.reps,
+                    target_weight: w.target_weight ?? '',
+                    target_rir: w.target_rir ?? '',
+                    motivo: w.motivo || '',
+                })),
+            }));
+        } catch (err) {
+            clearTimeout(timer);
+            if (!isMountedForSuggestionRef.current) return;
+            console.error('Error sugiriendo progresión con IA:', err);
+            setSuggestionError('No se pudo generar la sugerencia. Inténtalo de nuevo.');
+        } finally {
+            if (isMountedForSuggestionRef.current) setSuggestingProgression(false);
+        }
     };
 
     const handleSaveEdit = async (e) => {
@@ -788,39 +884,66 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
 
                                                                 {isEditing && (
                                                                     <div className="px-2 pb-3 pt-1 grid grid-cols-2 gap-2 border-t border-surface-highlight/60 mt-1">
-                                                                        <label className="col-span-2 flex items-center gap-2 text-[10px] uppercase tracking-wide text-text-secondary">
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={editingExercise.useWeeklyProgression}
-                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, useWeeklyProgression: e.target.checked }))}
-                                                                                className="accent-primary"
-                                                                            />
-                                                                            Progresión por semanas
-                                                                        </label>
+                                                                        <div className="col-span-2 flex items-center justify-between gap-2">
+                                                                            <label className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={editingExercise.useWeeklyProgression}
+                                                                                    onChange={(e) => setEditingExercise(p => ({ ...p, useWeeklyProgression: e.target.checked }))}
+                                                                                    className="accent-primary"
+                                                                                />
+                                                                                Progresión por semanas
+                                                                            </label>
+                                                                            <button
+                                                                                onClick={handleSuggestProgression}
+                                                                                disabled={
+                                                                                    suggestingProgression
+                                                                                    || editingExerciseHistory === null
+                                                                                    || (editingExercise.target_weight === '' && editingExerciseHistory.length === 0)
+                                                                                }
+                                                                                title={
+                                                                                    editingExerciseHistory !== null && editingExercise.target_weight === '' && editingExerciseHistory.length === 0
+                                                                                        ? 'Sin datos suficientes'
+                                                                                        : undefined
+                                                                                }
+                                                                                className="flex items-center gap-1 text-[10px] font-bold text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                                                                            >
+                                                                                <Sparkles size={11} />
+                                                                                {suggestingProgression ? 'Generando...' : 'Sugerir con IA'}
+                                                                            </button>
+                                                                        </div>
+                                                                        {suggestionError && (
+                                                                            <p className="col-span-2 text-[10px] text-red-500">{suggestionError}</p>
+                                                                        )}
                                                                         {editingExercise.useWeeklyProgression ? (
                                                                             <div className="col-span-2 space-y-1.5">
                                                                                 {editingExercise.weeklyProgression.map((row) => (
-                                                                                    <div key={row.week} className="flex items-center gap-1.5">
-                                                                                        <span className="w-14 flex-shrink-0 text-[10px] text-text-secondary">Sem. {row.week}</span>
-                                                                                        <input type="number" min="1" value={row.series}
-                                                                                            onChange={(e) => updateProgressionRow(row.week, 'series', e.target.value)}
-                                                                                            className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Ser." />
-                                                                                        <input type="number" min="1" value={row.reps}
-                                                                                            onChange={(e) => updateProgressionRow(row.week, 'reps', e.target.value)}
-                                                                                            className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Reps" />
-                                                                                        <input type="number" inputMode="decimal" value={row.target_weight}
-                                                                                            onChange={(e) => updateProgressionRow(row.week, 'target_weight', e.target.value)}
-                                                                                            className="w-16 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Kg" />
-                                                                                        <input type="number" min="0" max="5" value={row.target_rir}
-                                                                                            onChange={(e) => updateProgressionRow(row.week, 'target_rir', e.target.value)}
-                                                                                            className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="RIR" />
-                                                                                        <button
-                                                                                            onClick={() => removeProgressionWeek(row.week)}
-                                                                                            disabled={editingExercise.weeklyProgression.length === 1}
-                                                                                            className="w-6 h-6 flex-shrink-0 rounded-md hover:bg-red-500/10 flex items-center justify-center disabled:opacity-20"
-                                                                                        >
-                                                                                            <X size={11} className="text-text-secondary hover:text-red-500" />
-                                                                                        </button>
+                                                                                    <div key={row.week}>
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            <span className="w-14 flex-shrink-0 text-[10px] text-text-secondary">Sem. {row.week}</span>
+                                                                                            <input type="number" min="1" value={row.series}
+                                                                                                onChange={(e) => updateProgressionRow(row.week, 'series', e.target.value)}
+                                                                                                className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Ser." />
+                                                                                            <input type="number" min="1" value={row.reps}
+                                                                                                onChange={(e) => updateProgressionRow(row.week, 'reps', e.target.value)}
+                                                                                                className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Reps" />
+                                                                                            <input type="number" inputMode="decimal" value={row.target_weight}
+                                                                                                onChange={(e) => updateProgressionRow(row.week, 'target_weight', e.target.value)}
+                                                                                                className="w-16 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Kg" />
+                                                                                            <input type="number" min="0" max="5" value={row.target_rir}
+                                                                                                onChange={(e) => updateProgressionRow(row.week, 'target_rir', e.target.value)}
+                                                                                                className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="RIR" />
+                                                                                            <button
+                                                                                                onClick={() => removeProgressionWeek(row.week)}
+                                                                                                disabled={editingExercise.weeklyProgression.length === 1}
+                                                                                                className="w-6 h-6 flex-shrink-0 rounded-md hover:bg-red-500/10 flex items-center justify-center disabled:opacity-20"
+                                                                                            >
+                                                                                                <X size={11} className="text-text-secondary hover:text-red-500" />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                        {row.motivo && (
+                                                                                            <p className="text-[9px] text-text-secondary italic pl-16 mt-0.5">{row.motivo}</p>
+                                                                                        )}
                                                                                     </div>
                                                                                 ))}
                                                                                 <button
