@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { cloneRoutineToClient, fetchRecentHistorySummary, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from '../../lib/trainerUtils';
+import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2 } from 'lucide-react';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
@@ -627,6 +628,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
 
     const [routineName, setRoutineName] = useState('');
     const [routineColor, setRoutineColor] = useState(COLORS[0]);
+    const [scheduledDays, setScheduledDays] = useState([]);
 
     const [catalog, setCatalog] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -731,6 +733,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     text_color: routineColor.text,
                     trainer_id: user.id,
                     owner_client_id: client.user_id,
+                    scheduled_days: scheduledDays.length > 0 ? scheduledDays : null,
                 }]);
             if (routineError) throw routineError;
 
@@ -882,6 +885,24 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 ))}
                             </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-text-secondary flex-shrink-0">Días:</span>
+                            <div className="flex gap-1">
+                                {WEEKDAY_LABELS.map(({ value, label }) => (
+                                    <button
+                                        key={value}
+                                        onClick={() => setScheduledDays(prev =>
+                                            isRoutineScheduledForDay(prev, value)
+                                                ? prev.filter(d => d !== value)
+                                                : [...prev, value].sort((a, b) => a - b)
+                                        )}
+                                        className={`w-7 h-7 rounded-full text-xs font-bold transition-colors ${isRoutineScheduledForDay(scheduledDays, value) ? 'bg-primary text-black' : 'bg-surface-highlight text-text-secondary hover:text-text-primary'}`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Search */}
@@ -974,6 +995,24 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                     onClick={() => setRoutineColor(c)}
                                     className={`w-6 h-6 rounded-full ${c.value} transition-all ${routineColor.value === c.value ? 'ring-2 ring-white ring-offset-2 ring-offset-background scale-110' : 'opacity-40 hover:opacity-70'}`}
                                 />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-text-secondary flex-shrink-0">Días:</span>
+                        <div className="flex gap-1">
+                            {WEEKDAY_LABELS.map(({ value, label }) => (
+                                <button
+                                    key={value}
+                                    onClick={() => setScheduledDays(prev =>
+                                        isRoutineScheduledForDay(prev, value)
+                                            ? prev.filter(d => d !== value)
+                                            : [...prev, value].sort((a, b) => a - b)
+                                    )}
+                                    className={`w-7 h-7 rounded-full text-xs font-bold transition-colors ${isRoutineScheduledForDay(scheduledDays, value) ? 'bg-primary text-black' : 'bg-surface-highlight text-text-secondary hover:text-text-primary'}`}
+                                >
+                                    {label}
+                                </button>
                             ))}
                         </div>
                     </div>
