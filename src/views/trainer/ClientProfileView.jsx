@@ -576,6 +576,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                 assignedRoutines.map((assignment) => {
                                     const { routine } = assignment;
                                     const isExpanded = expandedRoutine === assignment.id;
+                                    const activeWeek = getCurrentMesocycleWeek(routine.mesocycle_start_date, new Date());
                                     return (
                                         <div
                                             key={assignment.id}
@@ -685,16 +686,14 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                     </label>
                                                     {routine.mesocycle_start_date && (
                                                         <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
-                                                            Semana {getCurrentMesocycleWeek(routine.mesocycle_start_date, new Date())}
+                                                            Semana {activeWeek}
                                                         </span>
                                                     )}
                                                 </div>
                                                 </>
                                             )}
 
-                                            {isExpanded && (() => {
-                                                const activeWeek = getCurrentMesocycleWeek(routine.mesocycle_start_date, new Date());
-                                                return (
+                                            {isExpanded && (
                                                 <div className="mt-4 space-y-2 pt-4 border-t border-surface-highlight">
                                                     {routine.exercises.length === 0 ? (
                                                         <p className="text-xs text-text-secondary">Sin ejercicios.</p>
@@ -888,8 +887,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         Añadir ejercicio
                                                     </button>
                                                 </div>
-                                                );
-                                            })()}
+                                            )}
                                         </div>
                                     );
                                 })
