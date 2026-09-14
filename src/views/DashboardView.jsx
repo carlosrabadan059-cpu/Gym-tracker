@@ -228,9 +228,9 @@ const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
 
             if (exercisesError) throw exercisesError;
 
-            const today = new Date();
+            const todayDate = new Date();
             const mergedRoutines = routinesData.map(routine => {
-                const week = getCurrentMesocycleWeek(routine.mesocycle_start_date, today);
+                const week = getCurrentMesocycleWeek(routine.mesocycle_start_date, todayDate);
                 const exercises = exercisesData
                     .filter(ex => ex.routine_id === routine.id)
                     .map(ex => applyMesocycleWeek(ex, week));
