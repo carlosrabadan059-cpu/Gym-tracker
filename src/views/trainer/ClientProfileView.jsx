@@ -4,6 +4,7 @@ import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { deleteClientRoutineCopy } from '../../lib/trainerUtils';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
+import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
@@ -201,6 +202,33 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             ));
         } catch (error) {
             console.error('Error reordering exercises:', error);
+        }
+    };
+
+    // Fase 3 (parte 1): qué días de la semana toca esta rutina. Optimista +
+    // revierte en el catch, mismo criterio que handleToggleTemplate en
+    // RoutineAssignerView.jsx (AssignExistingTab) para esta clase de toggle.
+    const handleToggleScheduledDay = async (assignmentId, day) => {
+        const assignment = assignedRoutines.find(a => a.id === assignmentId);
+        if (!assignment) return;
+        const current = assignment.routine.scheduled_days || [];
+        const next = isRoutineScheduledForDay(current, day)
+            ? current.filter(d => d !== day)
+            : [...current, day].sort((a, b) => a - b);
+        const nextOrNull = next.length > 0 ? next : null;
+
+        setAssignedRoutines(prev => prev.map(a =>
+            a.id === assignmentId ? { ...a, routine: { ...a.routine, scheduled_days: nextOrNull } } : a
+        ));
+
+        try {
+            const { error } = await supabase.from('routines').update({ scheduled_days: nextOrNull }).eq('id', assignment.routine.id);
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error updating scheduled_days:', error);
+            setAssignedRoutines(prev => prev.map(a =>
+                a.id === assignmentId ? { ...a, routine: { ...a.routine, scheduled_days: current.length > 0 ? current : null } } : a
+            ));
         }
     };
 
@@ -479,6 +507,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                     </button>
                                                 </div>
                                             ) : (
+                                                <>
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex-1 min-w-0 mr-2">
                                                         <h4 className={`font-bold ${routine.text_color || 'text-text-primary'}`}>
@@ -531,6 +560,18 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         />
                                                     </div>
                                                 </div>
+                                                <div className="flex items-center gap-1 mt-2" onClick={e => e.stopPropagation()}>
+                                                    {WEEKDAY_LABELS.map(({ value, label }) => (
+                                                        <button
+                                                            key={value}
+                                                            onClick={() => handleToggleScheduledDay(assignment.id, value)}
+                                                            className={`w-6 h-6 rounded-full text-[10px] font-bold transition-colors ${isRoutineScheduledForDay(routine.scheduled_days, value) ? 'bg-primary text-black' : 'bg-surface-highlight text-text-secondary hover:text-text-primary'}`}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                </>
                                             )}
 
                                             {isExpanded && (
