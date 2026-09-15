@@ -41,6 +41,19 @@ export function enrichExercisesWithCatalog(exercises) {
     });
 }
 
+// Inicio de semana (lunes). Única fuente de verdad para "semana" en toda la
+// app — loadCompletedRoutines, TrainingView y StatisticsView compartían tres
+// definiciones distintas (domingo vs. lunes), dando lugar a que Dashboard y
+// Estadísticas contaran semanas diferentes. Ver CLAUDE.md.
+export function getWeekStart(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+}
+
 // Helper para obtener el próximo sábado a las 23:59:59 (como límite de la semana)
 // Si hoy es sábado, el límite es hoy mismo a esa hora.
 export function getNextSaturdayExpiration() {
@@ -59,11 +72,7 @@ export function getNextSaturdayExpiration() {
 export async function loadCompletedRoutines(userId) {
     if (!userId) return [];
 
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 is Sunday
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - dayOfWeek);
-    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfWeek = getWeekStart(new Date());
 
     try {
         const { data, error } = await supabase

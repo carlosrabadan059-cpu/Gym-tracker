@@ -24,7 +24,7 @@ Vitest, configurado en el bloque `test` de [vite.config.js](vite.config.js). Los
 
 Cubierto: `constants.js`, `exerciseUtils.js`, `routineUtils.js` y las funciones puras de `utils.js`. Sin cubrir: la capa de datos de Supabase, la lógica de estadísticas (aún dentro de `StatisticsView.jsx`) y los componentes.
 
-> ⚠️ **Definición de semana inconsistente, pendiente de unificar.** `loadCompletedRoutines` ([utils.js](src/lib/utils.js)) y `TrainingView` ([OtherViews.jsx](src/views/OtherViews.jsx)) empiezan la semana en **domingo**; `getWeekStart` ([StatisticsView.jsx](src/views/StatisticsView.jsx)) la empieza en **lunes**. El Dashboard y las Estadísticas cuentan por tanto semanas distintas. No añadir lógica semanal nueva sin decidir cuál es la buena.
+**Definición de semana unificada (2026-09-15): lunes.** `getWeekStart` vive en [utils.js](src/lib/utils.js) como única fuente de verdad — `loadCompletedRoutines` (utils.js), `TrainingView` ([OtherViews.jsx](src/views/OtherViews.jsx)) y `StatisticsView.jsx` la importan de ahí en vez de calcularla cada uno por su cuenta. Dashboard y Estadísticas cuentan ahora la misma semana. Cualquier lógica semanal nueva debe importar `getWeekStart`, no reimplementarla.
 
 **`.env.local` is required to run the app at all.** `src/lib/supabase.js` calls
 `createClient()` at module import with `VITE_SUPABASE_URL` /

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { Check, Flame, Clock, Watch, Dumbbell, HeartPulse } from 'lucide-react';
 import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET, resolveCardioCalories } from '../lib/routineUtils';
-import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary, loadExerciseBest1RM } from '../lib/utils';
+import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary, loadExerciseBest1RM, getWeekStart } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
@@ -16,7 +16,7 @@ const TrainingView = ({ workout, onFinish }) => {
     const activeWorkout = workout?.exercises ? workout : null;
     const STORAGE_KEY = activeWorkout ? `gymTracker_workout_${activeWorkout.id}` : null;
 
-    const getSavedState = () => {
+    const getSavedState = useCallback(() => {
         if (!STORAGE_KEY) return null;
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
@@ -24,7 +24,7 @@ const TrainingView = ({ workout, onFinish }) => {
         } catch {
             return null;
         }
-    };
+    }, [STORAGE_KEY]);
 
     const [activeExercise, setActiveExercise] = useState(null);
     const [resumedFromSave, setResumedFromSave] = useState(false);
@@ -131,9 +131,7 @@ const TrainingView = ({ workout, onFinish }) => {
                         l.routineId === activeWorkout.id && new Date(l.date).toDateString() === todayStr
                     );
 
-                    const weekStart = new Date();
-                    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-                    weekStart.setHours(0, 0, 0, 0);
+                    const weekStart = getWeekStart(new Date());
                     const recentLog = todaysLog || allLogs
                         .filter(l => l.routineId === activeWorkout.id && new Date(l.date) >= weekStart)
                         .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
@@ -184,7 +182,7 @@ const TrainingView = ({ workout, onFinish }) => {
             }
         };
         fetchExistingLogs();
-    }, [activeWorkout, user]);
+    }, [activeWorkout, user, getSavedState]);
 
     const allExercisesCompleted = activeWorkout?.exercises?.every(ex => completedExercises[String(ex.id)]);
 

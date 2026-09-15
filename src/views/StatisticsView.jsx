@@ -8,7 +8,7 @@ import {
     Flame, Zap, Target, ChevronRight, Star, Activity, HeartPulse
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog, loadRecentCaloriesComparison } from '../lib/utils';
+import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog, loadRecentCaloriesComparison, getWeekStart } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { routines as staticRoutines } from '../data/routines';
 import {
@@ -19,18 +19,6 @@ const STATIC_ID_TO_NAME = {};
 staticRoutines.forEach(r => r.exercises.forEach(ex => {
     STATIC_ID_TO_NAME[String(ex.id)] = { name: ex.name, catalog_id: ex.catalog_id };
 }));
-
-// ─────────────────────────────────────────────────────────
-// Helper: inicio de la semana (lunes)
-// ─────────────────────────────────────────────────────────
-function getWeekStart(date) {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    const day = d.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    d.setDate(d.getDate() + diff);
-    return d;
-}
 
 // ─────────────────────────────────────────────────────────
 // Helper: racha de semanas consecutivas con entrenamiento

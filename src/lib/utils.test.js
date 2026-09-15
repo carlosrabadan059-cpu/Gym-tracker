@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // las funciones puras del módulo sin credenciales ni red.
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-const { enrichExercisesWithCatalog, getNextSaturdayExpiration } = await import('./utils');
+const { enrichExercisesWithCatalog, getNextSaturdayExpiration, getWeekStart } = await import('./utils');
 
 describe('enrichExercisesWithCatalog', () => {
     it('hereda name, image_url e instructions del catálogo maestro', () => {
@@ -70,6 +70,26 @@ describe('enrichExercisesWithCatalog', () => {
         expect(enrichExercisesWithCatalog(null)).toEqual([]);
         expect(enrichExercisesWithCatalog(undefined)).toEqual([]);
         expect(enrichExercisesWithCatalog([])).toEqual([]);
+    });
+});
+
+describe('getWeekStart', () => {
+    it('un lunes es el inicio de su propia semana', () => {
+        expect(getWeekStart(new Date('2026-09-14T15:00:00Z')).toISOString().slice(0, 10)).toBe('2026-09-14');
+    });
+
+    it('un domingo pertenece a la semana del lunes anterior', () => {
+        expect(getWeekStart(new Date('2026-09-13T15:00:00Z')).toISOString().slice(0, 10)).toBe('2026-09-07');
+    });
+
+    it('un miércoles retrocede al lunes de esa misma semana', () => {
+        expect(getWeekStart(new Date('2026-09-16T15:00:00Z')).toISOString().slice(0, 10)).toBe('2026-09-14');
+    });
+
+    it('pone la hora a medianoche', () => {
+        const start = getWeekStart(new Date('2026-09-16T23:45:00Z'));
+        expect(start.getHours()).toBe(0);
+        expect(start.getMinutes()).toBe(0);
     });
 });
 
