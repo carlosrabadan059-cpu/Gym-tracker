@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { enrichExercisesWithCatalog, loadExerciseHistory } from '../../lib/utils';
 import { deleteClientRoutineCopy, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from '../../lib/trainerUtils';
+import { canShowHealthData } from '../../lib/healthConsent';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
@@ -35,6 +37,8 @@ function Stepper({ value, onChange, min = 1, max = 99 }) {
 }
 
 export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = false }) {
+    const { user } = useAuth();
+    const [healthConsent, setHealthConsent] = useState(null);
     const [assignedRoutines, setAssignedRoutines] = useState([]);
     const [workoutHistory, setWorkoutHistory] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -54,6 +58,26 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         isMountedForSuggestionRef.current = true;
         return () => { isMountedForSuggestionRef.current = false; };
     }, []);
+
+    // Fase 5 (parte 1): el peso corporal y las kcal reales de cada sesión
+    // (WorkoutDetailPanel) solo se muestran si el cliente dio permiso
+    // explícito. Por defecto la fila está en 'pending' → no se muestran.
+    useEffect(() => {
+        if (!client?.user_id || !user?.id) return;
+        let cancelled = false;
+        supabase
+            .from('trainer_clients')
+            .select('health_consent')
+            .eq('trainer_id', user.id)
+            .eq('client_id', client.user_id)
+            .maybeSingle()
+            .then(({ data }) => {
+                if (!cancelled) setHealthConsent(data?.health_consent ?? null);
+            });
+        return () => { cancelled = true; };
+    }, [client?.user_id, user?.id]);
+
+    const showHealthData = canShowHealthData(healthConsent);
 
     // Fase 2.3: historial real de este ejercicio, para decidir si el botón
     // "Sugerir con IA" tiene datos suficientes y para resumirlo en el
@@ -552,6 +576,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                 <WorkoutDetailPanel
                     entry={selectedHistoryEntry}
                     onClose={() => setSelectedHistoryEntry(null)}
+                    showHealthData={showHealthData}
                 />
             )}
 
@@ -602,7 +627,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-text-primary">{client.fullName || client.username}</h2>
-                            <p className="text-xs text-text-secondary">{client.weight ? `${client.weight} kg` : 'Sin peso registrado'}</p>
+                            <p className="text-xs text-text-secondary">
+                                {showHealthData
+                                    ? (client.weight ? `${client.weight} kg` : 'Sin peso registrado')
+                                    : 'Sin compartir'}
+                            </p>
                         </div>
                     </div>
                 </header>
