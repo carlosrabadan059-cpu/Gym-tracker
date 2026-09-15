@@ -193,10 +193,16 @@ sesión continua multideporte — sigue haciendo falta la extensión Swift de
   `loadLastRoutineSummary`, `src/lib/utils.js`).
 - **Distinción visual fuerza/cardio en la tarjeta-resumen**: icono de
   mancuerna (violeta) en la fila "Fuerza", de corazón (azul) en la fila
-  "Cardio" (`src/views/OtherViews.jsx`). **Pendiente de comprobar en real**
-  con un entreno que incluya cardio previo — solo se ha visto en el
-  prototipo con datos mock; la fila "Cardio" solo aparece si se añadió
-  cardio en el modal previo al entreno.
+  "Cardio" (`src/views/OtherViews.jsx`). **Verificado por auditoría de
+  código (2026-09-15)**: trazado el path completo desde la detección en
+  `DashboardView.jsx` (`detectedCardio` → `pendingRoutine.cardio` con
+  `source: 'health'`) hasta `resolveCardioCalories` (respeta el kcal real
+  del Watch cuando `source === 'health'`, cae a estimación MET si no) y el
+  render condicional (`finishSummary.cardio &&`) — sin bugs. También
+  revisada la rama de sesión no viva (reabrir una rutina ya completada
+  hoy): reutiliza el `cardio` ya persistido en Supabase, no recalcula en
+  falso. Pendiente solo la confirmación visual en el próximo entreno real
+  con cardio previo — no bloqueante, la lógica ya está verificada.
 
 ### Fase 3 — Superficie de datos
 
@@ -533,6 +539,37 @@ que si importa mostrar.
 grabando cardio y fuerza como dos entrenos separados en el Watch (no la
 sesión continua multideporte de arriba, que sigue sin desglose posible sin
 la extensión Swift): banner de cardio detectado y sustitución de kcal
+reales/estimadas confirmados en gimnasio real. La distinción visual
+fuerza/cardio en la tarjeta-resumen quedó verificada por auditoría de
+código (2026-09-15, ver arriba); la asunción de contexto siempre-interior
+(sin `HKMetadataKeyIndoorWorkout`) se confirma como decisión final, no un
+pendiente — no se persigue distinguir cinta/exterior.
+
+## Versión 2 — cerrada (2026-09-15)
+
+Las 6 fases (0-5) quedan cerradas. Resumen de lo construido y lo descartado
+a propósito, para que quede como referencia y no se reabra sin motivo:
+
+- **Fase 0-3**: cerradas y validadas en dispositivo real (ver arriba).
+- **Fase 4 (Live Activity)**: foreground/local hecho y validado en real
+  (iPhone 13 Pro). Dos puntos quedan fuera, ambos por decisión explícita:
+  - **Dynamic Island**: código presente, sin hardware (14 Pro o posterior)
+    para validar. No es un defecto — se confirma en cuanto haya hardware,
+    sin tocar código.
+  - **Actualizar la Live Activity con la pantalla apagada del todo**:
+    descartado (2026-09-10). Exigiría canal push APNs `liveactivity`
+    aparte del Web Push actual (capability nueva, clave `.p8`, Edge
+    Function nueva) para una ganancia solo cosmética — el Web Push ya
+    despierta la pantalla y avisa. Se retoma solo si se pide expresamente.
+- **Fase 5 (pulido opcional)**: notificaciones proactivas, haptics, widget
+  de pantalla de inicio — nunca empezada. Es opcional por definición desde
+  que se escribió el plan, no bloquea el cierre.
+- **Fuera de alcance de v2 desde el principio**: calculadora de discos,
+  RPE, superseries, mapa de recuperación muscular — viven en la
+  **versión 3** ([plan-gym-app-features.md](plan-gym-app-features.md)).
+
+Cualquier trabajo futuro de Health entra como un plan nuevo, no como
+reapertura de este documento.
 reales de fuerza, ambos confirmados en una sesión real de gimnasio con el
 build standalone de Xcode. Ver detalle en "Fase 2" arriba.
 
