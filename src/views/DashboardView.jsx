@@ -12,6 +12,7 @@ import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
+import { getHealthConsentBannerCopy } from '../lib/healthConsent';
 
 // Tarjeta de una rutina en el Dashboard. Extraída de DashboardView para
 // poder renderizarse dos veces (grupo "hoy" y grupo "resto") sin duplicar
@@ -142,12 +143,58 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
     const [detectedCardio, setDetectedCardio] = useState(null);
+    const [healthConsentStatus, setHealthConsentStatus] = useState(null);
+    const [healthConsentTrainerName, setHealthConsentTrainerName] = useState(null);
+    const [respondingConsent, setRespondingConsent] = useState(false);
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const touchStartY = useRef(0);
     const containerRef = useRef(null);
     const pullDistanceRef = useRef(0);
     const isRefreshingRef = useRef(false);
+
+    // Fase 5 (parte 1) — consentimiento para compartir datos de salud con el
+    // entrenador. Solo aplica si el cliente tiene entrenador (maybeSingle:
+    // puede no tener fila) y solo se pregunta mientras sigue en 'pending'.
+    // El nombre del entrenador exige una segunda consulta: trainer_id
+    // referencia auth.users, no profiles, así que PostgREST no puede hacer
+    // el embed automático (mismo motivo que en fetchClients).
+    useEffect(() => {
+        if (!user?.id) return;
+        let cancelled = false;
+        (async () => {
+            const { data: link, error } = await supabase
+                .from('trainer_clients')
+                .select('trainer_id, health_consent')
+                .eq('client_id', user.id)
+                .maybeSingle();
+            if (cancelled || error || !link || link.health_consent !== 'pending') return;
+
+            const { data: trainerProfile } = await supabase
+                .from('profiles')
+                .select('fullName, username')
+                .eq('user_id', link.trainer_id)
+                .maybeSingle();
+            if (cancelled) return;
+
+            setHealthConsentStatus(link.health_consent);
+            setHealthConsentTrainerName(trainerProfile?.fullName || trainerProfile?.username || null);
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id]);
+
+    const respondHealthConsent = async (status) => {
+        setRespondingConsent(true);
+        try {
+            const { error } = await supabase.rpc('set_health_consent', { new_status: status });
+            if (error) throw error;
+            setHealthConsentStatus(status);
+        } catch (err) {
+            console.error('Error respondiendo al consentimiento de salud:', err);
+        } finally {
+            setRespondingConsent(false);
+        }
+    };
 
     // v2 Fase 2 — al abrir el selector, mira si hay un workout de cardio
     // reciente en el Watch (última hora y media) para ofrecer kcal reales en
@@ -402,6 +449,34 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                     />
                 </div>
             )}
+            {(() => {
+                const bannerCopy = getHealthConsentBannerCopy(healthConsentStatus, healthConsentTrainerName);
+                if (!bannerCopy) return null;
+                return (
+                    <div className="bg-surface rounded-2xl p-4 border border-primary/30 space-y-3">
+                        <div>
+                            <h3 className="font-semibold text-text-primary">{bannerCopy.title}</h3>
+                            <p className="text-xs text-text-secondary mt-1">{bannerCopy.body}</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => respondHealthConsent('granted')}
+                                disabled={respondingConsent}
+                                className="flex-1 py-2 rounded-xl bg-primary text-black font-bold text-sm disabled:opacity-50"
+                            >
+                                Permitir
+                            </button>
+                            <button
+                                onClick={() => respondHealthConsent('denied')}
+                                disabled={respondingConsent}
+                                className="flex-1 py-2 rounded-xl bg-surface-highlight text-text-primary font-bold text-sm disabled:opacity-50"
+                            >
+                                No permitir
+                            </button>
+                        </div>
+                    </div>
+                );
+            })()}
             {healthSummary && (
                 <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
                     <div className="flex items-center justify-between mb-3">
