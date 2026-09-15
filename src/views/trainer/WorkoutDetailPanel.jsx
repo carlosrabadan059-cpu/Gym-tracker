@@ -10,7 +10,7 @@ staticRoutines.forEach(r => r.exercises.forEach(ex => {
     STATIC_ID_TO_NAME[String(ex.id)] = { name: ex.name, catalog_id: ex.catalog_id };
 }));
 
-export function WorkoutDetailPanel({ entry, onClose }) {
+export function WorkoutDetailPanel({ entry, onClose, showHealthData = false }) {
     const [nameMap, setNameMap] = useState({ ...STATIC_ID_TO_NAME });
     const [loading, setLoading] = useState(true);
 
@@ -173,7 +173,7 @@ export function WorkoutDetailPanel({ entry, onClose }) {
                     })
                 )}
 
-                {duration?.realCalories > 0 && (
+                {showHealthData && duration?.realCalories > 0 && (
                     <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex items-center justify-between">
                         <span className="text-sm font-semibold text-text-primary">Calorías estimadas</span>
                         <span className="text-lg font-black text-primary">{Math.round(duration.realCalories)} kcal</span>
