@@ -4,6 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { enrichExercisesWithCatalog, loadExerciseHistory } from '../../lib/utils';
 import { deleteClientRoutineCopy, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from '../../lib/trainerUtils';
 import { canShowHealthData } from '../../lib/healthConsent';
+import { computeWeeklyMuscleVolume } from '../../lib/muscleVolume';
+import { MuscleVolumeCard } from '../../components/shared/MuscleVolumeCard';
 import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
@@ -106,6 +108,20 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
     const [addingToAssignment, setAddingToAssignment] = useState(null);
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
     const [reviewingAssignmentId, setReviewingAssignmentId] = useState(null);
+
+    // Fase 5 (parte 2): series por grupo muscular de la semana en curso. La
+    // categoría sale de los ejercicios ya cargados para las rutinas asignadas
+    // (vienen con `exercise_catalog(category)` embebido); lo que el cliente
+    // entrenó en rutinas que ya no tiene asignadas cae en "Sin clasificar".
+    const muscleVolume = useMemo(() => {
+        const idToCategory = {};
+        assignedRoutines.forEach((assignment) => {
+            (assignment.routine?.exercises || []).forEach((ex) => {
+                if (ex.category) idToCategory[String(ex.id)] = ex.category;
+            });
+        });
+        return computeWeeklyMuscleVolume(workoutHistory, idToCategory, new Date());
+    }, [assignedRoutines, workoutHistory]);
 
     const sessionDates = useMemo(() => workoutHistory.map((entry) => entry.date), [workoutHistory]);
     const streak = useMemo(() => computeStreak(sessionDates), [sessionDates]);
@@ -681,6 +697,9 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                             <p className="text-xs text-text-secondary">última actividad</p>
                         </div>
                     </div>
+
+                    {/* Volumen por grupo muscular — Fase 5 (parte 2) */}
+                    <MuscleVolumeCard data={muscleVolume} />
 
                     {/* Routines */}
                     <div>

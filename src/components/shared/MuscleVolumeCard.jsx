@@ -40,7 +40,7 @@ export function MuscleVolumeCard({ data, title = 'Volumen por grupo (esta semana
                                 cursor={{ fill: '#374151', opacity: 0.4 }}
                                 formatter={(v) => [`${v} serie${v === 1 ? '' : 's'}`, '']}
                             />
-                            <Bar dataKey="sets" fill="var(--primary)" radius={[0, 6, 6, 0]} />
+                            <Bar dataKey="sets" fill="var(--color-primary)" radius={[0, 6, 6, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
