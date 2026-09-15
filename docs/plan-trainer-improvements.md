@@ -1,11 +1,16 @@
 # Plan: mejoras del lado entrenador
 
-**Fecha:** 2026-09-07
-**Estado:** planteamiento aprobado, nada implementado todavía. No está
-asignado a una versión concreta — la Fase 0 no debería esperar a ninguna (ver
-abajo), el resto puede intercalarse con la versión 2
-([Apple Health](plan-apple-health-integration.md)) o la 3
-([funciones de gimnasio](plan-gym-app-features.md)).
+**Fecha:** 2026-09-07 (estado actualizado 2026-09-15)
+**Estado: cerrado. Las 6 fases (0 a 5) están hechas**, cada una con su
+detalle abajo. Lo que quedó fuera a propósito está anotado en la fase
+correspondiente, no pendiente de decidir. Trabajo futuro del lado entrenador
+entra como plan nuevo, no reabriendo este documento.
+
+Dependencias con los otros planes: la **versión 2**
+([Apple Health](plan-apple-health-integration.md)) también está cerrada; de
+la **versión 3** ([funciones de gimnasio](plan-gym-app-features.md)) la Fase
+A está hecha y las Fases B (superseries) y C (mapa de recuperación muscular)
+siguen sin empezar — ninguna bloquea nada de aquí.
 
 ## Decisiones tomadas (2026-09-07)
 
@@ -93,7 +98,7 @@ npm run browse -- http://localhost:5173 --size 1440x900 --shot desktop.png
 
 ---
 
-## Fase 0 — Fundamentos que faltan (no debería esperar)
+## Fase 0 — Fundamentos que faltan · ✅ Hecho (2026-09-10)
 
 **1. Relación entrenador ↔ cliente. ✅ Hecho (2026-09-08).**
 
@@ -249,7 +254,16 @@ Encaja con v3 Fase A: donde ahí la sugerencia de peso viene de la heurística
 local, aquí viene del entrenador — cuando existan las dos, la del entrenador
 manda.
 
-## Fase 2 — IA como asistente del entrenador
+## Fase 2 — IA como asistente del entrenador · ✅ Hecho (2026-09-15)
+
+Los cuatro puntos están construidos, cada uno con su workflow de n8n propio
+y su spec en `docs/superpowers/specs/`: **2.1** borrador de rutina
+(`Gym_App_RoutineDraft`), **2.2** revisar una rutina ya hecha
+(`Gym_App_Trainer_Review`), **2.3** proponer la progresión del siguiente
+ciclo (`Gym_App_ProgressionSuggestion`, apoyada en el RPE real que trajo v3
+Fase A) y **2.4** explicar el porqué, que no es una pieza aparte sino el
+campo `motivo` que acompaña a cada sugerencia de las tres anteriores — se
+muestra al entrenador y nunca se persiste.
 
 La app **ya tiene IA montada**: `ChatView.jsx` habla con un workflow de n8n
 (`n8n.rabadanhouse.space`, permitido en el CSP de `vercel.json`; historial en
@@ -300,13 +314,33 @@ rutina actual al otro, comparables de un vistazo, aceptando o descartando
 ejercicio por ejercicio en vez de todo o nada. En móvil habría que resolverlo
 como pasos sucesivos; en iPad cabe entero.
 
-## Fase 3 — Programación en el tiempo
+## Fase 3 — Programación en el tiempo · ✅ Hecho (2026-09-15)
 
-- **Calendario semanal**: qué rutina toca cada día. Hoy las rutinas son
-  "Día 1-4" sin fecha ni orden temporal real.
-- **Progresión programada**: definir 4 semanas de una vez (sem. 1: 3×10 @70%,
-  sem. 2: 3×12 @70%…) en vez de reeditar la rutina cada semana.
-- **Mesociclo con fechas**: inicio, fin, y qué pasa al terminar.
+**1. Calendario semanal. ✅ Hecho.**
+
+Columna `routines.scheduled_days` (array de días, migración
+`20260915_add_scheduled_days_to_routines.sql`) y `src/lib/routineSchedule.js`
+(`isRoutineScheduledForDay`, `splitRoutinesByToday`, `WEEKDAY_LABELS`,
+testeado). El entrenador marca los días en la ficha del cliente con las
+píldoras L-M-X-J-V-S-D; el Dashboard del cliente separa "hoy" del resto en
+vez de listar las 4-5 rutinas sin orden temporal.
+
+**2. Progresión programada. ✅ Hecho.**
+
+`exercises.weekly_progression` (JSONB): una fila por semana con series,
+reps, peso objetivo y RIR. El editor inline de ejercicio en
+`ClientProfileView.jsx` permite añadir/quitar semanas a mano — y desde la
+Fase 2.3, rellenarlas con IA de un botón.
+
+**3. Mesociclo con fechas. ✅ Hecho.**
+
+`routines.mesocycle_start_date` + `src/lib/mesocycle.js`
+(`getCurrentMesocycleWeek`, `applyMesocycleWeek`, testeado). La ficha de
+cliente muestra un badge con la semana activa, y los ejercicios que ve el
+cliente se resuelven a la fila de `weekly_progression` que toca esa semana.
+Antes de la fecha de inicio la progresión se congela en la semana 1; no hay
+lógica de "qué pasa al terminar" más allá de quedarse en la última semana
+definida — no se construyó porque nadie ha necesitado todavía decidirlo.
 
 ## Fase 4 — Seguimiento y feedback · ✅ Hecho (2026-09-12)
 
@@ -369,24 +403,73 @@ nueva: pura lectura de datos que ya existían.
 (explícitamente fuera de alcance de la pieza 2), resumen/promedio de
 RPE/RIR en `ClientProfileView.jsx` (solo está en el detalle de sesión).
 
-## Fase 5 — Salud y visión agregada (depende de v2)
+## Fase 5 — Salud y visión agregada · ✅ Hecho (2026-09-15)
 
-- **Datos de salud del cliente con su consentimiento**: peso corporal, FC en
-  reposo, pasos, kcal reales. Ya quedó anotado en v2 Fase 5 como decisión de
-  privacidad aparte — aquí es donde se materializa, y necesita consentimiento
-  explícito por cliente, revocable.
-- **Dashboard de entrenador de verdad**: hoy son dos botones. Debería abrir
-  con una lista priorizada — quién necesita atención hoy, quién progresa,
-  quién está parado — en vez de obligar a entrar cliente por cliente.
-- **Volumen semanal por grupo muscular** del cliente: se apoya en el
-  etiquetado del catálogo que pide v3 Fase C; si ese trabajo se hace, esta
-  vista sale casi gratis.
+**1. Dashboard de entrenador de verdad. ✅ Hecho.**
+
+`src/lib/trainerPriority.js` (categorización pura, testeada) +
+`TrainerDashboardView.jsx`: en vez de dos botones, una lista priorizada de
+clientes por quién necesita atención. Se mantienen los accesos a Clientes y
+Librería.
+
+**2. Datos de salud del cliente con su consentimiento. ✅ Hecho, con el
+alcance recortado tras mirar el código.**
+
+El punto original listaba peso corporal, FC en reposo, pasos y kcal reales.
+Al revisarlo resultó que **peso y kcal reales ya eran visibles para el
+entrenador sin consentimiento ninguno**, y que FC en reposo y pasos no
+existen en ningún sitio que el entrenador pueda leer: se leen en vivo de
+HealthKit en el dispositivo del cliente (`src/lib/appleHealth.js`) y nunca
+se persisten. Así que la pieza construida gatea lo que ya existía, y la
+sincronización de FC/pasos queda fuera (exigiría código nativo nuevo que
+escriba a `health_metrics` — tabla que ya existe desde v2 Fase 0 pero que
+**ningún código de `src/` usa** — más una policy de lectura para el
+entrenador).
+
+Construido: `trainer_clients.health_consent` (`pending`/`granted`/`denied`,
+migración `20260915_add_health_consent_to_trainer_clients.sql`) con
+`pending` por defecto también para las relaciones ya existentes. La
+escritura va por una función `security definer` `set_health_consent`, no por
+una policy de UPDATE: RLS no restringe por columna, así que una policy
+abierta habría dejado al cliente reescribir su `trainer_id` y reasignarse de
+entrenador. `src/lib/healthConsent.js` (puro, testeado), banner en el
+Dashboard del cliente al vincularse, toggle revocable en `PrivacyView.jsx`,
+y ocultación en `ClientProfileView.jsx` ("Sin compartir") y
+`WorkoutDetailPanel.jsx`. Ver
+`docs/superpowers/specs/2026-09-15-salud-consentimiento-design.md`.
+
+**3. Volumen semanal por grupo muscular. ✅ Hecho — y no hacía falta v3 Fase C.**
+
+Este punto se daba por bloqueado por el etiquetado muscular de v3 Fase C.
+Comprobado contra la base de datos real: **ese etiquetado ya existe**.
+`exercise_catalog.category` está al **101 de 101** en 8 grupos (Bíceps 15,
+Abdomen 15, Pecho 14, Hombro 14, Pierna 14, Tríceps 11, Dorsal 11, Glúteo
+7), y las 64 filas de `exercises` tienen todas `catalog_id`, así que heredan
+categoría. El bloqueo era del documento, no del código.
+
+`src/lib/muscleVolume.js` (`computeWeeklyMuscleVolume`, puro y testeado)
+cuenta **series completadas** por grupo en la semana en curso (lunes, vía
+`getWeekStart`), y `MuscleVolumeCard.jsx` las pinta en Estadísticas del
+cliente y en la ficha de cliente del entrenador. Los ids de ejercicio que ya
+no se pueden resolver —17 de los 80 que aparecen en `workout_logs`, de
+rutinas borradas con el tiempo— van a un grupo "Sin clasificar" visible, no
+se descartan en silencio. Ver
+`docs/superpowers/specs/2026-09-15-volumen-grupo-muscular-design.md`.
+
+Lo que v3 Fase C sigue aportando, y que esto **no** construye: etiquetado
+múltiple (músculo primario/secundario) y ventana de recuperación 48-72h.
+Para un gráfico de volumen basta una etiqueta por ejercicio; para un mapa de
+recuperación no, porque un press de banca también carga tríceps y hombro.
 
 ---
 
-## Orden recomendado
+## Orden recomendado (histórico)
 
-Fase 0 → Fase 1 → Fase 2 → Fase 4 → Fase 3 → Fase 5.
+Fase 0 → Fase 1 → Fase 2 → Fase 4 → Fase 3 → Fase 5. **Se siguió tal cual**,
+y se quedó corto en un punto: la Fase 5 se daba por dependiente de la v3
+Fase C, y resultó que no lo estaba (ver Fase 5, punto 3). La lección para el
+próximo plan es comprobar las dependencias contra la base de datos antes de
+darlas por ciertas, no heredarlas del documento que las escribió.
 
 Razones del orden:
 
@@ -404,7 +487,12 @@ Razones del orden:
 - **La Fase 5 al final** porque depende de que la v2 (Apple Health) esté
   hecha.
 
-**Dependencias con los otros planes:** la calidad de la Fase 2 depende del
-etiquetado muscular del catálogo (v3 Fase C) y del RPE/RIR real del cliente
-(v3 Fase A). Se puede empezar sin ellos, pero la revisión de rutinas será
-bastante más superficial.
+**Dependencias con los otros planes (revisado 2026-09-15):** se asumía que la
+calidad de la Fase 2 dependía del etiquetado muscular del catálogo (v3 Fase
+C) y del RPE/RIR real del cliente (v3 Fase A). El RPE/RIR llegó con la Fase A
+y desbloqueó de verdad la Fase 2.3. El etiquetado muscular, en cambio, ya
+estaba en `exercise_catalog.category` desde antes (101/101), así que esa
+dependencia nunca fue real — ni para la Fase 2 ni para la Fase 5. Lo que
+sigue sin existir de la Fase C es el etiquetado primario/secundario, que sí
+mejoraría la revisión de rutinas con IA (hoy solo conoce el grupo principal
+de cada ejercicio).
