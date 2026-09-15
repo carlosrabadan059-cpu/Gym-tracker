@@ -10,6 +10,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { loadWorkoutLogs, loadExerciseHistory, enrichExercisesWithCatalog, loadRecentCaloriesComparison, getWeekStart } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
+import { computeWeeklyMuscleVolume } from '../lib/muscleVolume';
+import { MuscleVolumeCard } from '../components/shared/MuscleVolumeCard';
 import { routines as staticRoutines } from '../data/routines';
 import {
     isHealthAvailableOnThisPlatform, getWeeklyHealthSummary, getBodyWeightHistory, getRestingHrHistory,
@@ -243,6 +245,8 @@ export function StatisticsView() {
     const [heatmapData, setHeatmapData] = useState([]);
     const [weekdayData, setWeekdayData] = useState([]);
 
+    const [muscleVolume, setMuscleVolume] = useState([]);
+
     // ── v2 Fase 3 — Apple Health ──
     const [weeklyHealth, setWeeklyHealth] = useState(null);
     const [bodyWeightData, setBodyWeightData] = useState([]);
@@ -258,13 +262,19 @@ export function StatisticsView() {
             try {
                 const [logs, { data: rawExData }] = await Promise.all([
                     loadWorkoutLogs(user.id),
-                    supabase.from('exercises').select('id, name, routine_id, exercise_catalog(name)')
+                    supabase.from('exercises').select('id, name, routine_id, exercise_catalog(name, category)')
                 ]);
                 const exercises = enrichExercisesWithCatalog(rawExData || []);
                 setExercisesData(exercises);
-                
+
                 const idToName = {};
-                exercises.forEach(ex => { idToName[String(ex.id)] = ex.name; });
+                // Fase 5 (parte 2): misma resolución de ids, pero quedándose
+                // también con la categoría para el volumen por grupo muscular.
+                const idToCategory = {};
+                exercises.forEach(ex => {
+                    idToName[String(ex.id)] = ex.name;
+                    if (ex.category) idToCategory[String(ex.id)] = ex.category;
+                });
 
                 const exIds = new Set();
                 logs.forEach(session => {
@@ -280,17 +290,20 @@ export function StatisticsView() {
                     const catalogIds = [...new Set(missingIds.map(id => STATIC_ID_TO_NAME[id].catalog_id))];
                     const { data: catalogData } = await supabase
                         .from('exercise_catalog')
-                        .select('id, name')
+                        .select('id, name, category')
                         .in('id', catalogIds);
-                        
+
                     if (catalogData) {
                         missingIds.forEach(id => {
                             const catId = STATIC_ID_TO_NAME[id].catalog_id;
                             const catRow = catalogData.find(c => c.id === catId);
                             idToName[id] = catRow ? catRow.name : STATIC_ID_TO_NAME[id].name;
+                            if (catRow?.category) idToCategory[id] = catRow.category;
                         });
                     }
                 }
+
+                setMuscleVolume(computeWeeklyMuscleVolume(logs, idToCategory, new Date()));
 
                 const { stats, personalRecords } = computeStats(logs, idToName);
                 setStats(stats);
@@ -453,6 +466,9 @@ export function StatisticsView() {
                             <p className="text-[11px] text-text-secondary uppercase tracking-wider mt-0.5">kg totales</p>
                         </div>
                     </div>
+
+                    {/* Volumen por grupo muscular — Fase 5 (parte 2) */}
+                    <MuscleVolumeCard data={muscleVolume} />
 
                     {/* Salud (7 días) — Apple Health, Fase 3 */}
                     {weeklyHealth && (
