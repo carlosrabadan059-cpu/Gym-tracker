@@ -1,7 +1,7 @@
 import { supabase } from './_supabase-client.js';
 
 async function checkSingleLine() {
-    const { data: catalog, error } = await supabase
+    const { data: catalog } = await supabase
         .from('exercise_catalog')
         .select('*')
         .eq('id', 83);

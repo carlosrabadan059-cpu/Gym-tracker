@@ -840,7 +840,6 @@ export function StatisticsView() {
                     {/* Resumen actividad */}
                     {heatmapData.length > 0 && (() => {
                         const activeDays = heatmapData.filter(d => d.count > 0).length;
-                        const rate = Math.round((activeDays / 90) * 100);
                         const bestDay = weekdayData.reduce((a, b) => b.workouts > a.workouts ? b : a, weekdayData[0]);
                         return (
                             <div className="grid grid-cols-2 gap-3">

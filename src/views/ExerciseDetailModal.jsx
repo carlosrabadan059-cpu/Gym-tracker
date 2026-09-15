@@ -93,45 +93,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         onTimerStateChangeRef.current?.({ timerActive, targetTime, selectedDuration });
     }, [timerActive, targetTime, selectedDuration]);
 
-    useEffect(() => {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) {
-                audioCtxRef.current = new AudioContext();
-            }
-        } catch (e) {
-            console.error("AudioContext error:", e);
-        }
-
-        return () => {
-            cancelScheduledEndBeep();
-            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-                audioCtxRef.current.close().catch(() => {});
-            }
-            if (!timerStateRef.current.timerActive) {
-                scheduleSWNotification(null);
-            }
-        };
-    }, []);
-
-    const requestNotificationPermission = async () => {
-        if (!('Notification' in window)) return;
-        if (Notification.permission === 'default') {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    // Register Web Push subscription for background notifications
-                    if (user?.id) subscribeToPush(user.id);
-                }
-            } catch (e) {
-                console.error("Permission request failed", e);
-            }
-        }
-    };
-
-    // Se eliminó el auto-subscribe y los logs de depuración (ya no son necesarios en UI)
-
-    const scheduleSWNotification = (targetTime, isStart = false, sessionId = null) => {
+    const scheduleSWNotification = useCallback((targetTime, isStart = false, sessionId = null) => {
         if (!('serviceWorker' in navigator)) return;
         const msg = targetTime !== null
             ? {
@@ -151,16 +113,52 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                 if (reg.active) reg.active.postMessage(msg);
             }).catch(() => {});
         }
-    };
-
-
+    }, []);
 
     const cancelScheduledEndBeep = useCallback(() => {
         scheduledEndNodesRef.current.forEach(osc => {
-            try { osc.stop(); } catch (e) { /* already stopped */ }
+            try { osc.stop(); } catch { /* already stopped */ }
         });
         scheduledEndNodesRef.current = [];
     }, []);
+
+    useEffect(() => {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                audioCtxRef.current = new AudioContext();
+            }
+        } catch (e) {
+            console.error("AudioContext error:", e);
+        }
+
+        return () => {
+            cancelScheduledEndBeep();
+            if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+                audioCtxRef.current.close().catch(() => {});
+            }
+            if (!timerStateRef.current.timerActive) {
+                scheduleSWNotification(null);
+            }
+        };
+    }, [cancelScheduledEndBeep, scheduleSWNotification]);
+
+    const requestNotificationPermission = async () => {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === 'granted') {
+                    // Register Web Push subscription for background notifications
+                    if (user?.id) subscribeToPush(user.id);
+                }
+            } catch (e) {
+                console.error("Permission request failed", e);
+            }
+        }
+    };
+
+    // Se eliminó el auto-subscribe y los logs de depuración (ya no son necesarios en UI)
 
     const scheduleEndBeep = useCallback((delaySec) => {
         cancelScheduledEndBeep();
@@ -270,6 +268,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
 
         if (isCompleting) {
             const dur = selectedDuration;
+            // toggleSet solo se invoca desde el onClick de una serie, nunca
+            // durante el render — el análisis estático de la regla no puede
+            // probarlo y marca Date.now() como impuro por si acaso.
+            // eslint-disable-next-line react-hooks/purity
             const target = Date.now() + dur * 1000;
             const sessionId = ++timerSessionIdRef.current;
             setTargetTime(target);
@@ -442,6 +444,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         unlockAudio();
         if (!timerActive) {
             const dur = selectedDuration;
+            // toggleTimer solo se invoca desde un onClick, nunca durante el render.
+            // eslint-disable-next-line react-hooks/purity
             const t = Date.now() + dur * 1000;
             const sessionId = ++timerSessionIdRef.current;
             setTargetTime(t);
@@ -471,6 +475,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         if (!timerActive) {
             setTimeLeft(duration);
         } else {
+            // handleDurationSelect solo se invoca desde un onClick, nunca durante el render.
+            // eslint-disable-next-line react-hooks/purity
             const newTarget = Date.now() + duration * 1000;
             setTargetTime(newTarget);
             setTimeLeft(duration);

@@ -69,6 +69,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             if (!cancelled) setEditingExerciseHistory(history);
         });
         return () => { cancelled = true; };
+        // Deps deliberadas en id/name, no en `editingExercise` completo: ese
+        // objeto se reemplaza en cada tecleo del formulario (series, peso,
+        // progresión semanal...) y recargar el historial en cada uno
+        // provocaría refetches constantes y parpadeo de la sección.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editingExercise?.id, editingExercise?.name, client.user_id]);
 
     const [editingRoutineNameId, setEditingRoutineNameId] = useState(null);

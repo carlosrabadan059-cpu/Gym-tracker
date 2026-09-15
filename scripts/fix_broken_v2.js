@@ -15,7 +15,7 @@ async function fix() {
     ];
 
     for (const f of fixes) {
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('exercise_catalog')
             .update({ image_url: f.image_url })
             .eq('id', f.id)

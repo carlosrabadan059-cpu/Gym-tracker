@@ -26,4 +26,13 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  {
+    // Scripts de Node de un solo uso (migraciones/setup manual del catálogo),
+    // fuera del build de Vite — necesitan globals de Node (`process`, etc.),
+    // no de navegador.
+    files: ['scripts/**/*.js', 'setup_client.js', 'setup_trainer.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

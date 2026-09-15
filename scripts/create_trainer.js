@@ -6,7 +6,7 @@ async function main() {
 
     // Attempt to sign up
     console.log(`Intentando registrar: ${email}...`);
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {

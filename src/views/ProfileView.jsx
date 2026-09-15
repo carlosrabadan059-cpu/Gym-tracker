@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { User, Settings, Bell, Shield, CircleHelp, LogOut, ChevronRight, Scale, Ruler, Calendar, Sparkles, Heart } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { EditProfileView } from './profile/EditProfileView';

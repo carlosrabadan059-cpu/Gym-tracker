@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 try {
     readFileSync(resolve(__dirname, '../.env.local'), 'utf8').split('\n').forEach(l => { const eq = l.indexOf('='); if (eq > 0) process.env[l.slice(0,eq).trim()] = l.slice(eq+1).trim(); });
-} catch {}
+} catch { /* .env.local no encontrado, se asume que las vars ya están en el entorno */ }
 const url = `${process.env.VITE_SUPABASE_URL}/rest/v1/exercise_catalog?id=eq.86`;
 const key = process.env.VITE_SUPABASE_ANON_KEY;
 

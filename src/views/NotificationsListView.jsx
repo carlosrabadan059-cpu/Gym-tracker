@@ -5,7 +5,7 @@ import { Bell, Trophy, Info, X, Check, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function NotificationsListView({ onClose }) {
-    const { notifications, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
+    const { notifications, markAsRead, markAllAsRead } = useNotifications();
 
     const getIcon = (type) => {
         switch (type) {

@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
 const NotificationsContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook y provider viven juntos por diseño (patrón estándar de Context)
 export function useNotifications() {
     return useContext(NotificationsContext);
 }
@@ -11,9 +12,9 @@ export function useNotifications() {
 export function NotificationsProvider({ children }) {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState([]);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const unreadCount = notifications.filter(n => !n.read).length;
 
-    const fetchNotifications = async () => {
+    const fetchNotifications = useCallback(async () => {
         if (!user) {
             setNotifications([]);
             return;
@@ -27,9 +28,13 @@ export function NotificationsProvider({ children }) {
         if (!error && data) {
             setNotifications(data);
         }
-    };
+    }, [user]);
 
     useEffect(() => {
+        // Sincroniza con la sesión de auth (carga inicial + reset a [] en
+        // logout) y con Supabase Realtime — patrón sancionado por React de
+        // "suscribirse a un store externo", no estado derivado.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchNotifications();
 
         if (!user) return;
@@ -52,14 +57,7 @@ export function NotificationsProvider({ children }) {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user]);
-
-    // Update badge count whenever notifications change
-    useEffect(() => {
-        if (!notifications) return;
-        const count = notifications.filter(n => !n.read).length;
-        setUnreadCount(count);
-    }, [notifications]);
+    }, [user, fetchNotifications]);
 
     const markAsRead = async (id) => {
         await supabase.from('notifications').update({ read: true }).eq('id', id);

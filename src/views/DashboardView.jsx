@@ -129,7 +129,7 @@ function RoutineCard({ routine, isExpanded, isCompleted, lastSummary, onToggle, 
     );
 }
 
-const DashboardView = ({ onStartDaily, onSeeAll, completedRoutines = [] }) => {
+const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
     const { profile, user } = useAuth();
     const [expandedRoutine, setExpandedRoutine] = useState(null);
     const [routines, setRoutines] = useState([]);

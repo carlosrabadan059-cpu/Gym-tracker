@@ -43,7 +43,7 @@ self.addEventListener('push', (event) => {
     console.error('[Push] Error parsing data:', err);
     try {
         data = { body: event.data.text() };
-    } catch(e) {}
+    } catch { /* payload no es texto ni JSON válido, se usan los defaults */ }
   }
 
   event.waitUntil(
@@ -89,7 +89,7 @@ async function fireCompletionNotification(title, body, sessionId) {
     for (const client of clients) {
       client.postMessage({ type: 'TIMER_FIRED', sessionId: sessionId ?? null });
     }
-  } catch (e) {}
+  } catch { /* sin clientes abiertos, no bloqueante */ }
 
   // Este es el camino local, que no tiene la obligación de `userVisibleOnly`.
   // Se le da un margen al push para que gane, y si ya avisó, aquí no se repite.
@@ -100,7 +100,7 @@ async function fireCompletionNotification(title, body, sessionId) {
     await showRestNotification(title || '¡Recuperación completada! 💪', {
       body: body || '¡Es hora de tu siguiente serie!',
     });
-  } catch (e) {}
+  } catch { /* no bloqueante */ }
 }
 
 function cancelActiveTimer() {
@@ -120,35 +120,37 @@ self.addEventListener('message', (event) => {
     const now = Date.now();
     const delay = Math.max(0, targetTime - now);
 
-    event.waitUntil(new Promise(async (resolve) => {
-      let fired = false;
+    event.waitUntil(new Promise((resolve) => {
+      (async () => {
+        let fired = false;
 
-      const fire = async () => {
-        if (fired) return;
-        fired = true;
-        if (activeTimer) {
-          clearTimeout(activeTimer.timeoutId);
-          clearInterval(activeTimer.intervalId);
+        const fire = async () => {
+          if (fired) return;
+          fired = true;
+          if (activeTimer) {
+            clearTimeout(activeTimer.timeoutId);
+            clearInterval(activeTimer.intervalId);
+          }
+          activeTimer = null;
+          await fireCompletionNotification(title, body, sessionId);
+          resolve();
+        };
+
+        // Handle immediate start notification if delay is < 1s
+        if (isStart && delay < 1000) {
+          await fireCompletionNotification(title, body, sessionId);
         }
-        activeTimer = null;
-        await fireCompletionNotification(title, body, sessionId);
-        resolve();
-      };
 
-      // Handle immediate start notification if delay is < 1s
-      if (isStart && delay < 1000) {
-        await fireCompletionNotification(title, body, sessionId);
-      }
+        // Primary timer
+        const timeoutId = setTimeout(fire, delay);
 
-      // Primary timer
-      const timeoutId = setTimeout(fire, delay);
+        // Backup polling
+        const intervalId = setInterval(() => {
+          if (Date.now() >= targetTime) fire();
+        }, 5000);
 
-      // Backup polling
-      const intervalId = setInterval(() => {
-        if (Date.now() >= targetTime) fire();
-      }, 5000);
-
-      activeTimer = { timeoutId, intervalId, targetTime, resolve };
+        activeTimer = { timeoutId, intervalId, targetTime, resolve };
+      })();
     }));
   }
 

@@ -51,6 +51,7 @@ export const ThemeProvider = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook y provider viven juntos por diseño (patrón estándar de Context)
 export const useTheme = () => {
     const context = useContext(ThemeContext);
     if (!context) {

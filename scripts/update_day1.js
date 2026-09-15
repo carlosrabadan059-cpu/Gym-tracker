@@ -9,7 +9,7 @@ async function main() {
     for (const ex of toAdd) {
         // Fix ui_orders of others later if needed, but fractional or just trailing is fine.
         // Let's just update the table.
-        const { error, data } = await supabase.from('exercises').upsert(ex);
+        const { error } = await supabase.from('exercises').upsert(ex);
         if (error) {
             console.error(`Error adding ${ex.name}:`, error);
         } else {

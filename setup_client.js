@@ -6,7 +6,7 @@ async function setupClient() {
     const password = process.env.TEST_ACCOUNT_PASSWORD;
     
     console.log("Signing up client...");
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    await supabase.auth.signUp({
         email,
         password,
         options: {

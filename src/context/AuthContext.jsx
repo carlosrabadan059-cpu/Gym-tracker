@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook y provider viven juntos por diseño (patrón estándar de Context); separarlo en dos ficheros solo por Fast Refresh no aporta nada aquí
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {

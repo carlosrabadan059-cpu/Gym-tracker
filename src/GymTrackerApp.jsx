@@ -233,7 +233,7 @@ const AuthenticatedApp = () => {
         } else if (!user) {
             prevUserIdRef.current = null;
         }
-    }, [user?.id]);
+    }, [user]);
 
     // Auto-avanzar desde 'setup' una vez que el perfil está cargado
     useEffect(() => {
@@ -369,7 +369,6 @@ const AuthenticatedApp = () => {
                 {view === 'dashboard' && (
                     <DashboardView
                         onStartDaily={(routine) => handleStartWorkout(routine || { id: 'day1' })}
-                        onSeeAll={() => console.log('Ver todos los entrenamientos')}
                         completedRoutines={completedRoutines}
                     />
                 )}

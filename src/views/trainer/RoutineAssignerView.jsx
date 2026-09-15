@@ -343,7 +343,7 @@ function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
 
 // ─── Assign Existing Routine Tab ────────────────────────────────────────────
 
-function AssignExistingTab({ client, user, onSuccess, onBack }) {
+function AssignExistingTab({ client, user, onSuccess }) {
     const [routines, setRoutines] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -850,7 +850,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
             </div>
 
             {mode === 'existing' ? (
-                <AssignExistingTab client={client} user={user} onSuccess={onSuccess} onBack={onBack} />
+                <AssignExistingTab client={client} user={user} onSuccess={onSuccess} />
             ) : mode === 'ai' ? (
                 <GenerateWithAiTab
                     client={client}

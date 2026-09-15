@@ -103,7 +103,7 @@ export function ChatView() {
                     setMessages(parsed);
                 }
             }
-        } catch (e) {
+        } catch {
             // Si los datos están corruptos, se queda con el mensaje de bienvenida
         }
     }, [storageKey]);
@@ -114,7 +114,7 @@ export function ChatView() {
         try {
             const toStore = messages.slice(-MAX_STORED_MESSAGES);
             localStorage.setItem(storageKey, JSON.stringify(toStore));
-        } catch (e) {
+        } catch {
             // localStorage lleno u otro error — no bloqueante
         }
     }, [messages, storageKey]);

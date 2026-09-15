@@ -15,10 +15,10 @@ export function WorkoutDetailPanel({ entry, onClose }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const ids = Object.keys(entry.logs || {}).filter(k => k !== 'workoutDuration' && k !== 'cardio');
-        if (ids.length === 0) { setLoading(false); return; }
-
         const fetchNames = async () => {
+            const ids = Object.keys(entry.logs || {}).filter(k => k !== 'workoutDuration' && k !== 'cardio');
+            if (ids.length === 0) { setLoading(false); return; }
+
             let nextNameMap = { ...STATIC_ID_TO_NAME };
 
             const { data } = await supabase
