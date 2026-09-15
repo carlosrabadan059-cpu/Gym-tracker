@@ -635,8 +635,12 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                                             className="flex-1 border-surface-highlight hover:border-primary transition-colors bg-background"
                                             onClick={() => setPendingRoutine({ ...pendingRoutine, cardio: { type: pendingRoutine.cardio.type, duration: mins } })}
                                             style={{
-                                                borderColor: pendingRoutine.cardio?.duration === mins ? 'var(--primary)' : '',
-                                                backgroundColor: pendingRoutine.cardio?.duration === mins ? 'rgba(var(--primary-rgb), 0.1)' : ''
+                                                borderColor: pendingRoutine.cardio?.duration === mins ? 'var(--color-primary)' : '',
+                                                // --primary-rgb no existe (nunca existió): el rgba() entero era
+                                                // inválido y el navegador lo ignoraba, así que el botón elegido
+                                                // se quedaba sin fondo. color-mix da el mismo 10% sin tener que
+                                                // mantener una variable con el color duplicado en formato rgb.
+                                                backgroundColor: pendingRoutine.cardio?.duration === mins ? 'color-mix(in srgb, var(--color-primary) 10%, transparent)' : ''
                                             }}
                                         >
                                             <span className={cn("font-bold text-lg", pendingRoutine.cardio?.duration === mins ? "text-primary" : "text-text-primary")}>

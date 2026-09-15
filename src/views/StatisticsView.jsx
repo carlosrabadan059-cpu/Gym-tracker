@@ -682,7 +682,7 @@ export function StatisticsView() {
                                         <Tooltip content={<HealthTooltip unit=" kcal" />} />
                                         <Bar dataKey="calories" name="Kcal" radius={[4, 4, 0, 0]}>
                                             {caloriesComparison.map((entry, i) => (
-                                                <Cell key={i} fill={entry.source === 'health' ? 'var(--primary)' : '#4b5563'} />
+                                                <Cell key={i} fill={entry.source === 'health' ? 'var(--color-primary)' : '#4b5563'} />
                                             ))}
                                         </Bar>
                                     </BarChart>
@@ -733,8 +733,8 @@ export function StatisticsView() {
                                         <LineChart data={progressionData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                                             <defs>
                                                 <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
-                                                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.3} />
-                                                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={1} />
+                                                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                                                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={1} />
                                                 </linearGradient>
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.5} />
@@ -754,10 +754,10 @@ export function StatisticsView() {
                                             <Line
                                                 type="monotone"
                                                 dataKey="peso"
-                                                stroke="var(--primary)"
+                                                stroke="var(--color-primary)"
                                                 strokeWidth={2.5}
-                                                dot={{ r: 4, fill: 'var(--primary)', strokeWidth: 0 }}
-                                                activeDot={{ r: 6, fill: 'var(--primary)' }}
+                                                dot={{ r: 4, fill: 'var(--color-primary)', strokeWidth: 0 }}
+                                                activeDot={{ r: 6, fill: 'var(--color-primary)' }}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
@@ -846,7 +846,7 @@ export function StatisticsView() {
                                             cursor={{ fill: '#374151', opacity: 0.4 }}
                                             formatter={(v) => [`${v} entrenamiento${v !== 1 ? 's' : ''}`, '']}
                                         />
-                                        <Bar dataKey="workouts" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                                        <Bar dataKey="workouts" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
