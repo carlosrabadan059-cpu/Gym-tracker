@@ -20,9 +20,9 @@ describe('getHealthConsentBannerCopy', () => {
         expect(getHealthConsentBannerCopy('denied', 'Ana')).toBeNull();
     });
 
-    it('devuelve null sin trainerName aunque esté pending (no hay a quién nombrar)', () => {
-        expect(getHealthConsentBannerCopy('pending', null)).toBeNull();
-        expect(getHealthConsentBannerCopy('pending', '')).toBeNull();
+    it('sin nombre de entrenador sigue mostrando el aviso, con un genérico', () => {
+        expect(getHealthConsentBannerCopy('pending', null).body).toContain('Tu entrenador');
+        expect(getHealthConsentBannerCopy('pending', '').body).toContain('Tu entrenador');
     });
 
     it('devuelve title y body con el nombre del entrenador cuando está pending', () => {

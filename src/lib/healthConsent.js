@@ -13,19 +13,20 @@ export function canShowHealthData(healthConsent) {
 }
 
 /**
- * Copy del banner que ve el CLIENTE mientras no ha respondido. `null` si ya
- * respondió (nada que mostrar) o si todavía no se sabe el nombre del
- * entrenador (fila sin cargar).
+ * Copy del banner que ve el CLIENTE mientras no ha respondido. `null` solo si
+ * ya respondió: sin nombre de entrenador se usa un genérico en vez de callar
+ * el aviso — que una petición de permiso desaparezca en silencio porque falta
+ * un dato de adorno es peor que decir "Tu entrenador".
  *
  * @param {'pending'|'granted'|'denied'|null|undefined} healthConsent
  * @param {string|null|undefined} trainerName
  * @returns {{title: string, body: string} | null}
  */
 export function getHealthConsentBannerCopy(healthConsent, trainerName) {
-    if (healthConsent !== 'pending' || !trainerName) return null;
+    if (healthConsent !== 'pending') return null;
     return {
         title: 'Compartir datos de salud',
-        body: `${trainerName} quiere ver tu peso corporal y las calorías reales de tus sesiones. Puedes cambiarlo cuando quieras desde Privacidad y Seguridad.`,
+        body: `${trainerName || 'Tu entrenador'} quiere ver tu peso corporal y las calorías reales de tus sesiones. Puedes cambiarlo cuando quieras desde Privacidad y Seguridad.`,
     };
 }
 

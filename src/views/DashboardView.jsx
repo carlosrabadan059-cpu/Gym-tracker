@@ -172,13 +172,13 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
 
             const { data: trainerProfile } = await supabase
                 .from('profiles')
-                .select('fullName, username')
+                .select('username')
                 .eq('user_id', link.trainer_id)
                 .maybeSingle();
             if (cancelled) return;
 
             setHealthConsentStatus(link.health_consent);
-            setHealthConsentTrainerName(trainerProfile?.fullName || trainerProfile?.username || null);
+            setHealthConsentTrainerName(trainerProfile?.username || null);
         })();
         return () => { cancelled = true; };
     }, [user?.id]);

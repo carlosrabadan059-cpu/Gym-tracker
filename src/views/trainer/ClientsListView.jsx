@@ -146,7 +146,7 @@ export function ClientsListView({ onBack, onSelectClient, embedded = false, sele
             {showAddModal && (
                 <AddClientModal
                     trainerId={user.id}
-                    trainerName={profile?.fullName || profile?.username || 'Tu entrenador'}
+                    trainerName={profile?.username || 'Tu entrenador'}
                     onClose={() => setShowAddModal(false)}
                     onAdded={() => { setShowAddModal(false); fetchClients(); }}
                 />
