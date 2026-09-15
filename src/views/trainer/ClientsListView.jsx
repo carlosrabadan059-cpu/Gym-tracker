@@ -3,9 +3,10 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, User, ChevronRight, UserPlus, Search, X } from 'lucide-react';
 import { computeDaysSinceLastSession, INACTIVITY_ALERT_DAYS } from '../../lib/adherence';
+import { buildHealthConsentRequestPayload } from '../../lib/healthConsent';
 
 export function ClientsListView({ onBack, onSelectClient, embedded = false, selectedId = null }) {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -145,6 +146,7 @@ export function ClientsListView({ onBack, onSelectClient, embedded = false, sele
             {showAddModal && (
                 <AddClientModal
                     trainerId={user.id}
+                    trainerName={profile?.fullName || profile?.username || 'Tu entrenador'}
                     onClose={() => setShowAddModal(false)}
                     onAdded={() => { setShowAddModal(false); fetchClients(); }}
                 />
@@ -153,7 +155,7 @@ export function ClientsListView({ onBack, onSelectClient, embedded = false, sele
     );
 }
 
-function AddClientModal({ trainerId, onClose, onAdded }) {
+function AddClientModal({ trainerId, trainerName, onClose, onAdded }) {
     const [search, setSearch] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -187,6 +189,15 @@ function AddClientModal({ trainerId, onClose, onAdded }) {
                 .from('trainer_clients')
                 .insert({ trainer_id: trainerId, client_id: clientId });
             if (error) throw error;
+
+            // Best-effort: si la notificación falla, el cliente ya quedó
+            // vinculado igualmente — podrá dar o negar el permiso desde
+            // Privacidad y Seguridad aunque no le llegue el aviso.
+            const { error: notifError } = await supabase
+                .from('notifications')
+                .insert(buildHealthConsentRequestPayload({ recipientId: clientId, trainerName }));
+            if (notifError) console.error('Error creando notificación de consentimiento de salud:', notifError);
+
             onAdded();
         } catch (err) {
             console.error('Error adding client:', err);
