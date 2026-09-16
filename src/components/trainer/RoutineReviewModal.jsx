@@ -25,10 +25,11 @@ function formatExercisesSummary(items) {
 // exercises: [{ name, category, series, reps }] en el orden real de la rutina
 // routineName: string
 // clientGoal: string | undefined
-export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose }) {
+// clientAge: number | undefined
+export function RoutineReviewModal({ exercises, routineName, clientGoal, clientAge, onClose }) {
     const [status, setStatus] = useState('loading'); // 'loading' | 'done' | 'error'
     const [answer, setAnswer] = useState('');
-    const paramsRef = useRef({ exercises, routineName, clientGoal });
+    const paramsRef = useRef({ exercises, routineName, clientGoal, clientAge });
 
     useEffect(() => {
         // Deps vacías a propósito: solo queremos disparar la revisión una vez
@@ -42,7 +43,7 @@ export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose
         // cancela correctamente la petición en curso; dejar que el efecto se
         // vuelva a ejecutar tras ese cleanup es justo el comportamiento
         // correcto.
-        const { exercises: initialExercises, routineName: initialRoutineName, clientGoal: initialClientGoal } = paramsRef.current;
+        const { exercises: initialExercises, routineName: initialRoutineName, clientGoal: initialClientGoal, clientAge: initialClientAge } = paramsRef.current;
 
         let cancelled = false;
         let controller;
@@ -70,6 +71,7 @@ export function RoutineReviewModal({ exercises, routineName, clientGoal, onClose
                     body: JSON.stringify({
                         routineName: initialRoutineName || 'Rutina sin nombre',
                         clientGoal: initialClientGoal || 'No especificado',
+                        clientAge: initialClientAge ?? null,
                         exercisesSummary,
                     }),
                     signal: controller.signal,
