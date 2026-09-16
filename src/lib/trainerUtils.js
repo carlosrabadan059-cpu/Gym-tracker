@@ -267,11 +267,12 @@ export function summarizeExerciseHistoryForAI(history) {
  * Arma el cuerpo del POST al webhook `Gym_App_ProgressionSuggestion`
  * (Fase 2.3), con defaults en español para los campos que falten.
  */
-export function buildProgressionSuggestionPayload({ exerciseName, category, clientGoal, level, currentSeries, currentReps, currentTargetWeight, currentTargetRir, historySummary }) {
+export function buildProgressionSuggestionPayload({ exerciseName, category, clientGoal, clientAge, level, currentSeries, currentReps, currentTargetWeight, currentTargetRir, historySummary }) {
     return {
         exerciseName,
         category: category || 'No especificado',
         clientGoal: clientGoal || 'No especificado',
+        clientAge: clientAge ?? null,
         level: level || 'intermedio',
         currentSeries: currentSeries ?? null,
         currentReps: currentReps ?? null,

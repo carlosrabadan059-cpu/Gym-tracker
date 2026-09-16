@@ -223,6 +223,7 @@ describe('buildProgressionSuggestionPayload', () => {
             exerciseName: 'Press de banca',
             category: 'Pecho',
             clientGoal: 'Hipertrofia',
+            clientAge: null,
             level: 'avanzado',
             currentSeries: 4,
             currentReps: 10,
@@ -245,5 +246,26 @@ describe('buildProgressionSuggestionPayload', () => {
         expect(result.clientGoal).toBe('No especificado');
         expect(result.level).toBe('intermedio');
         expect(result.currentTargetWeight).toBeNull();
+    });
+
+    it('incluye clientAge cuando se pasa', () => {
+        const result = buildProgressionSuggestionPayload({
+            exerciseName: 'Sentadilla',
+            clientAge: 42,
+            currentSeries: 3,
+            currentReps: 8,
+            historySummary: 'algo',
+        });
+        expect(result.clientAge).toBe(42);
+    });
+
+    it('clientAge es null cuando no se pasa', () => {
+        const result = buildProgressionSuggestionPayload({
+            exerciseName: 'Sentadilla',
+            currentSeries: 3,
+            currentReps: 8,
+            historySummary: 'algo',
+        });
+        expect(result.clientAge).toBeNull();
     });
 });
