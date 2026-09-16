@@ -25,6 +25,13 @@ export function AppleHealthView({ onBack }) {
         setBusy(true);
         setError(null);
         try {
+            // Pedir autorización también aquí, no solo al conectar: HealthKit
+            // no muestra nada para los tipos ya respondidos, pero SÍ pregunta
+            // por los nuevos. Sin esto, añadir un tipo a READ_TYPES no tiene
+            // ningún efecto para quien ya estaba conectado — la app no vuelve
+            // a preguntar nunca y el dato llega vacío sin explicación (le pasó
+            // a 'heartRate' en la Fase 5).
+            await requestHealthAuthorization();
             const metrics = await getTodayMetrics();
             setPreview(metrics);
             const now = new Date().toISOString();
