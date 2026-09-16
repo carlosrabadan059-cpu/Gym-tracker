@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { ArrowLeft, Search, Dumbbell, ChevronDown, ChevronRight, Plus, X, Trash2, Check, ImageIcon, Pencil } from 'lucide-react';
 
+import { MUSCLE_VOCABULARY, normalizeSecondaryMuscles } from '../../lib/muscleTaxonomy';
+
 const MUSCLE_GROUPS = [
     'Pecho', 'Dorsal', 'Hombro', 'Bíceps', 'Tríceps',
     'Pierna', 'Glúteo', 'Abdomen', 'Cardio', 'Otros',
@@ -331,12 +333,51 @@ function ImagePickerPanel({ selected, onSelect, onClose }) {
     );
 }
 
+// Selector de músculos secundarios (v3 Fase C1). Excluye el grupo principal
+// ya elegido: marcarlo como secundario haría que el mapa de recuperación
+// contase su fatiga dos veces.
+function SecondaryMusclesPicker({ category, value, onChange, label = 'Músculos secundarios' }) {
+    const options = MUSCLE_VOCABULARY.filter(m => m !== category);
+
+    const toggle = (muscle) => {
+        const next = value.includes(muscle)
+            ? value.filter(m => m !== muscle)
+            : [...value, muscle];
+        onChange(normalizeSecondaryMuscles(next, category));
+    };
+
+    return (
+        <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide">{label}</label>
+            <div className="flex flex-wrap gap-2">
+                {options.map(m => (
+                    <button
+                        key={m}
+                        onClick={() => toggle(m)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                            value.includes(m)
+                                ? 'bg-primary text-black border-primary'
+                                : 'bg-background border-surface-highlight text-text-secondary hover:border-gray-500'
+                        }`}
+                    >
+                        {m}
+                    </button>
+                ))}
+            </div>
+            <p className="text-[10px] text-text-secondary">
+                Solo los que mueven la carga, no los que estabilizan.
+            </p>
+        </div>
+    );
+}
+
 // ─── Modal añadir ejercicio ──────────────────────────────────────────────────
 
 function AddExerciseModal({ onClose, onAdded }) {
     const [name, setName] = useState('');
     const [group, setGroup] = useState('');
     const [customGroup, setCustomGroup] = useState('');
+    const [secondaryMuscles, setSecondaryMuscles] = useState([]);
     const [imageUrl, setImageUrl] = useState('');
     const [showImagePicker, setShowImagePicker] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -357,6 +398,7 @@ function AddExerciseModal({ onClose, onAdded }) {
                     name: name.trim(),
                     category: finalGroup,
                     image_url: imageUrl || null,
+                    secondary_muscles: normalizeSecondaryMuscles(secondaryMuscles, finalGroup),
                 }])
                 .select()
                 .single();
@@ -444,6 +486,15 @@ function AddExerciseModal({ onClose, onAdded }) {
                                 + Personalizado
                             </button>
                         </div>
+                        {!isCustomGroup && MUSCLE_VOCABULARY.includes(group) && (
+                            <div className="pt-3">
+                                <SecondaryMusclesPicker
+                                    category={group}
+                                    value={secondaryMuscles}
+                                    onChange={setSecondaryMuscles}
+                                />
+                            </div>
+                        )}
                         {isCustomGroup && (
                             <input
                                 type="text"
@@ -525,6 +576,8 @@ export function TrainerLibraryView({ onBack }) {
     const [editingExId, setEditingExId] = useState(null);
     const [editingName, setEditingName] = useState('');
     const [editingImageUrl, setEditingImageUrl] = useState('');
+    const [editingSecondary, setEditingSecondary] = useState([]);
+    const [editingCategory, setEditingCategory] = useState('');
     const [showEditImagePicker, setShowEditImagePicker] = useState(false);
     const [savingEdit, setSavingEdit] = useState(false);
 
@@ -593,6 +646,8 @@ export function TrainerLibraryView({ onBack }) {
         setEditingExId(ex.id);
         setEditingName(ex.name);
         setEditingImageUrl(ex.image_url || '');
+        setEditingSecondary(ex.secondary_muscles || []);
+        setEditingCategory(ex.category || ex.group || '');
         setConfirmDeleteId(null);
     };
 
@@ -602,9 +657,14 @@ export function TrainerLibraryView({ onBack }) {
         if (!editingName.trim()) return;
         setSavingEdit(true);
         try {
+            const secondary = normalizeSecondaryMuscles(editingSecondary, editingCategory);
             const { error: catalogError } = await supabase
                 .from('exercise_catalog')
-                .update({ name: editingName.trim(), image_url: editingImageUrl || null })
+                .update({
+                    name: editingName.trim(),
+                    image_url: editingImageUrl || null,
+                    secondary_muscles: secondary,
+                })
                 .eq('id', editingExId);
             if (catalogError) throw catalogError;
 
@@ -616,7 +676,7 @@ export function TrainerLibraryView({ onBack }) {
 
             setCatalog(prev => prev.map(ex =>
                 ex.id === editingExId
-                    ? { ...ex, name: editingName.trim(), image_url: editingImageUrl || null }
+                    ? { ...ex, name: editingName.trim(), image_url: editingImageUrl || null, secondary_muscles: secondary }
                     : ex
             ));
             setEditingExId(null);
@@ -757,7 +817,8 @@ export function TrainerLibraryView({ onBack }) {
                                                 {exercises.map(ex => (
                                                     editingExId === ex.id ? (
                                                         // ── Inline edit row ──
-                                                        <div key={ex.id} className="flex items-center gap-2 px-4 py-2.5 bg-surface-highlight/10">
+                                                        <div key={ex.id} className="px-4 py-2.5 bg-surface-highlight/10 space-y-3">
+                                                        <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={() => setShowEditImagePicker(true)}
                                                                 className="w-9 h-9 rounded-lg bg-background overflow-hidden flex-shrink-0 flex items-center justify-center border-2 border-primary/50 hover:border-primary transition-colors"
@@ -790,6 +851,14 @@ export function TrainerLibraryView({ onBack }) {
                                                             >
                                                                 <X size={13} className="text-text-secondary" />
                                                             </button>
+                                                        </div>
+                                                        {MUSCLE_VOCABULARY.includes(editingCategory) && (
+                                                            <SecondaryMusclesPicker
+                                                                category={editingCategory}
+                                                                value={editingSecondary}
+                                                                onChange={setEditingSecondary}
+                                                            />
+                                                        )}
                                                         </div>
                                                     ) : (
                                                         // ── Normal row ──
