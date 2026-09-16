@@ -46,6 +46,11 @@ self.addEventListener('push', (event) => {
     } catch { /* payload no es texto ni JSON válido, se usan los defaults */ }
   }
 
+  // El push es el canal fiable con el móvil bloqueado; si el timer local
+  // todavía no disparó, se cancela aquí para que no duplique el aviso al
+  // llegar tarde (push siempre gana la carrera si arranca a tiempo).
+  cancelActiveTimer();
+
   event.waitUntil(
     (async () => {
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
@@ -93,8 +98,10 @@ async function fireCompletionNotification(title, body, sessionId) {
 
   // Este es el camino local, que no tiene la obligación de `userVisibleOnly`.
   // Se le da un margen al push para que gane, y si ya avisó, aquí no se repite.
-  await new Promise(r => setTimeout(r, 800));
-  if (Date.now() - lastNotificationTime < 2000) return;
+  // 2.5s cubre la latencia típica de entrega de un Web Push real (con el
+  // móvil bloqueado tarda más que en pruebas en foreground).
+  await new Promise(r => setTimeout(r, 2500));
+  if (Date.now() - lastNotificationTime < 2500) return;
 
   try {
     await showRestNotification(title || '¡Recuperación completada! 💪', {
