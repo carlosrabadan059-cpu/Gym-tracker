@@ -1,11 +1,12 @@
 # Versión 3: funciones de las apps de gimnasio mejor valoradas
 
 **Fecha:** 2026-09-07 (estado actualizado 2026-09-16)
-**Estado:** versión 3 de Rutinex. **Fase A hecha** (1RM estimado, RPE por
-serie, sugerencia de peso — la calculadora de discos que también formaba
-parte se implementó y se revirtió, ver Fase A abajo). **Fase C hecha**
-(etiquetado muscular + mapa de recuperación, ver detalle abajo). **Fase B
-(superseries/circuitos) diferida a una versión futura**, sin diseñar. La
+**Estado:** versión 3 de Rutinex, **completa**. **Fase A hecha** (1RM
+estimado, RPE por serie, sugerencia de peso — la calculadora de discos que
+también formaba parte se implementó y se revirtió, ver Fase A abajo).
+**Fase C hecha** (etiquetado muscular + mapa de recuperación, ver detalle
+abajo). **Fase B hecha, alcance recortado** (agrupación visual de
+superseries, sin coordinar el descanso real — ver detalle abajo). La
 **versión 2** (integración con Apple Health, fases 0 a 5,
 incluida la Live Activity) está en
 [plan-apple-health-integration.md](plan-apple-health-integration.md).
@@ -161,24 +162,31 @@ respeta la velocidad de registro. Implementado en `ExerciseDetailModal.jsx`:
   vez". La versión con IA queda como evolución si la heurística se queda
   corta.
 
-### Fase B — Superseries / circuitos · ⏸️ Diferida a una versión futura (2026-09-16)
+### Fase B — Superseries / circuitos · ✅ Hecho, alcance recortado (2026-09-16)
 
-Agrupar 2+ ejercicios consecutivos sin descanso entre ellos (ej: press de
-banca → remo, directo al siguiente sin parar el cronómetro). Toca tres
-sitios:
+Agrupar 2+ ejercicios consecutivos como superserie. Se decidió construir
+**solo la agrupación visual** — el descanso real sigue funcionando
+exactamente igual que antes, por ejercicio, dentro de `ExerciseDetailModal`;
+el flujo "A→B→ahí sí descanso" coordinado se exploró y se descartó por
+ahora (mucha más inversión de la que se quería). Ver
+`docs/superpowers/specs/2026-09-16-superseries-visual-design.md`.
 
-- **Modelo de datos** (`routines`/`exercises`): hoy cada ejercicio es una
-  fila independiente sin relación entre sí — haría falta algo tipo
-  `superset_group_id` para marcar cuáles van juntos.
-- **`TrainingView`**: el flujo hoy es ejercicio → descanso → ejercicio; con
-  superseries pasaría a ejercicio A → ejercicio B → (ahí sí) descanso.
-- **Constructor de rutinas**: UI para agrupar/desagrupar ejercicios al
-  montar la rutina.
+- **Modelo de datos**: `exercises.superset_group_id` (migración additive,
+  nullable). `src/lib/superset.js` (`groupConsecutiveExercises`,
+  `clearBrokenSupersetGroups`, `toggleSupersetLink`, 13 tests) — un grupo es
+  siempre un rango contiguo del orden guardado; se desvincula solo si un
+  reordenamiento rompe la contigüidad.
+- **Constructor**: botón de enlace entre filas adyacentes en la lista de
+  seleccionados de `RoutineAssignerView.jsx` ("Crear nueva") y
+  `AddExercisePanel.jsx`. Solo al crear — no se tocó
+  `ClientProfileView.jsx`.
+- **`TrainingView`**: los grupos de 2+ se envuelven visualmente con una
+  etiqueta "Superserie"; tocar cualquier ejercicio del grupo abre su modal
+  normal, sin cambios de comportamiento.
 
-No hay spec ni decisiones tomadas — queda como descripción de una línea, sin
-diseñar. Con las Fases A y C hechas, es la única pieza que queda de este
-plan; se retoma cuando haga falta de verdad, con su propio ciclo
-brainstorming → spec → plan.
+Pendiente, posible mejora futura: el descanso coordinado real entre
+ejercicios agrupados (niveles explorados y descartados en el brainstorming),
+y poder agrupar/editar desde `ClientProfileView.jsx`.
 
 ### Fase C — Mapa de recuperación muscular · ✅ Hecho (2026-09-16)
 
@@ -244,9 +252,8 @@ Ver `docs/superpowers/specs/2026-09-16-mapa-recuperacion-design.md`.
 Fase A (las 4 juntas) → Fase B → Fase C. **No se siguió tal cual**: la Fase
 C se adelantó a la B porque, al revisar el plan de entrenador (Fase 5), se
 descubrió que su dependencia bloqueante (taxonomía muscular) ya estaba
-resuelta a medias — construirla no exigía esperar a nada. La Fase B
-(supersets) sigue siendo la única pieza abierta de este documento. Ninguna
-depende de la integración con Apple Health.
+resuelta a medias — construirla no exigía esperar a nada. Ninguna depende de
+la integración con Apple Health.
 
 ---
 
@@ -261,8 +268,10 @@ etiquetados con IA y revisados antes de aplicar) + cálculo de recuperación
 con ventana 48-72h + tarjeta de barras en el Dashboard del cliente. Ver
 detalle en la sección Fase C arriba.
 
-**Fase B (superseries/circuitos) diferida a una versión futura** (ver
-detalle arriba) — sin spec ni decisiones tomadas. Con A y C hechas, este
-plan queda cerrado salvo por esa pieza diferida. Ver también
+**Fase B hecha (2026-09-16), alcance recortado**: agrupación visual de
+superseries (`exercises.superset_group_id`, `src/lib/superset.js`,
+constructor y `TrainingView`) — ver detalle arriba. El descanso coordinado
+real entre ejercicios agrupados queda como posible mejora futura, sin
+construir. Con A, B y C hechas, este plan queda cerrado. Ver también
 [docs/plan-apple-health-integration.md](plan-apple-health-integration.md)
 para la integración con Apple Health, que es un eje de mejora aparte.
