@@ -8,11 +8,12 @@
 import WidgetKit
 import SwiftUI
 
-// Solo Live Activity — Fase 4 no incluye widget de pantalla de inicio ni de
-// Centro de Control, se quitó el boilerplate de esos dos.
+// Live Activity (Fase 4) + widget de pantalla de inicio (Fase 5, racha +
+// pasos). Sin widget de Centro de Control, se quitó el boilerplate de eso.
 @main
 struct RutinexWidgetsBundle: WidgetBundle {
     var body: some Widget {
         RutinexWidgetsLiveActivity()
+        RutinexHomeWidget()
     }
 }

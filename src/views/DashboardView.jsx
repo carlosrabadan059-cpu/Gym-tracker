@@ -16,6 +16,8 @@ import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
 import { getHealthConsentBannerCopy } from '../lib/healthConsent';
 import { checkInactivityNotification, checkWeeklyInsightNotification, checkUnloggedWorkoutNotification } from '../lib/proactiveNotifications';
+import { computeStreak } from '../lib/adherence';
+import { updateHomeWidgetData } from '../lib/homeWidget';
 
 // Tarjeta de una rutina en el Dashboard. Extraída de DashboardView para
 // poder renderizarse dos veces (grupo "hoy" y grupo "resto") sin duplicar
@@ -194,6 +196,7 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                 });
 
                 setMuscleRecovery(computeMuscleRecovery(logs, muscleMap, new Date()));
+                updateHomeWidgetData({ streak: computeStreak(logs.map(l => l.date)) });
             } catch (err) {
                 console.error('Error calculando la recuperación muscular:', err);
             }
@@ -280,6 +283,7 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                 if (cancelled || !metrics) return;
                 setHealthSummary(metrics);
                 setHealthSyncedAt(new Date());
+                updateHomeWidgetData({ steps: metrics.steps });
             })
             .catch(err => console.error('[Health] No se pudieron cargar las métricas de hoy:', err));
         return () => { cancelled = true; };
