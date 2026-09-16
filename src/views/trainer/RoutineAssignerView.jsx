@@ -4,9 +4,10 @@ import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { cloneRoutineToClient, fetchRecentHistorySummary, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from '../../lib/trainerUtils';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2, SlidersHorizontal, Link2, Unlink } from 'lucide-react';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
+import { clearBrokenSupersetGroups, toggleSupersetLink } from '../../lib/superset';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -101,14 +102,15 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
 
 // Lista de ejercicios elegidos con reordenar/quitar. Se reusa en el rail
 // derecho (md+) y en la barra inferior colapsable (móvil).
-function SelectedExerciseList({ selected, onMove, onRemove, onUpdate }) {
+function SelectedExerciseList({ selected, onMove, onRemove, onUpdate, onLinkNext }) {
     const [expanded, setExpanded] = useState({});
     const toggleExpanded = (catalogId) => setExpanded(prev => ({ ...prev, [catalogId]: !prev[catalogId] }));
 
     return (
         <div className="space-y-2">
             {selected.map((ex, idx) => (
-                <div key={ex.catalog_id} className="bg-background rounded-xl">
+                <React.Fragment key={ex.catalog_id}>
+                <div className="bg-background rounded-xl">
                     <div className="flex items-center gap-3 px-3 py-2">
                         <div className="flex flex-col flex-shrink-0 -my-1">
                             <button
@@ -163,6 +165,21 @@ function SelectedExerciseList({ selected, onMove, onRemove, onUpdate }) {
                         />
                     )}
                 </div>
+                {onLinkNext && idx < selected.length - 1 && (() => {
+                    const next = selected[idx + 1];
+                    const linked = ex.superset_group_id && ex.superset_group_id === next.superset_group_id;
+                    return (
+                        <button
+                            onClick={() => onLinkNext(ex.catalog_id)}
+                            className={`flex items-center gap-1.5 mx-3 text-[10px] transition-colors ${linked ? 'text-primary' : 'text-text-secondary hover:text-primary'}`}
+                            title={linked ? 'Quitar de la superserie' : 'Vincular como superserie'}
+                        >
+                            {linked ? <Link2 size={11} /> : <Unlink size={11} />}
+                            {linked ? 'Superserie' : 'Vincular'}
+                        </button>
+                    );
+                })()}
+                </React.Fragment>
             ))}
         </div>
     );
@@ -710,6 +727,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 target_weight: null,
                 target_rir: null,
                 rest_seconds: null,
+                superset_group_id: null,
             }]);
         }
     };
@@ -730,8 +748,14 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
             if (index === -1 || targetIndex < 0 || targetIndex >= prev.length) return prev;
             const next = [...prev];
             [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-            return next;
+            return clearBrokenSupersetGroups(next);
         });
+    };
+
+    const linkSelectedWithNext = (catalogId) => {
+        setSelectedExercises(prev =>
+            toggleSupersetLink(prev, catalogId, () => `superset_${crypto.randomUUID()}`)
+        );
     };
 
     const toggleGroup = (group) => {
@@ -775,6 +799,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     target_rir: ex.target_rir ?? null,
                     rest_seconds: ex.rest_seconds ?? null,
                     notes: ex.notes ?? null,
+                    superset_group_id: ex.superset_group_id ?? null,
                 }))
             );
             if (exError) {
@@ -1051,6 +1076,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 onMove={moveSelected}
                                 onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
                                 onUpdate={updateSelected}
+                                onLinkNext={linkSelectedWithNext}
                             />
                         ) : (
                             <p className="text-xs text-text-secondary">Toca ejercicios del catálogo para añadirlos a la rutina.</p>
@@ -1080,6 +1106,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 onMove={moveSelected}
                                 onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
                                 onUpdate={updateSelected}
+                                onLinkNext={linkSelectedWithNext}
                             />
                         </div>
                     )}

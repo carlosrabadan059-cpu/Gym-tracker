@@ -8,6 +8,7 @@ import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { startWorkoutActivity, updateWorkoutActivity, endWorkoutActivity } from '../lib/liveActivity';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
+import { groupConsecutiveExercises } from '../lib/superset';
 
 const TrainingView = ({ workout, onFinish }) => {
     const { user, profile } = useAuth();
@@ -279,39 +280,51 @@ const TrainingView = ({ workout, onFinish }) => {
                         <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                     </div>
                 ) : null}
-                {!logsLoading && activeWorkout?.exercises?.map((ex, idx) => (
-                    <Card
-                        key={ex.id || idx}
-                        className="p-4 flex items-center gap-4 bg-surface active:bg-surface-highlight transition-colors cursor-pointer"
-                        onClick={() => handleOpenExercise(ex)}
-                    >
-                        <div className="h-16 w-16 rounded-lg bg-surface-highlight overflow-hidden flex-shrink-0">
-                            {(ex.image_url || ex.image) && (
-                                <img
-                                    src={ex.image_url || ex.image}
-                                    alt={ex.name}
-                                    className="h-full w-full object-cover"
-                                    loading="lazy"
-                                    referrerPolicy="no-referrer"
-                                    onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=200';
-                                    }}
-                                />
-                            )}
+                {!logsLoading && groupConsecutiveExercises(activeWorkout?.exercises || []).map((group, groupIdx) => {
+                    const isSuperset = group.length > 1;
+                    const cards = group.map(ex => (
+                        <Card
+                            key={ex.id}
+                            className="p-4 flex items-center gap-4 bg-surface active:bg-surface-highlight transition-colors cursor-pointer"
+                            onClick={() => handleOpenExercise(ex)}
+                        >
+                            <div className="h-16 w-16 rounded-lg bg-surface-highlight overflow-hidden flex-shrink-0">
+                                {(ex.image_url || ex.image) && (
+                                    <img
+                                        src={ex.image_url || ex.image}
+                                        alt={ex.name}
+                                        className="h-full w-full object-cover"
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=200';
+                                        }}
+                                    />
+                                )}
+                            </div>
+                            <div className="flex-1 text-left">
+                                <h4 className="font-bold text-black dark:text-white">{ex.name}</h4>
+                                <p className="text-sm text-primary">{ex.series} series x {ex.reps} reps</p>
+                            </div>
+                            <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${completedExercises[String(ex.id)]
+                                ? 'bg-primary border-primary text-black'
+                                : 'border-text-secondary/30 group-hover:border-primary'
+                                }`}>
+                                {completedExercises[String(ex.id)] && <Check size={18} strokeWidth={3} />}
+                            </div>
+                        </Card>
+                    ));
+
+                    if (!isSuperset) return cards[0];
+
+                    return (
+                        <div key={`superset-${groupIdx}`} className="border-2 border-primary/40 rounded-xl p-2 space-y-2">
+                            <p className="text-xs font-bold text-primary uppercase tracking-wide px-1">Superserie</p>
+                            {cards}
                         </div>
-                        <div className="flex-1 text-left">
-                            <h4 className="font-bold text-black dark:text-white">{ex.name}</h4>
-                            <p className="text-sm text-primary">{ex.series} series x {ex.reps} reps</p>
-                        </div>
-                        <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${completedExercises[String(ex.id)]
-                            ? 'bg-primary border-primary text-black'
-                            : 'border-text-secondary/30 group-hover:border-primary'
-                            }`}>
-                            {completedExercises[String(ex.id)] && <Check size={18} strokeWidth={3} />}
-                        </div>
-                    </Card>
-                ))}
+                    );
+                })}
             </div>
 
             <button

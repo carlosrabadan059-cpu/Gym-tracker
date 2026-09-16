@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
-import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check, SlidersHorizontal, X, Link2, Unlink } from 'lucide-react';
 import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
+import { toggleSupersetLink } from '../../lib/superset';
 
 export function AddExercisePanel({ assignment, onClose, onAdded }) {
     const [catalog, setCatalog] = useState([]);
@@ -62,6 +63,7 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 target_weight: null,
                 target_rir: null,
                 rest_seconds: null,
+                superset_group_id: null,
             }]);
         }
     };
@@ -70,6 +72,10 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
         setSelected(prev =>
             prev.map(s => s.catalog_id === catalogId ? { ...s, [field]: value } : s)
         );
+    };
+
+    const linkWithNext = (catalogId) => {
+        setSelected(prev => toggleSupersetLink(prev, catalogId, () => `superset_${crypto.randomUUID()}`));
     };
 
     const togglePrescription = (catalogId) => {
@@ -106,6 +112,7 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 target_weight: ex.target_weight || null,
                 target_rir: ex.target_rir || null,
                 rest_seconds: ex.rest_seconds || null,
+                superset_group_id: ex.superset_group_id || null,
             }));
 
             const { data: inserted, error } = await supabase
@@ -157,8 +164,9 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
 
             {selected.length > 0 && (
                 <div className="px-4 pb-2 space-y-2 max-h-[40vh] overflow-y-auto">
-                    {selected.map(ex => (
-                        <div key={ex.catalog_id} className="bg-background rounded-xl">
+                    {selected.map((ex, idx) => (
+                        <React.Fragment key={ex.catalog_id}>
+                        <div className="bg-background rounded-xl">
                             <div className="flex items-center gap-3 px-3 py-2">
                                 {ex.image_url ? (
                                     <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
@@ -187,6 +195,21 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                                 />
                             )}
                         </div>
+                        {idx < selected.length - 1 && (() => {
+                            const next = selected[idx + 1];
+                            const linked = ex.superset_group_id && ex.superset_group_id === next.superset_group_id;
+                            return (
+                                <button
+                                    onClick={() => linkWithNext(ex.catalog_id)}
+                                    className={`flex items-center gap-1.5 mx-3 text-[10px] transition-colors ${linked ? 'text-primary' : 'text-text-secondary hover:text-primary'}`}
+                                    title={linked ? 'Quitar de la superserie' : 'Vincular como superserie'}
+                                >
+                                    {linked ? <Link2 size={11} /> : <Unlink size={11} />}
+                                    {linked ? 'Superserie' : 'Vincular'}
+                                </button>
+                            );
+                        })()}
+                        </React.Fragment>
                     ))}
                 </div>
             )}
