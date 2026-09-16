@@ -23,6 +23,7 @@
 		9E556B443051E3A000A4C116 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B423051E3A000A4C116 /* LiveActivityAttributes.swift */; };
 		9E556B473051E3A000A4C116 /* LiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B453051E3A000A4C116 /* LiveActivityPlugin.swift */; };
 		9E556B483051E3A000A4C116 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B463051E3A000A4C116 /* MainViewController.swift */; };
+		9E556B4A3051E3A000A4C116 /* HomeWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +67,7 @@
 		9E556B223051DEF400A4C116 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		9E556B423051E3A000A4C116 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		9E556B453051E3A000A4C116 /* LiveActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityPlugin.swift; sourceTree = "<group>"; };
+		9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetPlugin.swift; sourceTree = "<group>"; };
 		9E556B463051E3A000A4C116 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		9EE1C5C6304FF54400D4C8A7 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -140,6 +142,7 @@
 				50B271D01FEDC1A000F3C39B /* public */,
 				9E556B423051E3A000A4C116 /* LiveActivityAttributes.swift */,
 				9E556B453051E3A000A4C116 /* LiveActivityPlugin.swift */,
+				9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */,
 				9E556B463051E3A000A4C116 /* MainViewController.swift */,
 			);
 			path = App;
@@ -274,6 +277,7 @@
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				9E556B443051E3A000A4C116 /* LiveActivityAttributes.swift in Sources */,
 				9E556B473051E3A000A4C116 /* LiveActivityPlugin.swift in Sources */,
+				9E556B4A3051E3A000A4C116 /* HomeWidgetPlugin.swift in Sources */,
 				9E556B483051E3A000A4C116 /* MainViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
