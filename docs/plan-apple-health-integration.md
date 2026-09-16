@@ -376,6 +376,16 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
   sin dato, y sin pista de por qué. Ahora se pide también al sincronizar
   (HealthKit no muestra nada para tipos ya respondidos). Cualquier tipo de
   Health que se añada en el futuro ya no cae en esa trampa.
+
+  **Pulso en la pantalla bloqueada: descartado (2026-09-16).** Al validarlo
+  se vio que durante el descanso el usuario mira la pantalla bloqueada,
+  donde la Live Activity ya da la cuenta atrás pero no el pulso. Llevarlo
+  ahí exigiría canal push APNs `liveactivity` u observer nativo en
+  background — los dos ya descartados por coste en este mismo plan. La
+  alternativa barata (un valor fijo al empezar el descanso) se rechaza por
+  engañosa: quedaría congelado toda la cuenta atrás, justo cuando lo único
+  que importa es verlo bajar. El pulso se queda dentro de la app. Decisión
+  cerrada, no reabrir sin un motivo nuevo.
 - Vista de entrenador viendo datos de salud de un cliente — implica compartir datos de salud entre usuarios, tema de privacidad que se decide aparte; no entra en el alcance de este plan.
 
 **Orden de ataque recomendado:** Fase 0 → validar el riesgo técnico de Fase 2 con un entreno real → resto de Fase 2 → Fase 1 → Fase 3 → arreglar el push (prerrequisito de Fase 4) → Fase 4 → Fase 5.
