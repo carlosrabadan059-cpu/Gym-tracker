@@ -201,6 +201,7 @@ function GenerateWithAiTab({ client, catalog, onDraftGenerated }) {
 
             const payload = buildRoutineDraftPayload({
                 clientGoal,
+                clientAge: client?.age,
                 level,
                 daysPerWeek,
                 equipment,
@@ -1070,6 +1071,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     }))}
                     routineName={routineName}
                     clientGoal={client?.goal}
+                    clientAge={client?.age}
                     onClose={() => setShowReview(false)}
                 />
             )}

@@ -459,6 +459,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                 exerciseName: editingExercise.name,
                 category: editingExercise.category,
                 clientGoal: client.goal,
+                clientAge: client.age,
                 level: 'intermedio',
                 currentSeries: editingExercise.series,
                 currentReps: editingExercise.reps,
@@ -618,6 +619,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                         }))}
                         routineName={assignment.routine.name}
                         clientGoal={client?.goal}
+                        clientAge={client?.age}
                         onClose={() => setReviewingAssignmentId(null)}
                     />
                 );
