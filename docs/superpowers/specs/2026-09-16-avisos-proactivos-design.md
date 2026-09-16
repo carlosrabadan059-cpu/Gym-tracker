@@ -1,9 +1,10 @@
-# Avisos proactivos: inactividad e insight semanal (v2 Fase 5)
+# Avisos proactivos: inactividad, insight semanal y entreno sin registrar (v2 Fase 5)
 
-**Fecha:** 2026-09-16
-**Alcance:** dos de las piezas de Fase 5 (pulido opcional) de
+**Fecha:** 2026-09-16 (ampliado el mismo día con la tercera pieza)
+**Alcance:** tres de las piezas de Fase 5 (pulido opcional) de
 `docs/plan-apple-health-integration.md` — "aviso si llevan varios días sin
-sincronizar" e "insight semanal de actividad".
+sincronizar", "insight semanal de actividad" y "notificación proactiva"
+(Health detecta un entreno sin log en Rutinex ese día).
 
 ## Punto de partida real y corrección de premisa
 
@@ -109,13 +110,73 @@ piezas de UI/fetch del proyecto.
 inactividad una sola vez (no en cada refresco); registrar un entreno hoy y
 comprobar que aparece el insight semanal.
 
+## Tercera pieza — entreno detectado sin registrar
+
+**Decisión (brainstorming, no reabrir):** match **por día completo**, no
+por sesión individual — si Health tiene algún entreno reconocido hoy
+(fuerza o uno de los 4 tipos de cardio ya mapeados en `appleHealth.js`) y
+Rutinex no tiene ningún `workout_log` hoy, se avisa una vez al día. No se
+cruzan horarios entre los dos sistemas (evita el caso "ya registré uno por
+la mañana pero hice otro sin registrar por la tarde" — aceptado como
+limitación conocida, YAGNI para una pieza de pulido opcional).
+
+### Función pura
+
+```js
+/**
+ * ¿Toca avisar de un entreno de Health sin registrar hoy?
+ */
+export function shouldNotifyUnloggedWorkout({ hasRecognizedHealthWorkoutToday, hasLoggedWorkoutToday, alreadyNotifiedToday }) { ... }
+```
+
+### Orquestación
+
+`checkUnloggedWorkoutNotification(userId)`:
+- `if (!isHealthAvailableOnThisPlatform()) return;` — solo nativo, igual
+  que el resto de Health.
+- `todayStart` con el patrón `new Date(); setHours(0,0,0,0)` ya usado en
+  varios sitios de `utils.js` — sin helper nuevo.
+- Reutiliza `getMostRecentWorkout` (`appleHealth.js`) con
+  `sinceMinutesAgo` calculado desde `todayStart` en vez del `90` que usa
+  `DashboardView.jsx` para el detector de cardio en vivo — misma función,
+  ventana distinta.
+- `hasRecognizedHealthWorkoutToday` = el workout devuelto existe y
+  (`isStrengthWorkout(workout)` o `mapWorkoutToCardioType(workout)` no
+  nulo).
+- `hasLoggedWorkoutToday` = alguna fila en `workout_logs` con
+  `date >= todayStart` para ese usuario (mismo patrón `gte` ya usado en
+  `utils.js`).
+- `alreadyNotifiedToday` = notificación `type='unlogged_workout'` con
+  `created_at >= todayStart`.
+- Mensaje: `Detectamos ${duración} min de ${tipo} sin registrar en
+  Rutinex, ¿lo añades?` — duración de `Math.round(workout.duration / 60)`,
+  tipo "fuerza" o el tipo de cardio detectado.
+
+### Disparo
+
+Mismo `useEffect` de `DashboardView.jsx` ya usado para inactividad e
+insight semanal — se añade a la llamada en paralelo.
+
+### Testing
+
+`shouldNotifyUnloggedWorkout`: 4 casos — sin entreno de Health reconocido
+hoy → `false`; con entreno + ya hay log hoy → `false`; con entreno + sin
+log + ya avisado hoy → `false`; con entreno + sin log + sin avisar → `true`.
+Sin test para la orquestación, mismo criterio que el resto.
+
 ## Fuera de alcance
 
-- Cualquier dato de Health en el insight (pasos, calorías) — descartado en
-  el brainstorming, mismo contenido en PWA y app nativa.
+- Cualquier dato de Health en el insight semanal (pasos, calorías) —
+  descartado en el brainstorming, mismo contenido en PWA y app nativa.
 - Registrar un timestamp real de "última lectura de Health" — la
   interpretación de "sincronización" se redefinió como inactividad de
   entreno, no de Health.
-- Notificaciones push nativas para estos dos avisos — se insertan como
+- Notificaciones push nativas para las tres piezas — se insertan como
   filas de `notifications`, mismo canal que el resto de notificaciones de
   la app (ya visible vía `NotificationsContext` + Realtime).
+- Matching por sesión individual en el aviso de entreno sin registrar
+  (solo por día completo).
+- Widget de pantalla de inicio y frecuencia cardíaca en vivo — resto de
+  Fase 5, requieren trabajo nativo Swift/WidgetKit fuera del alcance de
+  esta sesión, quedan pendientes para una sesión dedicada con iteración en
+  Xcode.
