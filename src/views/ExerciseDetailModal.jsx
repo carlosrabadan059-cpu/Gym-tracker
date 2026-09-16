@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Check, History, Trophy, Sparkles, Heart } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
@@ -640,7 +641,12 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                 <li key="perm">Debes <button onClick={requestNotificationPermission} className="underline font-bold">Permitir Notificaciones</button>.</li>
                             );
                         }
-                        if (!window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                        // navigator.standalone solo existe en Safari: en el WKWebView
+                        // de Capacitor es undefined y el userAgent sigue diciendo
+                        // "iPhone", así que sin descartar el shell nativo este aviso
+                        // salía en la app instalada, donde no hay nada que añadir a
+                        // la pantalla de inicio.
+                        if (!Capacitor.isNativePlatform() && !window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
                             items.push(
                                 <li key="pwa">Usa "Añadir a pantalla de inicio" en Safari para que funcione bloqueado.</li>
                             );
