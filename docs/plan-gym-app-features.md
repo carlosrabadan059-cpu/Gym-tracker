@@ -1,10 +1,12 @@
 # Versión 3: funciones de las apps de gimnasio mejor valoradas
 
-**Fecha:** 2026-09-07 (estado actualizado 2026-09-13)
+**Fecha:** 2026-09-07 (estado actualizado 2026-09-16)
 **Estado:** versión 3 de Rutinex. **Fase A hecha** (1RM estimado, RPE por
 serie, sugerencia de peso — la calculadora de discos que también formaba
-parte se implementó y se revirtió, ver Fase A abajo). Fases B y C sin
-empezar. La **versión 2** (integración con Apple Health, fases 0 a 5,
+parte se implementó y se revirtió, ver Fase A abajo). **Fase C hecha**
+(etiquetado muscular + mapa de recuperación, ver detalle abajo). **Fase B
+(superseries/circuitos) sigue sin empezar** — es la única pieza abierta de
+este plan. La **versión 2** (integración con Apple Health, fases 0 a 5,
 incluida la Live Activity) está en
 [plan-apple-health-integration.md](plan-apple-health-integration.md).
 **Objetivo:** identificar qué funciones de las apps de entrenamiento mejor
@@ -165,23 +167,72 @@ Agrupar 2+ ejercicios consecutivos sin descanso entre ellos. Toca el modelo
 de datos (`routines`/`exercises`) y el flujo de `TrainingView`, no solo la
 UI — por eso va después de la Fase A pese a ser también una carencia real.
 
-### Fase C — Mapa de recuperación muscular (apuesta a medio plazo)
+### Fase C — Mapa de recuperación muscular · ✅ Hecho (2026-09-16)
 
-La función estrella de Fitbod, y la más cara. Necesita, en este orden:
+La función estrella de Fitbod. Se dio por "apuesta a medio plazo" porque
+parecía necesitar taxonomía muscular desde cero — al construirla resultó que
+el paso 1 ya estaba a medias (`exercise_catalog.category`, 101/101), así que
+todo el trabajo real quedó en los músculos secundarios y el cálculo.
 
-1. Taxonomía de grupo muscular por ejercicio en `exercise_catalog` (hoy solo
-   existe mapeo de iconos por nombre de rutina en `routineUtils.js`).
-2. Cálculo de volumen reciente por grupo muscular, ventana 48-72h.
-3. Visualización tipo heatmap (mapa corporal o barras por grupo).
+**1. Taxonomía — músculos secundarios. ✅ Hecho.**
 
-Es la única de la lista que puede funcionar como diferenciador real frente a
-otras apps, pero también la única que no se puede hacer en una tarde —
-valorarla como decisión de producto, no como quick win.
+`exercise_catalog.secondary_muscles` (`text[]`, migración
+`20260916_add_secondary_muscles_to_catalog.sql`). Etiquetados los 101 con
+IA (workflow n8n `Gym_App_SecondaryMuscles`, gpt-5-mini con salida
+estructurada) por lotes, revisados en un JSON intermedio antes de aplicar
+(`tools/tag-secondary-muscles.mjs` propone, `tools/apply-secondary-muscles.mjs`
+aplica — separados a propósito para que la revisión humana sea real).
+`src/lib/muscleTaxonomy.js` centraliza el vocabulario (los 8 grupos reales,
+sin "Cardio"/"Otros") y la regla de que el grupo principal nunca puede
+aparecer entre sus propios secundarios. Selector de secundarios añadido al
+alta y edición de `TrainerLibraryView.jsx`, para que el catálogo no se
+degrade al añadir ejercicios nuevos.
 
-### Orden recomendado
+**Hallazgo real de calidad, corregido antes de aplicar nada:** la primera
+pasada de etiquetado pedía "sinergistas y estabilizadores", y el modelo
+marcó Abdomen como secundario en el 50% del catálogo y Hombro en el 41%,
+casi siempre por "estabiliza el torso". Una etiqueta que aplica a medio
+catálogo no discrimina nada, y habría dejado la barra de abdomen
+permanentemente fatigada en el mapa de recuperación. Se ajustó el prompt a
+"solo sinergistas que mueven la carga": Abdomen bajó al 0%, Hombro al 21%.
+Ver `docs/superpowers/specs/2026-09-16-musculos-secundarios-design.md`.
 
-Fase A (las 4 juntas) → Fase B → Fase C. Ninguna depende de la integración
-con Apple Health, así que pueden avanzar en paralelo a ese plan.
+**2. Cálculo de recuperación, ventana 48-72h. ✅ Hecho.**
+
+`src/lib/muscleRecovery.js` (`computeMuscleRecovery`, puro y testeado, 11
+tests): cada serie completada suma `1.0` de fatiga al grupo principal y
+`0.5` a cada secundario (`SECONDARY_SET_WEIGHT`); la fatiga decae
+linealmente hasta agotar la ventana del grupo — 48h para los pequeños
+(Bíceps, Tríceps, Hombro, Abdomen), 72h para los grandes (Pecho, Dorsal,
+Pierna, Glúteo). Todas las constantes (pesos, ventanas,
+`FULL_FATIGUE_SETS = 12`) están aisladas y con nombre para ajustarse viendo
+datos reales sin releer el algoritmo — `FULL_FATIGUE_SETS` en particular se
+sabe corto para volúmenes altos (Dorsal y Pierna saturan a 0% con los datos
+reales de Carlos) y es candidato a subir.
+
+**3. Visualización. ✅ Hecho, como barras — mapa corporal SVG descartado.**
+
+`MuscleRecoveryCard.jsx` (compartido), barras horizontales por grupo
+coloreadas por estado (fresco/parcial/fatigado), en el Dashboard del
+cliente — responde a "qué tengo descansado hoy", una pregunta de antes de
+entrenar, no de después (por eso no va en Estadísticas, donde vive el
+volumen semanal de la Fase 5 del plan de entrenador). El mapa corporal tipo
+Fitbod se descartó: no hay ningún recurso anatómico en el repo y habría que
+dibujarlo y mantenerlo en dos temas para una ganancia solo estética sobre
+las barras. Verificado en real: a 0% la barra desaparecía del todo y los
+grupos más fatigados —lo que más importa ver— quedaban indistinguibles de
+"sin datos"; se le dio un mínimo visible del 4%.
+
+Ver `docs/superpowers/specs/2026-09-16-mapa-recuperacion-design.md`.
+
+### Orden recomendado (histórico)
+
+Fase A (las 4 juntas) → Fase B → Fase C. **No se siguió tal cual**: la Fase
+C se adelantó a la B porque, al revisar el plan de entrenador (Fase 5), se
+descubrió que su dependencia bloqueante (taxonomía muscular) ya estaba
+resuelta a medias — construirla no exigía esperar a nada. La Fase B
+(supersets) sigue siendo la única pieza abierta de este documento. Ninguna
+depende de la integración con Apple Health.
 
 ---
 
@@ -189,7 +240,14 @@ con Apple Health, así que pueden avanzar en paralelo a ese plan.
 
 **Fase A hecha (2026-09-10, calculadora de discos revertida 2026-09-12)**:
 1RM estimado + badge de récord, RPE por serie, sugerencia de peso por
-heurística local — los tres en `ExerciseDetailModal.jsx`. Fases B
-(superseries) y C (mapa de recuperación muscular) sin empezar. Ver también
+heurística local — los tres en `ExerciseDetailModal.jsx`.
+
+**Fase C hecha (2026-09-16)**: músculos secundarios en el catálogo (101/101,
+etiquetados con IA y revisados antes de aplicar) + cálculo de recuperación
+con ventana 48-72h + tarjeta de barras en el Dashboard del cliente. Ver
+detalle en la sección Fase C arriba.
+
+**Fase B (superseries/circuitos) sigue sin empezar** — es la única pieza
+abierta de este plan. Ver también
 [docs/plan-apple-health-integration.md](plan-apple-health-integration.md)
 para la integración con Apple Health, que es un eje de mejora aparte.
