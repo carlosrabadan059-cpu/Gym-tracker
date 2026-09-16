@@ -334,7 +334,11 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
   `DashboardView.jsx`, inserta en `notifications` (`type: 'inactivity'` /
   `'weekly_insight'`). Ver
   `docs/superpowers/specs/2026-09-16-avisos-proactivos-design.md`.
-- **Notificación proactiva**: Health detecta un entreno (fuerza o cardio) sin log correspondiente en Rutinex ese día → notificación "Detectamos 42 min de fuerza sin registrar, ¿lo añades?". Usa el mismo `NotificationsContext.jsx`, cero infraestructura nueva.
+- **Notificación proactiva de entreno sin registrar.** ✅ Hecho
+  (2026-09-16): match por día completo (no por sesión individual, decisión
+  del brainstorming) — `checkUnloggedWorkoutNotification` en
+  `src/lib/proactiveNotifications.js`, mismo disparo que las dos piezas de
+  arriba. `type: 'unlogged_workout'` en `notifications`.
 - **Haptics** (`@capacitor/haptics`, oficial, gratis). ✅ Hecho (2026-09-16):
   vibración real al marcar serie completada y al terminar el descanso, en
   `ExerciseDetailModal.jsx`. Sustituye los `navigator.vibrate` que ya había
@@ -579,9 +583,13 @@ a propósito, para que quede como referencia y no se reabra sin motivo:
     aparte del Web Push actual (capability nueva, clave `.p8`, Edge
     Function nueva) para una ganancia solo cosmética — el Web Push ya
     despierta la pantalla y avisa. Se retoma solo si se pide expresamente.
-- **Fase 5 (pulido opcional)**: notificaciones proactivas, haptics, widget
-  de pantalla de inicio — nunca empezada. Es opcional por definición desde
-  que se escribió el plan, no bloquea el cierre.
+- **Fase 5 (pulido opcional)**: notificaciones proactivas (inactividad,
+  insight semanal, entreno sin registrar) y haptics ✅ hechas (2026-09-16).
+  Quedan sin empezar el widget de pantalla de inicio y la frecuencia
+  cardíaca en vivo — requieren trabajo nativo Swift/WidgetKit real, fuera
+  del alcance de una sesión de código; se abordan en una sesión dedicada
+  con iteración en Xcode. Es opcional por definición desde que se escribió
+  el plan, no bloquea el cierre.
 - **Fuera de alcance de v2 desde el principio**: calculadora de discos,
   RPE, superseries, mapa de recuperación muscular — viven en la
   **versión 3** ([plan-gym-app-features.md](plan-gym-app-features.md)).
