@@ -345,6 +345,15 @@ Antes de la fecha de inicio la progresión se congela en la semana 1; no hay
 lógica de "qué pasa al terminar" más allá de quedarse en la última semana
 definida — no se construyó porque nadie ha necesitado todavía decidirlo.
 
+Pendiente, posible mejora (2026-09-16): un mesociclo típico dura 8 semanas
+con la misma rutina. Hoy, pasada la última semana definida en
+`weekly_progression`, la rutina se queda congelada indefinidamente en esos
+valores — el entrenador tiene que acordarse de entrar a `ClientProfileView`
+y poner una fecha de inicio nueva a mano para arrancar el siguiente
+mesociclo; no hay aviso ni límite de 8 semanas forzado en el código. Posible
+mejora: avisar al entrenador (badge o notificación) cuando un mesociclo
+lleva N semanas sin renovarse. Sin decidir el umbral ni el canal del aviso.
+
 ## Fase 4 — Seguimiento y feedback · ✅ Hecho (2026-09-12)
 
 **1. Adherencia: racha y días sin entrenar. ✅ Hecho.**
