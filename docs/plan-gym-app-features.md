@@ -5,8 +5,8 @@
 serie, sugerencia de peso — la calculadora de discos que también formaba
 parte se implementó y se revirtió, ver Fase A abajo). **Fase C hecha**
 (etiquetado muscular + mapa de recuperación, ver detalle abajo). **Fase B
-(superseries/circuitos) sigue sin empezar** — es la única pieza abierta de
-este plan. La **versión 2** (integración con Apple Health, fases 0 a 5,
+(superseries/circuitos) diferida a una versión futura**, sin diseñar. La
+**versión 2** (integración con Apple Health, fases 0 a 5,
 incluida la Live Activity) está en
 [plan-apple-health-integration.md](plan-apple-health-integration.md).
 **Objetivo:** identificar qué funciones de las apps de entrenamiento mejor
@@ -161,11 +161,24 @@ respeta la velocidad de registro. Implementado en `ExerciseDetailModal.jsx`:
   vez". La versión con IA queda como evolución si la heurística se queda
   corta.
 
-### Fase B — Superseries / circuitos
+### Fase B — Superseries / circuitos · ⏸️ Diferida a una versión futura (2026-09-16)
 
-Agrupar 2+ ejercicios consecutivos sin descanso entre ellos. Toca el modelo
-de datos (`routines`/`exercises`) y el flujo de `TrainingView`, no solo la
-UI — por eso va después de la Fase A pese a ser también una carencia real.
+Agrupar 2+ ejercicios consecutivos sin descanso entre ellos (ej: press de
+banca → remo, directo al siguiente sin parar el cronómetro). Toca tres
+sitios:
+
+- **Modelo de datos** (`routines`/`exercises`): hoy cada ejercicio es una
+  fila independiente sin relación entre sí — haría falta algo tipo
+  `superset_group_id` para marcar cuáles van juntos.
+- **`TrainingView`**: el flujo hoy es ejercicio → descanso → ejercicio; con
+  superseries pasaría a ejercicio A → ejercicio B → (ahí sí) descanso.
+- **Constructor de rutinas**: UI para agrupar/desagrupar ejercicios al
+  montar la rutina.
+
+No hay spec ni decisiones tomadas — queda como descripción de una línea, sin
+diseñar. Con las Fases A y C hechas, es la única pieza que queda de este
+plan; se retoma cuando haga falta de verdad, con su propio ciclo
+brainstorming → spec → plan.
 
 ### Fase C — Mapa de recuperación muscular · ✅ Hecho (2026-09-16)
 
@@ -247,7 +260,8 @@ etiquetados con IA y revisados antes de aplicar) + cálculo de recuperación
 con ventana 48-72h + tarjeta de barras en el Dashboard del cliente. Ver
 detalle en la sección Fase C arriba.
 
-**Fase B (superseries/circuitos) sigue sin empezar** — es la única pieza
-abierta de este plan. Ver también
+**Fase B (superseries/circuitos) diferida a una versión futura** (ver
+detalle arriba) — sin spec ni decisiones tomadas. Con A y C hechas, este
+plan queda cerrado salvo por esa pieza diferida. Ver también
 [docs/plan-apple-health-integration.md](plan-apple-health-integration.md)
 para la integración con Apple Health, que es un eje de mejora aparte.
