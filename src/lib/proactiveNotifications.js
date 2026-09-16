@@ -1,13 +1,16 @@
-// v2 Fase 5: avisos proactivos de inactividad e insight semanal.
-// Ver docs/superpowers/specs/2026-09-16-avisos-proactivos-design.md.
+// v2 Fase 5: avisos proactivos de inactividad, insight semanal y entreno
+// detectado sin registrar. Ver
+// docs/superpowers/specs/2026-09-16-avisos-proactivos-design.md.
 //
-// Sin datos de Health: "sincronización" se redefine como inactividad real
-// de entreno (workout_logs), porque no existe ningún timestamp de "última
-// lectura de Health" guardado en ningún sitio (se lee en vivo cada vez).
+// Inactividad/insight sin datos de Health: "sincronización" se redefine
+// como inactividad real de entreno (workout_logs), porque no existe ningún
+// timestamp de "última lectura de Health" guardado en ningún sitio (se lee
+// en vivo cada vez).
 
 import { supabase } from './supabase';
 import { computeDaysSinceLastSession, INACTIVITY_ALERT_DAYS } from './adherence';
 import { getWeekStart } from './utils';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, mapWorkoutToCardioType } from './appleHealth';
 
 /**
  * ¿Toca avisar de inactividad? Una vez por racha de inactividad: si ya se
@@ -36,6 +39,17 @@ export function shouldNotifyWeeklyInsight({ sessionCountThisWeek, weekStart, las
     if (sessionCountThisWeek <= 0) return false;
     if (!lastWeeklyInsightNotificationDate) return true;
     return new Date(lastWeeklyInsightNotificationDate).getTime() < weekStart.getTime();
+}
+
+/**
+ * ¿Toca avisar de un entreno de Health sin registrar hoy? Match por día
+ * completo, no por sesión individual.
+ *
+ * @param {{hasRecognizedHealthWorkoutToday: boolean, hasLoggedWorkoutToday: boolean, alreadyNotifiedToday: boolean}} params
+ * @returns {boolean}
+ */
+export function shouldNotifyUnloggedWorkout({ hasRecognizedHealthWorkoutToday, hasLoggedWorkoutToday, alreadyNotifiedToday }) {
+    return hasRecognizedHealthWorkoutToday && !hasLoggedWorkoutToday && !alreadyNotifiedToday;
 }
 
 /**
@@ -98,5 +112,48 @@ export async function checkWeeklyInsightNotification(userId) {
         }]);
     } catch (err) {
         console.error('[proactiveNotifications] Error comprobando insight semanal:', err);
+    }
+}
+
+/**
+ * Comprueba y, si toca, inserta el aviso de entreno de Health sin
+ * registrar hoy. No-op fuera de la app nativa (sin acceso a HealthKit).
+ * Best-effort: nunca lanza, solo registra el error en consola.
+ *
+ * @param {string} userId
+ */
+export async function checkUnloggedWorkoutNotification(userId) {
+    if (!isHealthAvailableOnThisPlatform()) return;
+    try {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const minutesSinceTodayStart = Math.ceil((Date.now() - todayStart.getTime()) / 60_000);
+
+        const [workout, { count: loggedCountToday }, { data: lastNotif }] = await Promise.all([
+            getMostRecentWorkout({ sinceMinutesAgo: minutesSinceTodayStart }),
+            supabase.from('workout_logs').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('date', todayStart.toISOString()),
+            supabase.from('notifications').select('created_at').eq('user_id', userId).eq('type', 'unlogged_workout').order('created_at', { ascending: false }).limit(1),
+        ]);
+
+        const cardioType = mapWorkoutToCardioType(workout);
+        const isRecognized = isStrengthWorkout(workout) || cardioType !== null;
+
+        const shouldNotify = shouldNotifyUnloggedWorkout({
+            hasRecognizedHealthWorkoutToday: isRecognized,
+            hasLoggedWorkoutToday: (loggedCountToday ?? 0) > 0,
+            alreadyNotifiedToday: new Date(lastNotif?.[0]?.created_at ?? 0).getTime() >= todayStart.getTime(),
+        });
+        if (!shouldNotify) return;
+
+        const duration = Math.max(1, Math.round(workout.duration / 60));
+        const label = isStrengthWorkout(workout) ? 'fuerza' : cardioType;
+        await supabase.from('notifications').insert([{
+            user_id: userId,
+            type: 'unlogged_workout',
+            title: 'Entreno detectado sin registrar',
+            message: `Detectamos ${duration} min de ${label} sin registrar en Rutinex, ¿lo añades?`,
+        }]);
+    } catch (err) {
+        console.error('[proactiveNotifications] Error comprobando entreno sin registrar:', err);
     }
 }

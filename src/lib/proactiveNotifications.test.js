@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-import { shouldNotifyInactivity, shouldNotifyWeeklyInsight } from './proactiveNotifications';
+import { shouldNotifyInactivity, shouldNotifyWeeklyInsight, shouldNotifyUnloggedWorkout } from './proactiveNotifications';
 
 describe('shouldNotifyInactivity', () => {
     it('nunca entrenó (lastSessionDate null) -> false', () => {
@@ -66,6 +66,40 @@ describe('shouldNotifyWeeklyInsight', () => {
             sessionCountThisWeek: 2,
             weekStart,
             lastWeeklyInsightNotificationDate: beforeWeekStart,
+        })).toBe(true);
+    });
+});
+
+describe('shouldNotifyUnloggedWorkout', () => {
+    it('sin entreno de Health reconocido hoy -> false', () => {
+        expect(shouldNotifyUnloggedWorkout({
+            hasRecognizedHealthWorkoutToday: false,
+            hasLoggedWorkoutToday: false,
+            alreadyNotifiedToday: false,
+        })).toBe(false);
+    });
+
+    it('con entreno + ya hay log hoy -> false', () => {
+        expect(shouldNotifyUnloggedWorkout({
+            hasRecognizedHealthWorkoutToday: true,
+            hasLoggedWorkoutToday: true,
+            alreadyNotifiedToday: false,
+        })).toBe(false);
+    });
+
+    it('con entreno + sin log + ya avisado hoy -> false', () => {
+        expect(shouldNotifyUnloggedWorkout({
+            hasRecognizedHealthWorkoutToday: true,
+            hasLoggedWorkoutToday: false,
+            alreadyNotifiedToday: true,
+        })).toBe(false);
+    });
+
+    it('con entreno + sin log + sin avisar -> true', () => {
+        expect(shouldNotifyUnloggedWorkout({
+            hasRecognizedHealthWorkoutToday: true,
+            hasLoggedWorkoutToday: false,
+            alreadyNotifiedToday: false,
         })).toBe(true);
     });
 });

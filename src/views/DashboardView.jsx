@@ -15,7 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
 import { getHealthConsentBannerCopy } from '../lib/healthConsent';
-import { checkInactivityNotification, checkWeeklyInsightNotification } from '../lib/proactiveNotifications';
+import { checkInactivityNotification, checkWeeklyInsightNotification, checkUnloggedWorkoutNotification } from '../lib/proactiveNotifications';
 
 // Tarjeta de una rutina en el Dashboard. Extraída de DashboardView para
 // poder renderizarse dos veces (grupo "hoy" y grupo "resto") sin duplicar
@@ -164,6 +164,7 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
         if (!user?.id) return;
         checkInactivityNotification(user.id);
         checkWeeklyInsightNotification(user.id);
+        checkUnloggedWorkoutNotification(user.id);
     }, [user?.id]);
 
     // v3 Fase C2 — mapa de recuperación muscular. Necesita el historial
