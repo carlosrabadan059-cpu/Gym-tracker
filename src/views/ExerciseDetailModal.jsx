@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Check, History, Trophy, Sparkles } from 'lucide-react';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
 import { suggestNextWeight } from '../lib/progression';
@@ -8,6 +9,14 @@ import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
 import { updateWorkoutActivity } from '../lib/liveActivity';
 import { ExerciseCommentThread } from '../components/shared/ExerciseCommentThread';
+
+function hapticSetComplete() {
+    Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+}
+
+function hapticRestEnd() {
+    Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+}
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -278,6 +287,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
             setTimeLeft(dur);
             setTimerActive(true);
             playBeep('start');
+            hapticSetComplete();
             scheduleEndBeep(dur);
             scheduleSWNotification(target, false, sessionId); // Schedule END notification
             updateWorkoutActivity({
@@ -325,9 +335,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                 scheduleNote(now, 880, 0.3, 'square');
                 scheduleNote(now + 0.4, 880, 0.3, 'square');
                 scheduleNote(now + 0.8, 1320, 0.5, 'square');
-                if ('vibrate' in navigator) {
-                    navigator.vibrate([500, 200, 500, 200, 800]);
-                }
+                hapticRestEnd();
             }
         } catch (error) {
             console.error('No se pudo reproducir el sonido del temporizador', error);
@@ -377,9 +385,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                     setTargetTime(null);
         
                     ensureEndBeepPlayed();
-                    if ('vibrate' in navigator) {
-                        navigator.vibrate([500, 200, 500, 200, 800]);
-                    }
+                    hapticRestEnd();
                     updateWorkoutActivity({ phase: 'restFinished' });
                     setTimeout(() => setTimeLeft(timerStateRef.current.selectedDuration), 2000);
                 }
@@ -405,7 +411,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
             setTimeLeft(0);
 
             ensureEndBeepPlayed(event.data.sessionId);
-            if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
+            hapticRestEnd();
             setTimeout(() => setTimeLeft(selectedDuration), 2000);
         };
         navigator.serviceWorker?.addEventListener('message', handleSWMessage);
@@ -432,7 +438,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                 setTimeLeft(0);
 
                 ensureEndBeepPlayed();
-                if ('vibrate' in navigator) navigator.vibrate([500, 200, 500, 200, 800]);
+                hapticRestEnd();
                 setTimeout(() => setTimeLeft(selectedDuration), 2000);
             }
         };
