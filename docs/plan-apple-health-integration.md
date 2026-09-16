@@ -365,9 +365,17 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
   `ExerciseDetailModal.jsx`. Sin dato fresco (sin Watch, o Watch sin
   entreno arrancado) se pinta el hueco apagado con la pista, nunca un
   número viejo. Ver
-  `docs/superpowers/specs/2026-09-16-fc-en-vivo-design.md`. Pendiente de
-  validar en real: necesita Watch con entreno en marcha, no vale el
-  simulador.
+  `docs/superpowers/specs/2026-09-16-fc-en-vivo-design.md`. **Validado en
+  real (2026-09-16)**: Watch con entreno en marcha, bpm en vivo bajo el
+  contador de descanso.
+
+  Hizo falta un arreglo aparte para que el permiso llegara: la app solo
+  pedía autorización a HealthKit desde el botón "Conectar", que no existe
+  si ya estás conectado, así que añadir un tipo nuevo a `READ_TYPES` no
+  tenía ningún efecto para un usuario ya conectado — sin hoja de permiso,
+  sin dato, y sin pista de por qué. Ahora se pide también al sincronizar
+  (HealthKit no muestra nada para tipos ya respondidos). Cualquier tipo de
+  Health que se añada en el futuro ya no cae en esa trampa.
 - Vista de entrenador viendo datos de salud de un cliente — implica compartir datos de salud entre usuarios, tema de privacidad que se decide aparte; no entra en el alcance de este plan.
 
 **Orden de ataque recomendado:** Fase 0 → validar el riesgo técnico de Fase 2 con un entreno real → resto de Fase 2 → Fase 1 → Fase 3 → arreglar el push (prerrequisito de Fase 4) → Fase 4 → Fase 5.
