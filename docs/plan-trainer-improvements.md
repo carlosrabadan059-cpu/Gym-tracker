@@ -245,10 +245,13 @@ Construido:
   series; `rest_seconds` se ofrece como opción del temporizador y como
   duración por defecto.
 
-Pendiente, no bloqueante: fijar la prescripción ya al crear la rutina
-(`RoutineAssignerView` "Crear nueva" / `AddExercisePanel`) — de momento se
-pone justo después desde el editor del perfil del cliente. Y el % de 1RM
-como alternativa al peso absoluto, cuando la v3 Fase A esté asentada.
+Hecho (2026-09-16): prescribir peso/RIR/descanso ya al crear la rutina
+(`RoutineAssignerView` "Crear nueva" / `AddExercisePanel`), opcional y
+desplegable por ejercicio. Ver
+`docs/superpowers/specs/2026-09-16-prescripcion-al-crear-design.md`.
+
+Pendiente, no bloqueante: % de 1RM como alternativa al peso absoluto,
+cuando la v3 Fase A esté asentada.
 
 Encaja con v3 Fase A: donde ahí la sugerencia de peso viene de la heurística
 local, aquí viene del entrenador — cuando existan las dos, la del entrenador
