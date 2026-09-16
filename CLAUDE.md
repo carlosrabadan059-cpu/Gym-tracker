@@ -68,6 +68,8 @@ Workout completion data lives in the `workout_logs` Supabase table (JSONB `logs`
 
 SQL migrations are in [supabase/migrations/](supabase/migrations/).
 
+**RLS: una policy de `profiles` no puede consultar `profiles`.** Postgres lo rechaza con `infinite recursion detected in policy for relation "profiles"` y rompe toda escritura del perfil (pasó con el `with check` de update, arreglado en `20260917_fix_profiles_update_policy_recursion.sql`). La protección del rol vive solo en el trigger `prevent_role_escalation` (solo un admin cambia roles). Si una policy necesita el rol del usuario, usar una función `security definer` como `is_trainer()`.
+
 ### Producción real — no tocar los datos de Carlos
 
 **Carlos** (`user_id 0c561e91-…`, el propio dueño del proyecto) es el **único
