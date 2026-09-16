@@ -8,7 +8,9 @@ import { supabase } from '../lib/supabase';
 import { getRoutineIcon } from '../lib/routineUtils';
 import { splitRoutinesByToday } from '../lib/routineSchedule';
 import { getCurrentMesocycleWeek, applyMesocycleWeek } from '../lib/mesocycle';
-import { enrichExercisesWithCatalog, loadLastRoutineSummary } from '../lib/utils';
+import { enrichExercisesWithCatalog, loadLastRoutineSummary, loadWorkoutLogs } from '../lib/utils';
+import { computeMuscleRecovery } from '../lib/muscleRecovery';
+import { MuscleRecoveryCard } from '../components/shared/MuscleRecoveryCard';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
@@ -143,6 +145,7 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
     const [detectedCardio, setDetectedCardio] = useState(null);
+    const [muscleRecovery, setMuscleRecovery] = useState([]);
     const [healthConsentStatus, setHealthConsentStatus] = useState(null);
     const [healthConsentTrainerName, setHealthConsentTrainerName] = useState(null);
     const [respondingConsent, setRespondingConsent] = useState(false);
@@ -152,6 +155,40 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
     const containerRef = useRef(null);
     const pullDistanceRef = useRef(0);
     const isRefreshingRef = useRef(false);
+
+    // v3 Fase C2 — mapa de recuperación muscular. Necesita el historial
+    // reciente y a qué músculos corresponde cada ejercicio; la categoría y
+    // los secundarios vienen del catálogo embebido, no de la fila de
+    // `exercises`, que no los tiene.
+    useEffect(() => {
+        if (!user?.id) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const [logs, { data: rawExercises }] = await Promise.all([
+                    loadWorkoutLogs(user.id),
+                    supabase.from('exercises').select('id, exercise_catalog(category, secondary_muscles)'),
+                ]);
+                if (cancelled) return;
+
+                const muscleMap = {};
+                (rawExercises || []).forEach((ex) => {
+                    const catalog = ex.exercise_catalog;
+                    if (catalog?.category) {
+                        muscleMap[String(ex.id)] = {
+                            category: catalog.category,
+                            secondary_muscles: catalog.secondary_muscles || [],
+                        };
+                    }
+                });
+
+                setMuscleRecovery(computeMuscleRecovery(logs, muscleMap, new Date()));
+            } catch (err) {
+                console.error('Error calculando la recuperación muscular:', err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [user?.id]);
 
     // Fase 5 (parte 1) — consentimiento para compartir datos de salud con el
     // entrenador. Solo aplica si el cliente tiene entrenador (maybeSingle:
@@ -477,6 +514,9 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                     </div>
                 );
             })()}
+            {/* Recuperación muscular — v3 Fase C2 */}
+            <MuscleRecoveryCard data={muscleRecovery} />
+
             {healthSummary && (
                 <div className="bg-surface rounded-2xl p-4 border border-surface-highlight">
                     <div className="flex items-center justify-between mb-3">
