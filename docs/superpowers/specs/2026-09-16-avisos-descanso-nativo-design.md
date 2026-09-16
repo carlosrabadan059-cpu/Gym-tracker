@@ -146,7 +146,13 @@ camino de la PWA al moverlo de sitio.
   cada una solo admite el suyo.
 - No se añade sonido propio a la notificación; se usa el del sistema.
 
-## Verificación en dispositivo
+## Verificación en dispositivo — ✅ pasada (2026-09-16)
+
+Confirmada en el iPhone: la notificación llega con el móvil bloqueado y
+desde el icono de la app nativa, y en primer plano no aparece banner
+(`presentationOptions: []` se comporta como se esperaba).
+
+Pasos que se siguieron:
 
 Recompilar en Xcode tras `npm run build && npx cap sync ios`. El plugin no
 pide capability ni entrada en Info.plist, solo permiso en tiempo de

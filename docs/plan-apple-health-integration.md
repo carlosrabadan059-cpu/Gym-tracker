@@ -410,6 +410,17 @@ flujo normal de `docs/agents/issue-tracker.md`.
   documentado en la Fase 4 arriba — mismo mecanismo (`send-timer-push`),
   mismo diagnóstico.
 
+  **Resuelto para la app nativa (2026-09-16), y la causa real era otra.**
+  El aviso nunca había funcionado en el shell nativo: Web Push es exclusivo
+  de PWAs añadidas desde Safari, y en el `WKWebView` no existe
+  `PushManager`. Lo que se veía salía del icono de la PWA, que comparte la
+  única fila de `push_subscriptions` y recibía los push que programaba la
+  app nativa. La nativa usa ahora notificaciones locales
+  (`@capacitor/local-notifications`), que no dependen ni de `send-timer-push`
+  ni de suscripción alguna. La PWA sigue con Web Push y con su fragilidad
+  intacta, así que el prerrequisito de la Fase 4 sigue en pie para ella.
+  Ver `docs/superpowers/specs/2026-09-16-avisos-descanso-nativo-design.md`.
+
 ---
 
 ## Diseño de UI — decidido
