@@ -86,8 +86,11 @@ struct RutinexHomeWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: HomeWidgetProvider()) { entry in
+            // .containerBackground(for: .widget) es iOS 17+; el target compila
+            // para 16.2 (mismo mínimo que la Live Activity), así que se usa el
+            // fondo clásico pre-17.
             HomeWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .background()
         }
         .configurationDisplayName("Racha de Rutinex")
         .description("Tu racha de entrenos y los pasos de hoy, sin abrir la app.")
