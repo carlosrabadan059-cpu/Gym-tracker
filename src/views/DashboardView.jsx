@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
 import { getHealthConsentBannerCopy } from '../lib/healthConsent';
+import { checkInactivityNotification, checkWeeklyInsightNotification } from '../lib/proactiveNotifications';
 
 // Tarjeta de una rutina en el Dashboard. Extraída de DashboardView para
 // poder renderizarse dos veces (grupo "hoy" y grupo "resto") sin duplicar
@@ -155,6 +156,15 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
     const containerRef = useRef(null);
     const pullDistanceRef = useRef(0);
     const isRefreshingRef = useRef(false);
+
+    // v2 Fase 5 — avisos proactivos de inactividad e insight semanal.
+    // Best-effort, sin bloquear el resto del dashboard: cada función decide
+    // por sí sola si toca notificar (ver src/lib/proactiveNotifications.js).
+    useEffect(() => {
+        if (!user?.id) return;
+        checkInactivityNotification(user.id);
+        checkWeeklyInsightNotification(user.id);
+    }, [user?.id]);
 
     // v3 Fase C2 — mapa de recuperación muscular. Necesita el historial
     // reciente y a qué músculos corresponde cada ejercicio; la categoría y
