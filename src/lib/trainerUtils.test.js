@@ -130,6 +130,7 @@ describe('buildRoutineDraftPayload', () => {
         });
         expect(payload).toEqual({
             clientGoal: 'No especificado',
+            clientAge: null,
             level: 'intermedio',
             daysPerWeek: null,
             equipment: 'No especificado',
@@ -156,6 +157,16 @@ describe('buildRoutineDraftPayload', () => {
     it('daysPerWeek inválido cae a null en vez de NaN', () => {
         const payload = buildRoutineDraftPayload({ daysPerWeek: 'abc', exerciseNames: [], recentHistorySummary: '' });
         expect(payload.daysPerWeek).toBeNull();
+    });
+
+    it('incluye clientAge cuando se pasa', () => {
+        const payload = buildRoutineDraftPayload({ clientAge: 68, exerciseNames: [], recentHistorySummary: '' });
+        expect(payload.clientAge).toBe(68);
+    });
+
+    it('clientAge es null cuando no se pasa, no un string placeholder', () => {
+        const payload = buildRoutineDraftPayload({ exerciseNames: [], recentHistorySummary: '' });
+        expect(payload.clientAge).toBeNull();
     });
 });
 

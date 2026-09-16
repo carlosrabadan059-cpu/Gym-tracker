@@ -177,11 +177,15 @@ export function matchDraftExercisesToCatalog(draftExercises, catalog = []) {
  * con defaults en español para los campos que el entrenador deje en blanco
  * en el formulario "Con IA".
  */
-export function buildRoutineDraftPayload({ clientGoal, level, daysPerWeek, equipment, limitations, exerciseNames, recentHistorySummary }) {
+export function buildRoutineDraftPayload({ clientGoal, clientAge, level, daysPerWeek, equipment, limitations, exerciseNames, recentHistorySummary }) {
     const parsedDays = Number(daysPerWeek);
     const daysPerWeekValue = daysPerWeek && !isNaN(parsedDays) ? parsedDays : null;
     return {
         clientGoal: clientGoal || 'No especificado',
+        // null y no un string "No especificado": la IA distingue "sin dato"
+        // de un valor real, y forzar un string lo trataría como si el
+        // cliente tuviera esa edad literal.
+        clientAge: clientAge ?? null,
         level: level || 'intermedio',
         daysPerWeek: daysPerWeekValue,
         equipment: equipment || 'No especificado',
