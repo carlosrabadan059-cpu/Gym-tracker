@@ -47,9 +47,11 @@ no exponencial a propósito: es explicable en una frase y nadie tiene datos
 para calibrar una curva mejor.
 
 **De fatiga a porcentaje.** `recuperación = 100 − (fatiga / FULL_FATIGUE_SETS)
-× 100`, acotado a [0, 100], con `FULL_FATIGUE_SETS = 12`. Es decir, 12 series
-efectivas concentradas en el momento dejan un grupo a 0%. Es el número más
-discutible del modelo y por eso está aislado en una constante.
+× 100`, acotado a [0, 100]. Es el número más discutible del modelo y por eso
+está aislado en una constante — valor inicial `12`, subido a `16` el mismo
+día al verlo contra datos reales (con 12, Dorsal y Pierna saturaban ambos a
+0% en la misma semana, indistinguibles entre "cansado" y "destrozado"). El
+valor vivo está en el código (`src/lib/muscleRecovery.js`), no aquí.
 
 **Estados** (para el color y el texto): `fresco` ≥ 70%, `parcial` entre 35% y
 69%, `fatigado` < 35%.

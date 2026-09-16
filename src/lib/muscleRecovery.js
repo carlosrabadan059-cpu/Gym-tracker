@@ -15,8 +15,11 @@ import { countCompletedSets } from './muscleVolume';
 export const SECONDARY_SET_WEIGHT = 0.5;
 
 // Series efectivas que dejan un grupo a 0% de recuperación. El número más
-// discutible del modelo, y el primero que habrá que tocar.
-export const FULL_FATIGUE_SETS = 12;
+// discutible del modelo. Subido de 12 a 16 el 2026-09-16 tras verlo contra
+// datos reales: con 12, Dorsal y Pierna saturaban ambos a 0% en la misma
+// semana — indistinguibles entre "cansado" y "destrozado", que es
+// justo la información que esta tarjeta existe para dar.
+export const FULL_FATIGUE_SETS = 16;
 
 // Ventana de recuperación por grupo: los pequeños se recuperan antes que los
 // grandes. 48h / 72h es lo que pedía el plan de la v3.

@@ -217,11 +217,12 @@ tests): cada serie completada suma `1.0` de fatiga al grupo principal y
 `0.5` a cada secundario (`SECONDARY_SET_WEIGHT`); la fatiga decae
 linealmente hasta agotar la ventana del grupo — 48h para los pequeños
 (Bíceps, Tríceps, Hombro, Abdomen), 72h para los grandes (Pecho, Dorsal,
-Pierna, Glúteo). Todas las constantes (pesos, ventanas,
-`FULL_FATIGUE_SETS = 12`) están aisladas y con nombre para ajustarse viendo
-datos reales sin releer el algoritmo — `FULL_FATIGUE_SETS` en particular se
-sabe corto para volúmenes altos (Dorsal y Pierna saturan a 0% con los datos
-reales de Carlos) y es candidato a subir.
+Pierna, Glúteo). Todas las constantes (pesos, ventanas, `FULL_FATIGUE_SETS`)
+están aisladas y con nombre para ajustarse viendo datos reales sin releer el
+algoritmo. `FULL_FATIGUE_SETS` en concreto se subió de `12` a `16` el mismo
+2026-09-16 al verlo contra los datos reales de Carlos: con 12, Dorsal y
+Pierna saturaban ambos a 0% en la misma semana — indistinguibles entre
+"cansado" y "destrozado", justo lo que la tarjeta existe para distinguir.
 
 **3. Visualización. ✅ Hecho, como barras — mapa corporal SVG descartado.**
 
