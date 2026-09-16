@@ -322,7 +322,12 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
 ### Fase 5 — Pulido opcional
 - Notificaciones (`src/context/NotificationsContext.jsx`): aviso si llevan varios días sin sincronizar, insight semanal de actividad.
 - **Notificación proactiva**: Health detecta un entreno (fuerza o cardio) sin log correspondiente en Rutinex ese día → notificación "Detectamos 42 min de fuerza sin registrar, ¿lo añades?". Usa el mismo `NotificationsContext.jsx`, cero infraestructura nueva.
-- **Haptics** (`@capacitor/haptics`, oficial, gratis): vibración al marcar serie completada y al terminar el descanso — barato de construir, alto impacto percibido, no depende de Health.
+- **Haptics** (`@capacitor/haptics`, oficial, gratis). ✅ Hecho (2026-09-16):
+  vibración real al marcar serie completada y al terminar el descanso, en
+  `ExerciseDetailModal.jsx`. Sustituye los `navigator.vibrate` que ya había
+  (no soportados en WKWebView, por eso no funcionaban en la app nativa). Ver
+  `docs/superpowers/specs/2026-09-16-haptics-entreno-design.md`. Pendiente de
+  validar en iPhone físico — el simulador no vibra.
 - **Widget de pantalla de inicio** (`Cap-go/capacitor-widget-kit`, gratis): racha + pasos del día, sin abrir la app.
 - Frecuencia cardiaca en vivo durante el entreno — más caro técnicamente (requiere sesión HealthKit en vivo, `HKWorkoutSession`, no una simple lectura por lotes). Dejar para el final.
 - Vista de entrenador viendo datos de salud de un cliente — implica compartir datos de salud entre usuarios, tema de privacidad que se decide aparte; no entra en el alcance de este plan.
