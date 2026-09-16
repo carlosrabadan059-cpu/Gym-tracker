@@ -325,7 +325,15 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
 `console.error`) en vez del loop actual dentro de la función.
 
 ### Fase 5 — Pulido opcional
-- Notificaciones (`src/context/NotificationsContext.jsx`): aviso si llevan varios días sin sincronizar, insight semanal de actividad.
+- **Aviso de inactividad + insight semanal.** ✅ Hecho (2026-09-16), alcance
+  redefinido: no existía ningún timestamp real de "sincronización de
+  Health" (se lee en vivo, sin caché), así que se construyó sobre
+  inactividad real de entreno (`workout_logs`) en vez de Health.
+  `src/lib/proactiveNotifications.js` (`shouldNotifyInactivity`,
+  `shouldNotifyWeeklyInsight`, 9 tests), disparado al montar
+  `DashboardView.jsx`, inserta en `notifications` (`type: 'inactivity'` /
+  `'weekly_insight'`). Ver
+  `docs/superpowers/specs/2026-09-16-avisos-proactivos-design.md`.
 - **Notificación proactiva**: Health detecta un entreno (fuerza o cardio) sin log correspondiente en Rutinex ese día → notificación "Detectamos 42 min de fuerza sin registrar, ¿lo añades?". Usa el mismo `NotificationsContext.jsx`, cero infraestructura nueva.
 - **Haptics** (`@capacitor/haptics`, oficial, gratis). ✅ Hecho (2026-09-16):
   vibración real al marcar serie completada y al terminar el descanso, en
