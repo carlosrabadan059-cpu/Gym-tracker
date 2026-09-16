@@ -14,8 +14,11 @@ const NON_EXERCISE_KEYS = new Set(['cardio', 'workoutDuration']);
  * `completedSets` es la señal buena (el usuario marcó la serie como hecha).
  * Los logs antiguos pueden no traerla; ahí se cuentan las series con reps
  * registradas, que es lo más cercano a "esto se hizo" que queda.
+ *
+ * Exportada para que muscleRecovery.js use exactamente esta regla: duplicarla
+ * es como empezó el lío de "inicio de semana" que hubo que unificar después.
  */
-function countCompletedSets(log) {
+export function countCompletedSets(log) {
     if (!log || typeof log !== 'object') return 0;
 
     if (log.completedSets && typeof log.completedSets === 'object') {
