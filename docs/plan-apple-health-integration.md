@@ -354,7 +354,20 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
   Pendiente del usuario: activar App Groups en Xcode (Signing &
   Capabilities de `App` y `RutinexWidgets`) y verificar en dispositivo
   real.
-- Frecuencia cardiaca en vivo durante el entreno — más caro técnicamente (requiere sesión HealthKit en vivo, `HKWorkoutSession`, no una simple lectura por lotes). Dejar para el final.
+- **Frecuencia cardiaca en vivo durante el entreno.** ✅ Hecho (2026-09-16).
+  La premisa de este plan era falsa: `HKWorkoutSession` es exclusivo de
+  watchOS y el iPhone no tiene sensor de pulso, así que la lectura por
+  lotes no era un sucedáneo pobre de la "sesión en vivo" — es el único
+  mecanismo que existe, y el plugin ya instalado lo expone. Salió barata
+  (cero Swift), no cara. Pulso actual + caída desde el pico durante el
+  descanso, `src/lib/heartRate.js` (puro, 8 tests) +
+  `getLiveHeartRate()` en `appleHealth.js` + bloque en
+  `ExerciseDetailModal.jsx`. Sin dato fresco (sin Watch, o Watch sin
+  entreno arrancado) se pinta el hueco apagado con la pista, nunca un
+  número viejo. Ver
+  `docs/superpowers/specs/2026-09-16-fc-en-vivo-design.md`. Pendiente de
+  validar en real: necesita Watch con entreno en marcha, no vale el
+  simulador.
 - Vista de entrenador viendo datos de salud de un cliente — implica compartir datos de salud entre usuarios, tema de privacidad que se decide aparte; no entra en el alcance de este plan.
 
 **Orden de ataque recomendado:** Fase 0 → validar el riesgo técnico de Fase 2 con un entreno real → resto de Fase 2 → Fase 1 → Fase 3 → arreglar el push (prerrequisito de Fase 4) → Fase 4 → Fase 5.
@@ -581,13 +594,13 @@ a propósito, para que quede como referencia y no se reabra sin motivo:
     aparte del Web Push actual (capability nueva, clave `.p8`, Edge
     Function nueva) para una ganancia solo cosmética — el Web Push ya
     despierta la pantalla y avisa. Se retoma solo si se pide expresamente.
-- **Fase 5 (pulido opcional)**: notificaciones proactivas (inactividad,
-  insight semanal, entreno sin registrar), haptics y widget de pantalla de
-  inicio ✅ hechas (2026-09-16). Queda sin empezar solo la frecuencia
-  cardíaca en vivo (`HKWorkoutSession`) — más cara, requiere trabajo nativo
-  real con iteración en Xcode; se aborda en una sesión dedicada. Es
-  opcional por definición desde que se escribió el plan, no bloquea el
-  cierre.
+- **Fase 5 (pulido opcional)**: ✅ completa (2026-09-16). Notificaciones
+  proactivas (inactividad, insight semanal, entreno sin registrar),
+  haptics, widget de pantalla de inicio y FC en vivo durante el descanso.
+  La FC en vivo se había presupuestado como la pieza cara ("requiere
+  `HKWorkoutSession`"), pero esa premisa era falsa: esa API es de watchOS
+  y el iPhone no tiene sensor de pulso, así que leer muestras de HealthKit
+  no era el atajo sino el único camino. Acabó sin una línea de Swift.
 - **Fuera de alcance de v2 desde el principio**: calculadora de discos,
   RPE, superseries, mapa de recuperación muscular — viven en la
   **versión 3** ([plan-gym-app-features.md](plan-gym-app-features.md)).
