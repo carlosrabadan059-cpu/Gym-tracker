@@ -31,7 +31,12 @@ HealthKit es un framework nativo de iOS. No existe ni ha existido nunca una API 
 
 - Sin coste de software (Capacitor y el plugin son gratis).
 - Instalación en el propio iPhone vía Xcode + cable, cuenta Apple gratuita: **$0**, pero el certificado expira cada 7 días → hay que reabrir Xcode y reinstalar semanalmente.
-- Para evitar esa fricción (instalar y olvidar, o usar TestFlight): entitlement HealthKit exige **Apple Developer Program, $99/año** — no disponible en cuenta personal gratuita para builds persistentes. Decisión pendiente, no bloquea el arranque del plan.
+- Para evitar esa fricción (instalar y olvidar, o usar TestFlight): entitlement HealthKit exige **Apple Developer Program, $99/año** — no disponible en cuenta personal gratuita para builds persistentes.
+- **Decisión (2026-09-16): no se paga por ahora.** No es una app comercial —
+  es de uso personal (el gimnasio de Carlos, un solo usuario real), sin
+  intención de publicarla en la App Store ni de necesitar TestFlight. El
+  re-sign semanal con cable + Xcode es una molestia asumible para ese
+  alcance. Se revisita solo si eso cambia.
 
 ### Riesgo técnico principal — confirmado, no solo sospechado
 
@@ -110,9 +115,9 @@ Hecho:
 - Capability HealthKit activada en Xcode (Signing & Capabilities), generó
   `App.entitlements` y quedó enlazada en Debug/Release. Team de firma:
   cuenta Apple personal gratuita del usuario — certificado caduca cada 7
-  días, hay que repetir el Run desde Xcode cada semana mientras no se pague
-  el Developer Program ($99/año, sigue como decisión pendiente y no
-  bloqueante).
+  días, hay que repetir el Run desde Xcode cada semana — decisión tomada
+  (2026-09-16): no se paga el Developer Program, app de uso personal, no
+  comercial. Ver "Coste real" arriba.
 - `appId` sigue siendo el placeholder `com.rutinex.app` — el usuario no lo
   ha cambiado, y no hace falta para seguir probando en local.
 
