@@ -642,7 +642,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                             />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-text-primary">{client.fullName || client.username}</h2>
+                            <h2 className="text-xl font-bold text-text-primary">{client.username}</h2>
                             <p className="text-xs text-text-secondary">
                                 {showHealthData
                                     ? (client.weight ? `${client.weight} kg` : 'Sin peso registrado')

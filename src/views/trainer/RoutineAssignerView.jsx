@@ -799,7 +799,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 </button>
                 <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-bold text-text-primary">Asignar Rutina</h2>
-                    <p className="text-xs text-text-secondary truncate">{client?.fullName || client?.username}</p>
+                    <p className="text-xs text-text-secondary truncate">{client?.username}</p>
                 </div>
                 {mode === 'new' && (
                     <>

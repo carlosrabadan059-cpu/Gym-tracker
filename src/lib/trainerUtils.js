@@ -10,7 +10,7 @@ import { pickTopWeightSets } from './progression';
  * "clonar siempre").
  *
  * @param {string} sourceRoutineId  rutina origen a copiar
- * @param {object} client           { user_id, username?, fullName? }
+ * @param {object} client           { user_id, username? }
  * @param {string} trainerId        auth.uid() del entrenador
  * @returns {Promise<string>} el id de la rutina clonada
  */

@@ -128,7 +128,7 @@ export function ClientsListView({ onBack, onSelectClient, embedded = false, sele
                                     />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className={`font-bold text-text-primary truncate ${embedded ? 'text-sm' : 'text-lg'}`}>{client.fullName || client.username}</h3>
+                                    <h3 className={`font-bold text-text-primary truncate ${embedded ? 'text-sm' : 'text-lg'}`}>{client.username}</h3>
                                     {(client.daysSinceLastSession === null || client.daysSinceLastSession >= INACTIVITY_ALERT_DAYS) && (
                                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded-full mt-1">
                                             ⚠️ {client.daysSinceLastSession === null ? 'Sin sesiones' : `Hace ${client.daysSinceLastSession} días`}

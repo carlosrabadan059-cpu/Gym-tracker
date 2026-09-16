@@ -33,7 +33,7 @@ function ClientRow({ client, onClick, subtitle, subtitleIcon: SubtitleIcon, subt
                     />
                 </div>
                 <div className="min-w-0">
-                    <h4 className="font-bold text-text-primary text-sm truncate">{client.fullName || client.username}</h4>
+                    <h4 className="font-bold text-text-primary text-sm truncate">{client.username}</h4>
                     {subtitle && (
                         <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 ${subtitleClassName}`}>
                             {SubtitleIcon && <SubtitleIcon size={10} />}
