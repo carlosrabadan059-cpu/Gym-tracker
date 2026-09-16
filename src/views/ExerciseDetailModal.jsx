@@ -7,7 +7,7 @@ import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
 import { suggestNextWeight } from '../lib/progression';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
-import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
+import { scheduleRestEnd, cancelRestEnd, hasNotificationPermission, requestNotificationPermission } from '../lib/restNotification';
 import { updateWorkoutActivity } from '../lib/liveActivity';
 import { getLiveHeartRate, isHealthAvailableOnThisPlatform } from '../lib/appleHealth';
 import { ExerciseCommentThread } from '../components/shared/ExerciseCommentThread';
@@ -195,22 +195,20 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         };
     }, [cancelScheduledEndBeep, scheduleSWNotification]);
 
-    const requestNotificationPermission = async () => {
-        if (!('Notification' in window)) return;
-        if (Notification.permission === 'default') {
-            try {
-                const permission = await Notification.requestPermission();
-                if (permission === 'granted') {
-                    // Register Web Push subscription for background notifications
-                    if (user?.id) subscribeToPush(user.id);
-                }
-            } catch (e) {
-                console.error("Permission request failed", e);
-            }
-        }
-    };
+    // El permiso y su estado viven en restNotification.js, que sabe si toca
+    // la API web (PWA) o el plugin nativo. Aquí solo se guarda el resultado
+    // para poder pintar el banner, porque en nativo la consulta es asíncrona
+    // y no se puede resolver durante el render.
+    const [notificationsAllowed, setNotificationsAllowed] = useState(true);
 
-    // Se eliminó el auto-subscribe y los logs de depuración (ya no son necesarios en UI)
+    useEffect(() => {
+        hasNotificationPermission().then(setNotificationsAllowed);
+    }, []);
+
+    const askForNotificationPermission = useCallback(async () => {
+        const granted = await requestNotificationPermission(user?.id);
+        setNotificationsAllowed(granted);
+    }, [user?.id]);
 
     const scheduleEndBeep = useCallback((delaySec) => {
         cancelScheduledEndBeep();
@@ -240,7 +238,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
     }, [cancelScheduledEndBeep]);
 
     const unlockAudio = () => {
-        requestNotificationPermission().catch(() => {});
+        askForNotificationPermission().catch(() => {});
         try {
             if (audioCtxRef.current) {
                 if (audioCtxRef.current.state === 'suspended') {
@@ -340,11 +338,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                 phase: 'resting',
                 restEndDate: target,
             });
-            if (user?.id) {
-                subscribeToPush(user.id)
-                    .then(() => scheduleServerPush(user.id, target, sessionId))
-                    .catch(e => console.error('[Push] Repair failed on toggle', e));
-            }
+            cancelRestEnd(sessionId - 1);
+            scheduleRestEnd({ userId: user?.id, targetTime: target, sessionId });
         }
     };
 
@@ -504,7 +499,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
             scheduleEndBeep(dur);
 
             scheduleSWNotification(t, false, sessionId); // Schedule END notification
-            if (user?.id) scheduleServerPush(user.id, t, sessionId);
+            cancelRestEnd(sessionId - 1);
+            scheduleRestEnd({ userId: user?.id, targetTime: t, sessionId });
         } else {
             setTimerActive(false);
             setTargetTime(null);
@@ -513,9 +509,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
             // Sube el id de sesión aunque no arranque otro descanso ahora
             // mismo: cualquier push o mensaje local que ya estuviera en
             // vuelo para este descanso deja de coincidir con el id activo.
+            const cancelledSessionId = timerSessionIdRef.current;
             timerSessionIdRef.current += 1;
 
             scheduleSWNotification(null);
+            cancelRestEnd(cancelledSessionId);
         }
     };
 
@@ -636,9 +634,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                     {/* iOS / PWA Status Banner */}
                     {(() => {
                         const items = [];
-                        if ('Notification' in window && Notification.permission !== 'granted') {
+                        if (!notificationsAllowed) {
                             items.push(
-                                <li key="perm">Debes <button onClick={requestNotificationPermission} className="underline font-bold">Permitir Notificaciones</button>.</li>
+                                <li key="perm">Debes <button onClick={askForNotificationPermission} className="underline font-bold">Permitir Notificaciones</button>.</li>
                             );
                         }
                         // navigator.standalone solo existe en Safari: en el WKWebView
