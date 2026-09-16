@@ -1,0 +1,825 @@
+[
+  {
+    "id": 1,
+    "name": "Press de banca plano con barra",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo en el empuje y el deltoides anterior ayuda en la aducción/horizontalización del hombro."
+  },
+  {
+    "id": 2,
+    "name": "Press de banca inclinado con barra",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo para el empuje y el deltoides anterior contribuye a elevar/aducción horizontal del brazo."
+  },
+  {
+    "id": 3,
+    "name": "Aperturas de pecho con mancuernas",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro"
+    ],
+    "motivo": "El deltoides anterior participa en la aducción horizontal ayudando a acercar las mancuernas."
+  },
+  {
+    "id": 4,
+    "name": "Press de banca plano con mancuernas",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo durante el empuje y el deltoides anterior asiste en la aducción/horizontalización del hombro."
+  },
+  {
+    "id": 5,
+    "name": "Press de banca declinado con mancuernas",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo y el deltoides anterior colabora en la acción de llevar el brazo hacia delante/aducción."
+  },
+  {
+    "id": 6,
+    "name": "Aperturas planas con mancuernas",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro"
+    ],
+    "motivo": "El deltoides anterior ayuda en la aducción horizontal al juntar las mancuernas."
+  },
+  {
+    "id": 7,
+    "name": "Press banca con mancuernas",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo en el empuje y el deltoides anterior asiste en la aducción/horizontal del hombro."
+  },
+  {
+    "id": 8,
+    "name": "Press de pecho en máquina sentado",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo para empujar la carga y el deltoides anterior colabora en el movimiento del hombro."
+  },
+  {
+    "id": 9,
+    "name": "Press de banca",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo en el empuje y el deltoides anterior ayuda en la aducción/horizontal del hombro."
+  },
+  {
+    "id": 10,
+    "name": "Pull-over con mancuerna Inclinado",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Dorsal"
+    ],
+    "motivo": "El dorsal (latissimus) realiza extensión/adducción de hombro tirando la mancuerna desde atrás hacia el pecho."
+  },
+  {
+    "id": 11,
+    "name": "Press banca declinado",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo y el deltoides anterior asiste en la aducción/horizontalización del brazo."
+  },
+  {
+    "id": 12,
+    "name": "Flexiones de brazos",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo en la fase de empuje y el deltoides anterior contribuye a la aducción/horizontal del hombro."
+  },
+  {
+    "id": 13,
+    "name": "Aperturas de Pecho maquina",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro"
+    ],
+    "motivo": "El deltoides anterior ayuda en la aducción horizontal al aproximar los brazos en la apertura."
+  },
+  {
+    "id": 14,
+    "name": "Fondos de pecho",
+    "category": "Pecho",
+    "secondary_muscles": [
+      "Hombro",
+      "Tríceps"
+    ],
+    "motivo": "El tríceps extiende el codo para elevar el cuerpo y el deltoides anterior colabora en la flexión/aducción del hombro cuando se inclina el torso."
+  },
+  {
+    "id": 15,
+    "name": "Dominadas asistidas",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps"
+    ],
+    "motivo": "El bíceps flexiona el codo asistiendo en la tracción del cuerpo hacia arriba."
+  },
+  {
+    "id": 16,
+    "name": "Jalón al pecho agarre estrecho",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps"
+    ],
+    "motivo": "El bíceps flexiona el codo ayudando a tirar la barra hacia el pecho."
+  },
+  {
+    "id": 17,
+    "name": "Jalón al pecho agarre ancho",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps"
+    ],
+    "motivo": "El bíceps participa en la flexión del codo durante la tracción de la barra en agarre ancho."
+  },
+  {
+    "id": 18,
+    "name": "Jalón al pecho con brazos rectos",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Hombro"
+    ],
+    "motivo": "El deltoides posterior colabora en la extensión del hombro con los brazos prácticamente rectos."
+  },
+  {
+    "id": 19,
+    "name": "Jalón al pecho agarre neutro",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps"
+    ],
+    "motivo": "El bíceps flexiona el codo asistiendo en la tracción del agarre neutro hacia el torso."
+  },
+  {
+    "id": 20,
+    "name": "Remo en polea baja (Gironda)",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps",
+      "Hombro"
+    ],
+    "motivo": "El bíceps flexiona el codo para aproximar la empuñadura y el deltoides posterior contribuye en la abducción horizontal/retroversión del hombro."
+  },
+  {
+    "id": 21,
+    "name": "Remo en T apoyado",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps",
+      "Hombro"
+    ],
+    "motivo": "Bíceps: flexiona el codo para acercar la carga; Hombro: deltoides posterior ayuda en la extensión/horizontalización del hombro."
+  },
+  {
+    "id": 22,
+    "name": "Remo con punta",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps",
+      "Hombro"
+    ],
+    "motivo": "Bíceps: flexiona el codo para acercar la carga; Hombro: deltoides posterior ayuda en la extensión/horizontalización del hombro."
+  },
+  {
+    "id": 23,
+    "name": "Remo con barra",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps",
+      "Hombro"
+    ],
+    "motivo": "Bíceps: flexiona el codo para acercar la carga; Hombro: deltoides posterior ayuda en la extensión/horizontalización del hombro."
+  },
+  {
+    "id": 24,
+    "name": "Remo en banco con mancuernas una mano",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Bíceps",
+      "Hombro"
+    ],
+    "motivo": "Bíceps: flexiona el codo para acercar la carga; Hombro: deltoides posterior ayuda en la extensión/horizontalización del hombro."
+  },
+  {
+    "id": 25,
+    "name": "Curl con barra",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 26,
+    "name": "Curl predicador (Banco Scott)",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 27,
+    "name": "Curl con mancuernas alterno",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 28,
+    "name": "Curl con mancuernas sentado",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 29,
+    "name": "Curl con mancuernas banco inclinado",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 30,
+    "name": "Curl en polea baja",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 31,
+    "name": "Curl de bíceps martillo con polea baja",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 32,
+    "name": "Curl concentrado",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 33,
+    "name": "Dominadas asistidas (Bíceps)",
+    "category": "Bíceps",
+    "secondary_muscles": [
+      "Dorsal"
+    ],
+    "motivo": "Dorsal: aduce y extiende el hombro para tirar del cuerpo hacia la barra."
+  },
+  {
+    "id": 34,
+    "name": "Curl tumbado barra z en polea gironda",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 35,
+    "name": "Curl de antebrazo supinación",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 36,
+    "name": "Curl de antebrazo pronación",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 37,
+    "name": "Enrollamiento de muñeca",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 38,
+    "name": "Curl invertido con barra",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 39,
+    "name": "Curl tríceps polea alta",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 40,
+    "name": "Extensión trasnuca con polea alta",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas que muevan la carga según el criterio."
+  },
+  {
+    "id": 41,
+    "name": "Extensión en polea alta",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 42,
+    "name": "Press francés con barra",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 43,
+    "name": "Press francés con barra z",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 44,
+    "name": "Extensión de tríceps a una mano",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 45,
+    "name": "Press de banca agarre cerrado una mano",
+    "category": "Tríceps",
+    "secondary_muscles": [
+      "Hombro",
+      "Pecho"
+    ],
+    "motivo": "Pecho: aducción/horizontal del brazo que ayuda en el empuje; Hombro: flexión/anterior que asiste a mover la carga."
+  },
+  {
+    "id": 46,
+    "name": "Patada de tríceps con mancuerna",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 47,
+    "name": "Press francés de pie",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 48,
+    "name": "Fondos en paralelas / máquina",
+    "category": "Tríceps",
+    "secondary_muscles": [
+      "Hombro",
+      "Pecho"
+    ],
+    "motivo": "Pecho: aducción/empuje horizontal que contribuye al levantamiento del cuerpo; Hombro: acción anterior/flexora que ayuda a empujar hacia arriba."
+  },
+  {
+    "id": 49,
+    "name": "Fondos entre bancos",
+    "category": "Tríceps",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos activos; el movimiento es extensión de codo realizada por el tríceps."
+  },
+  {
+    "id": 50,
+    "name": "Press militar en máquina",
+    "category": "Hombro",
+    "secondary_muscles": [
+      "Tríceps"
+    ],
+    "motivo": "Extensión de codo que completa el empuje de la carga en la fase de subida."
+  },
+  {
+    "id": 51,
+    "name": "Press militar con barra sentado",
+    "category": "Hombro",
+    "secondary_muscles": [
+      "Tríceps"
+    ],
+    "motivo": "Extensión de codo que completa el empuje de la barra en la fase de subida."
+  },
+  {
+    "id": 52,
+    "name": "Press de hombro con barra",
+    "category": "Hombro",
+    "secondary_muscles": [
+      "Tríceps"
+    ],
+    "motivo": "Extensión de codo que asiste en la elevación de la barra sobre la cabeza."
+  },
+  {
+    "id": 53,
+    "name": "Press con mancuernas sentado",
+    "category": "Hombro",
+    "secondary_muscles": [
+      "Tríceps"
+    ],
+    "motivo": "Extensión de codo que ayuda a finalizar el empuje de las mancuernas."
+  },
+  {
+    "id": 54,
+    "name": "Elevaciones laterales con mancuernas",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos del vocabulario que muevan la carga; el deltoides lateral realiza la abducción."
+  },
+  {
+    "id": 55,
+    "name": "Elevación lateral en polea baja",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos del vocabulario que muevan la carga; el deltoides lateral realiza la abducción."
+  },
+  {
+    "id": 56,
+    "name": "Elevación frontal con mancuernas",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos del vocabulario que muevan la carga; el deltoides anterior realiza la flexión del hombro."
+  },
+  {
+    "id": 57,
+    "name": "Pájaros sentado con mancuerna",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos del vocabulario que muevan la carga; el deltoides posterior realiza la extensión/horizontal del hombro."
+  },
+  {
+    "id": 58,
+    "name": "Elevación lateral polea baja (V2)",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos del vocabulario que muevan la carga; el deltoides lateral realiza la abducción."
+  },
+  {
+    "id": 59,
+    "name": "Elevación frontal en polea",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos del vocabulario que muevan la carga; el deltoides anterior realiza la flexión del hombro."
+  },
+  {
+    "id": 60,
+    "name": "Remo mentón con barra",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinérgicos claros del vocabulario que muevan la carga; el deltoides (y trapecio) elevan la barra en el recorrido."
+  },
+  {
+    "id": 61,
+    "name": "Elevación de hombros en polea baja",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 62,
+    "name": "Encogimiento de hombros con mancuernas",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 63,
+    "name": "Extensión de cuádriceps",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 64,
+    "name": "Prensa de piernas inclinada",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Contribuye a la extensión de cadera al empujar la plataforma."
+  },
+  {
+    "id": 65,
+    "name": "Sentadilla en máquina (Hack)",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Participa en la extensión de cadera al levantarse desde la sentadilla."
+  },
+  {
+    "id": 66,
+    "name": "Sentadilla con mancuerna",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Realiza extensión de cadera al subir desde la sentadilla, ayudando a mover la carga."
+  },
+  {
+    "id": 67,
+    "name": "Prensa de piernas horizontal",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Ayuda en la extensión de cadera durante el empuje de la plataforma."
+  },
+  {
+    "id": 68,
+    "name": "Curl femoral tumbado",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 69,
+    "name": "Curl femoral sentado",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 70,
+    "name": "Peso muerto rumano",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Extiende la cadera durante el descenso y ascenso, contribuyendo a levantar la carga."
+  },
+  {
+    "id": 71,
+    "name": "Zancadas / Estocadas",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Realiza extensión de cadera al avanzar y empujar, asistiendo en el movimiento."
+  },
+  {
+    "id": 72,
+    "name": "Elevación de gemelos de pie",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 73,
+    "name": "Elevación de gemelos sentado",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 74,
+    "name": "Gemelos en prensa",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 75,
+    "name": "Abducción de cadera de pie (polea)",
+    "category": "Pierna",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Abduce la cadera elevando la pierna lateralmente contra la resistencia."
+  },
+  {
+    "id": 76,
+    "name": "Extensión de pierna en máquina (Kickback)",
+    "category": "Glúteo",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Los isquiotibiales (porción posterior del muslo) asisten en la extensión de cadera durante la patada."
+  },
+  {
+    "id": 77,
+    "name": "Extensión de pierna en polea baja",
+    "category": "Glúteo",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Los isquiotibiales (porción posterior del muslo) asisten en la extensión de cadera durante la patada."
+  },
+  {
+    "id": 78,
+    "name": "Abductor (Máquina o Polea)",
+    "category": "Glúteo",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Asiste en la abducción de cadera separando la pierna lateralmente (porción del muslo/TFL)."
+  },
+  {
+    "id": 79,
+    "name": "Aductor en maquina",
+    "category": "Glúteo",
+    "secondary_muscles": [],
+    "motivo": "No hay músculos sinergistas activos moviendo la carga."
+  },
+  {
+    "id": 80,
+    "name": "Patada lateral de glúteo",
+    "category": "Glúteo",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "La porción lateral del muslo (TFL) asiste en la abducción elevando la pierna lateralmente."
+  },
+  {
+    "id": 81,
+    "name": "Puentes de glúteo (Hip Thrust)",
+    "category": "Glúteo",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Isquiotibiales ayudan a extender la cadera y elevar la carga."
+  },
+  {
+    "id": 82,
+    "name": "Abducción de cadera con banda elástica",
+    "category": "Glúteo",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Músculos laterales del muslo (TFL/parte lateral) asisten la abducción de cadera moviendo la pierna."
+  },
+  {
+    "id": 83,
+    "name": "Crunch abdominal en máquina",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el movimiento lo realiza principalmente el recto abdominal."
+  },
+  {
+    "id": 84,
+    "name": "Crunch en banco declinado",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el movimiento lo realiza principalmente el recto abdominal."
+  },
+  {
+    "id": 85,
+    "name": "Elevación de piernas (Silla romana)",
+    "category": "Abdomen",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Flexores de cadera (iliopsoas/recto femoral) contraen para elevar las piernas."
+  },
+  {
+    "id": 86,
+    "name": "Crunch abdominal banco declinado",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el movimiento lo realiza principalmente el recto abdominal."
+  },
+  {
+    "id": 87,
+    "name": "Crunch de rodillas en banco",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el encogimiento se centra en el recto abdominal sin sinergistas obvios."
+  },
+  {
+    "id": 88,
+    "name": "Elevación de piernas en banco",
+    "category": "Abdomen",
+    "secondary_muscles": [
+      "Pierna"
+    ],
+    "motivo": "Flexores de cadera activamente elevan las piernas durante el movimiento."
+  },
+  {
+    "id": 89,
+    "name": "Crunch abdominal piernas elevadas banco",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el trabajo lo realiza principalmente la musculatura abdominal."
+  },
+  {
+    "id": 90,
+    "name": "Encogimiento de piernas",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el movimiento se centra en la contracción abdominal más que en sinergistas."
+  },
+  {
+    "id": 91,
+    "name": "Giro de tronco (Oblicuos)",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: la rotación la realizan los oblicuos sin sinergistas evidentes que muevan la carga."
+  },
+  {
+    "id": 92,
+    "name": "Abdominal oblicuo con mancuerna de pie",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: la carga se mueve por la flexión/rotación del tronco, no por el deltoides."
+  },
+  {
+    "id": 93,
+    "name": "Giro de tronco con pica",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: la rotación del tronco es la acción principal sin sinergistas obvios."
+  },
+  {
+    "id": 94,
+    "name": "Extensiones de tronco en banco",
+    "category": "Abdomen",
+    "secondary_muscles": [
+      "Glúteo"
+    ],
+    "motivo": "Glúteos asisten en la extensión de cadera al elevar el torso desde la flexión."
+  },
+  {
+    "id": 95,
+    "name": "Flexiones con barra (Good Mornings)",
+    "category": "Abdomen",
+    "secondary_muscles": [
+      "Glúteo",
+      "Pierna"
+    ],
+    "motivo": "Isquiotibiales y glúteos colaboran en la extensión de cadera para controlar y levantar la barra."
+  },
+  {
+    "id": 96,
+    "name": "Flexiones de pie con barra trasnuca",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro por ambigüedad del ejercicio; no hay sinergistas definitivos que muevan la carga."
+  },
+  {
+    "id": 97,
+    "name": "Plancha abdominal (Plank)",
+    "category": "Abdomen",
+    "secondary_muscles": [],
+    "motivo": "Ninguno: es una contracción isométrica de estabilización, no sinergistas que muevan la carga."
+  },
+  {
+    "id": 98,
+    "name": "Hombro posterior polea alta a una mano",
+    "category": "Hombro",
+    "secondary_muscles": [],
+    "motivo": "Ninguno claro: el deltoides posterior realiza la mayor parte del movimiento sin sinergistas evidentes."
+  },
+  {
+    "id": 99,
+    "name": "pullover con mancuernas en banco",
+    "category": "Dorsal",
+    "secondary_muscles": [
+      "Pecho"
+    ],
+    "motivo": "Pectoral contribuye a la aducción/extensión del húmero durante el pullover."
+  },
+  {
+    "id": 100,
+    "name": "Femoral sentado en maquina",
+    "category": "Pierna",
+    "secondary_muscles": [],
+    "motivo": "Ninguno: el femoral (isquiotibiales) es el músculo principal que mueve la carga en la máquina."
+  },
+  {
+    "id": 102,
+    "name": "Curl tumbado barra Z en polea Gironda",
+    "category": "Bíceps",
+    "secondary_muscles": [],
+    "motivo": "Ningún músculo del vocabulario actúa como sinergista; el ejercicio aísla la flexión de codo."
+  }
+]
