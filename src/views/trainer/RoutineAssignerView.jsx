@@ -4,8 +4,9 @@ import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { cloneRoutineToClient, fetchRecentHistorySummary, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from '../../lib/trainerUtils';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { useAuth } from '../../context/AuthContext';
-import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2, SlidersHorizontal } from 'lucide-react';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
+import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -100,47 +101,67 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
 
 // Lista de ejercicios elegidos con reordenar/quitar. Se reusa en el rail
 // derecho (md+) y en la barra inferior colapsable (móvil).
-function SelectedExerciseList({ selected, onMove, onRemove }) {
+function SelectedExerciseList({ selected, onMove, onRemove, onUpdate }) {
+    const [expanded, setExpanded] = useState({});
+    const toggleExpanded = (catalogId) => setExpanded(prev => ({ ...prev, [catalogId]: !prev[catalogId] }));
+
     return (
         <div className="space-y-2">
             {selected.map((ex, idx) => (
-                <div key={ex.catalog_id} className="flex items-center gap-3 bg-background rounded-xl px-3 py-2">
-                    <div className="flex flex-col flex-shrink-0 -my-1">
-                        <button
-                            onClick={() => onMove(ex.catalog_id, -1)}
-                            disabled={idx === 0}
-                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
-                        >
-                            <ChevronUp size={13} />
-                        </button>
-                        <button
-                            onClick={() => onMove(ex.catalog_id, 1)}
-                            disabled={idx === selected.length - 1}
-                            className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
-                        >
-                            <ChevronDown size={13} />
-                        </button>
-                    </div>
-                    {ex.image_url ? (
-                        <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
-                    ) : (
-                        <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
-                            <Dumbbell size={12} className="text-text-secondary" />
+                <div key={ex.catalog_id} className="bg-background rounded-xl">
+                    <div className="flex items-center gap-3 px-3 py-2">
+                        <div className="flex flex-col flex-shrink-0 -my-1">
+                            <button
+                                onClick={() => onMove(ex.catalog_id, -1)}
+                                disabled={idx === 0}
+                                className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                            >
+                                <ChevronUp size={13} />
+                            </button>
+                            <button
+                                onClick={() => onMove(ex.catalog_id, 1)}
+                                disabled={idx === selected.length - 1}
+                                className="w-5 h-4 flex items-center justify-center text-text-secondary hover:text-primary disabled:opacity-20 disabled:hover:text-text-secondary transition-colors"
+                            >
+                                <ChevronDown size={13} />
+                            </button>
                         </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                        <span className="block text-xs text-text-primary truncate">{ex.name}</span>
-                        {ex.motivo && (
-                            <span className="block text-[10px] text-text-secondary italic truncate">{ex.motivo}</span>
+                        {ex.image_url ? (
+                            <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
+                                <Dumbbell size={12} className="text-text-secondary" />
+                            </div>
                         )}
+                        <div className="flex-1 min-w-0">
+                            <span className="block text-xs text-text-primary truncate">{ex.name}</span>
+                            {ex.motivo && (
+                                <span className="block text-[10px] text-text-secondary italic truncate">{ex.motivo}</span>
+                            )}
+                        </div>
+                        <span className="text-xs text-text-secondary font-bold flex-shrink-0">{ex.series}×{ex.reps}</span>
+                        {onUpdate && (
+                            <button
+                                onClick={() => toggleExpanded(ex.catalog_id)}
+                                className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 transition-colors ${expanded[ex.catalog_id] ? 'text-primary' : 'text-text-secondary hover:text-primary'}`}
+                                title="Prescribir peso, RIR y descanso"
+                            >
+                                <SlidersHorizontal size={13} />
+                            </button>
+                        )}
+                        <button
+                            onClick={() => onRemove(ex.catalog_id)}
+                            className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors"
+                        >
+                            <X size={12} />
+                        </button>
                     </div>
-                    <span className="text-xs text-text-secondary font-bold flex-shrink-0">{ex.series}×{ex.reps}</span>
-                    <button
-                        onClick={() => onRemove(ex.catalog_id)}
-                        className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors"
-                    >
-                        <X size={12} />
-                    </button>
+                    {onUpdate && expanded[ex.catalog_id] && (
+                        <ExercisePrescriptionInputs
+                            values={ex}
+                            onChange={(field, value) => onUpdate(ex.catalog_id, field, value)}
+                        />
+                    )}
                 </div>
             ))}
         </div>
@@ -686,6 +707,9 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 image_url: ex.image_url || null,
                 series: 3,
                 reps: 10,
+                target_weight: null,
+                target_rir: null,
+                rest_seconds: null,
             }]);
         }
     };
@@ -1026,6 +1050,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 selected={selectedExercises}
                                 onMove={moveSelected}
                                 onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
+                                onUpdate={updateSelected}
                             />
                         ) : (
                             <p className="text-xs text-text-secondary">Toca ejercicios del catálogo para añadirlos a la rutina.</p>
@@ -1054,6 +1079,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 selected={selectedExercises}
                                 onMove={moveSelected}
                                 onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
+                                onUpdate={updateSelected}
                             />
                         </div>
                     )}

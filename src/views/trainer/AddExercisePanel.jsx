@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
-import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check } from 'lucide-react';
+import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check, SlidersHorizontal, X } from 'lucide-react';
+import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
 
 export function AddExercisePanel({ assignment, onClose, onAdded }) {
     const [catalog, setCatalog] = useState([]);
@@ -10,6 +11,7 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
     const [selected, setSelected] = useState([]);
     const [saving, setSaving] = useState(false);
     const [collapsedGroups, setCollapsedGroups] = useState({});
+    const [expandedPrescription, setExpandedPrescription] = useState({});
 
     useEffect(() => {
         const fetch = async () => {
@@ -57,6 +59,9 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 image_url: ex.image_url || null,
                 series: 3,
                 reps: 10,
+                target_weight: null,
+                target_rir: null,
+                rest_seconds: null,
             }]);
         }
     };
@@ -65,6 +70,10 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
         setSelected(prev =>
             prev.map(s => s.catalog_id === catalogId ? { ...s, [field]: value } : s)
         );
+    };
+
+    const togglePrescription = (catalogId) => {
+        setExpandedPrescription(prev => ({ ...prev, [catalogId]: !prev[catalogId] }));
     };
 
     const toggleGroup = (group) => {
@@ -94,6 +103,9 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 image_url: ex.image_url,
                 catalog_id: ex.catalog_id ?? null,
                 ui_order: maxOrder + i + 1,
+                target_weight: ex.target_weight || null,
+                target_rir: ex.target_rir || null,
+                rest_seconds: ex.rest_seconds || null,
             }));
 
             const { data: inserted, error } = await supabase
@@ -142,6 +154,42 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                     />
                 </div>
             </div>
+
+            {selected.length > 0 && (
+                <div className="px-4 pb-2 space-y-2 max-h-[40vh] overflow-y-auto">
+                    {selected.map(ex => (
+                        <div key={ex.catalog_id} className="bg-background rounded-xl">
+                            <div className="flex items-center gap-3 px-3 py-2">
+                                {ex.image_url ? (
+                                    <img src={ex.image_url} alt={ex.name} className="w-8 h-8 rounded-lg object-contain flex-shrink-0" loading="lazy" />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-surface-highlight flex items-center justify-center flex-shrink-0">
+                                        <Dumbbell size={12} className="text-text-secondary" />
+                                    </div>
+                                )}
+                                <span className="flex-1 min-w-0 text-xs text-text-primary truncate">{ex.name}</span>
+                                <span className="text-xs text-text-secondary font-bold flex-shrink-0">{ex.series}×{ex.reps}</span>
+                                <button
+                                    onClick={() => togglePrescription(ex.catalog_id)}
+                                    className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 transition-colors ${expandedPrescription[ex.catalog_id] ? 'text-primary' : 'text-text-secondary hover:text-primary'}`}
+                                    title="Prescribir peso, RIR y descanso"
+                                >
+                                    <SlidersHorizontal size={13} />
+                                </button>
+                                <button onClick={() => toggleExercise({ id: ex.catalog_id })} className="w-6 h-6 flex items-center justify-center text-text-secondary hover:text-red-500 transition-colors flex-shrink-0">
+                                    <X size={12} />
+                                </button>
+                            </div>
+                            {expandedPrescription[ex.catalog_id] && (
+                                <ExercisePrescriptionInputs
+                                    values={ex}
+                                    onChange={(field, value) => updateSelected(ex.catalog_id, field, value)}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto px-4 pb-8 pt-2 space-y-6">
                 {loading ? (
