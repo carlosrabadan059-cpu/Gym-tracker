@@ -28,9 +28,13 @@ export function MuscleRecoveryCard({ data }) {
                     <div key={category} className="flex items-center gap-2.5">
                         <span className="w-16 flex-shrink-0 text-[11px] text-text-secondary">{category}</span>
                         <div className="flex-1 h-2 rounded-full bg-surface-highlight overflow-hidden">
+                            {/* Mínimo del 4%: a 0% la barra desaparecería del todo y el
+                                grupo más fatigado —lo que más importa ver— quedaría
+                                indistinguible de uno sin datos. El color lleva el estado,
+                                así que tiene que quedar algo de color. */}
                             <div
                                 className={`h-full rounded-full transition-all ${STATE_STYLES[state].bar}`}
-                                style={{ width: `${recovery}%` }}
+                                style={{ width: `${Math.max(4, recovery)}%` }}
                             />
                         </div>
                         <span className="w-9 flex-shrink-0 text-right text-[11px] font-mono text-text-primary">
