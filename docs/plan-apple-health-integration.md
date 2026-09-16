@@ -345,7 +345,15 @@ acortar el heartbeat y loguear a una tabla consultable en vez de solo
   (no soportados en WKWebView, por eso no funcionaban en la app nativa). Ver
   `docs/superpowers/specs/2026-09-16-haptics-entreno-design.md`. Pendiente de
   validar en iPhone físico — el simulador no vibra.
-- **Widget de pantalla de inicio** (`Cap-go/capacitor-widget-kit`, gratis): racha + pasos del día, sin abrir la app.
+- **Widget de pantalla de inicio.** ✅ Hecho (2026-09-16), sin
+  `capacitor-widget-kit` — plugin local (`HomeWidgetPlugin.swift`, mismo
+  patrón que `LiveActivityPlugin.swift`) + App Group
+  `group.com.rutinex.app`, reutilizando la extensión de widgets ya
+  existente de la Live Activity. Ver
+  `docs/superpowers/specs/2026-09-16-widget-pantalla-inicio-design.md`.
+  Pendiente del usuario: activar App Groups en Xcode (Signing &
+  Capabilities de `App` y `RutinexWidgets`) y verificar en dispositivo
+  real.
 - Frecuencia cardiaca en vivo durante el entreno — más caro técnicamente (requiere sesión HealthKit en vivo, `HKWorkoutSession`, no una simple lectura por lotes). Dejar para el final.
 - Vista de entrenador viendo datos de salud de un cliente — implica compartir datos de salud entre usuarios, tema de privacidad que se decide aparte; no entra en el alcance de este plan.
 
@@ -584,12 +592,12 @@ a propósito, para que quede como referencia y no se reabra sin motivo:
     Function nueva) para una ganancia solo cosmética — el Web Push ya
     despierta la pantalla y avisa. Se retoma solo si se pide expresamente.
 - **Fase 5 (pulido opcional)**: notificaciones proactivas (inactividad,
-  insight semanal, entreno sin registrar) y haptics ✅ hechas (2026-09-16).
-  Quedan sin empezar el widget de pantalla de inicio y la frecuencia
-  cardíaca en vivo — requieren trabajo nativo Swift/WidgetKit real, fuera
-  del alcance de una sesión de código; se abordan en una sesión dedicada
-  con iteración en Xcode. Es opcional por definición desde que se escribió
-  el plan, no bloquea el cierre.
+  insight semanal, entreno sin registrar), haptics y widget de pantalla de
+  inicio ✅ hechas (2026-09-16). Queda sin empezar solo la frecuencia
+  cardíaca en vivo (`HKWorkoutSession`) — más cara, requiere trabajo nativo
+  real con iteración en Xcode; se aborda en una sesión dedicada. Es
+  opcional por definición desde que se escribió el plan, no bloquea el
+  cierre.
 - **Fuera de alcance de v2 desde el principio**: calculadora de discos,
   RPE, superseries, mapa de recuperación muscular — viven en la
   **versión 3** ([plan-gym-app-features.md](plan-gym-app-features.md)).
