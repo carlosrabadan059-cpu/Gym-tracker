@@ -7,6 +7,7 @@
 // estas funciones pasan a hablar con HealthKit de verdad.
 import { Capacitor } from '@capacitor/core';
 import { Health } from '@capgo/capacitor-health';
+import { pickLiveHeartRate } from './heartRate';
 
 export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform();
 
@@ -14,7 +15,9 @@ export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform(
 // ambos al mismo dato nativo (activeEnergyBurned) pero solo permite
 // agregación (sum) sobre 'calories' — 'totalCalories' solo vale con
 // readSamples. Ver getTodayMetrics().
-const READ_TYPES = ['steps', 'weight', 'calories', 'restingHeartRate', 'workouts'];
+// 'heartRate' (muestra instantánea) es distinto de 'restingHeartRate' (un
+// valor diario): hace falta para la FC en vivo del descanso, Fase 5.
+const READ_TYPES = ['steps', 'weight', 'calories', 'restingHeartRate', 'heartRate', 'workouts'];
 
 /**
  * Pide permiso de lectura para lo que necesita el Dashboard/Estadísticas
@@ -184,6 +187,37 @@ export async function getRestingHrHistory({ days = 7 } = {}) {
             date: WEEKDAY_LABELS[new Date(s.startDate).getDay()],
             bpm: Math.round(s.value),
         }));
+}
+
+/**
+ * Pulso de ahora mismo, para verlo caer durante el descanso entre series
+ * (Fase 5). Único sitio del módulo que usa readSamples en vez de
+ * queryAggregated: hace falta la marca de tiempo de la muestra concreta
+ * para saber si el dato está fresco, y una agregación la perdería.
+ *
+ * Devuelve null si no hay nada utilizable — sin Watch, o con el Watch
+ * puesto pero sin entreno arrancado en él (ahí solo muestrea cada 5-10
+ * min). La ventana de consulta es más ancha que el umbral de frescura a
+ * propósito: el filtro vive en pickLiveHeartRate, en un solo sitio.
+ */
+export async function getLiveHeartRate() {
+    if (!isHealthAvailableOnThisPlatform()) return null;
+
+    try {
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - 2 * 60 * 1000);
+
+        const { samples } = await Health.readSamples({
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            dataType: 'heartRate',
+        });
+
+        return pickLiveHeartRate(samples);
+    } catch (err) {
+        console.error('[Health] No se pudo leer la FC en vivo:', err);
+        return null;
+    }
 }
 
 /**

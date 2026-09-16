@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, History, Trophy, Sparkles } from 'lucide-react';
+import { X, Check, History, Trophy, Sparkles, Heart } from 'lucide-react';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
@@ -8,6 +8,7 @@ import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils'
 import { useAuth } from '../context/AuthContext';
 import { subscribeToPush, scheduleServerPush } from '../lib/pushNotifications';
 import { updateWorkoutActivity } from '../lib/liveActivity';
+import { getLiveHeartRate, isHealthAvailableOnThisPlatform } from '../lib/appleHealth';
 import { ExerciseCommentThread } from '../components/shared/ExerciseCommentThread';
 
 function hapticSetComplete() {
@@ -101,6 +102,47 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         timerStateRef.current = { timerActive, targetTime, selectedDuration };
         onTimerStateChangeRef.current?.({ timerActive, targetTime, selectedDuration });
     }, [timerActive, targetTime, selectedDuration]);
+
+    // FC en vivo: solo durante el descanso, que es cuando de verdad puedes
+    // mirar el móvil y cuando interesa ver caer la pulsación. Se lee cada 5s
+    // porque es la cadencia a la que el Watch escribe con un entreno
+    // arrancado; sin entreno en el Watch la muestra llega vieja y
+    // getLiveHeartRate devuelve null (estado apagado). Ver
+    // docs/superpowers/specs/2026-09-16-fc-en-vivo-design.md.
+    const [liveHr, setLiveHr] = useState(null);
+    const hrPeakRef = useRef(null);
+
+    useEffect(() => {
+        if (!timerActive || !isHealthAvailableOnThisPlatform()) return;
+
+        hrPeakRef.current = null;
+        let cancelled = false;
+
+        // El pico se acumula en un ref (no dispara render por sí mismo) pero
+        // viaja dentro del estado, para que el render no dependa de leerlo.
+        const read = async () => {
+            const reading = await getLiveHeartRate();
+            if (cancelled) return;
+            if (!reading) {
+                setLiveHr(null);
+                return;
+            }
+            const peak = hrPeakRef.current == null || reading.bpm > hrPeakRef.current
+                ? reading.bpm
+                : hrPeakRef.current;
+            hrPeakRef.current = peak;
+            setLiveHr({ bpm: reading.bpm, peak });
+        };
+
+        read();
+        const id = setInterval(read, 5000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+            setLiveHr(null);
+        };
+    }, [timerActive]);
 
     const scheduleSWNotification = useCallback((targetTime, isStart = false, sessionId = null) => {
         if (!('serviceWorker' in navigator)) return;
@@ -649,6 +691,33 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                 </>
                             )}
                         </button>
+
+                        {timerActive && isHealthAvailableOnThisPlatform() && (
+                            <div className="mt-3 flex flex-col items-center">
+                                {liveHr ? (
+                                    <div className="flex items-baseline gap-2">
+                                        <Heart size={16} className="self-center text-red-500" />
+                                        {liveHr.peak !== liveHr.bpm && (
+                                            <span className="font-mono text-sm text-text-secondary">
+                                                {liveHr.peak} →
+                                            </span>
+                                        )}
+                                        <span className="font-mono text-2xl font-bold">{liveHr.bpm}</span>
+                                        <span className="text-xs text-text-secondary">bpm</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-1">
+                                        <div className="flex items-center gap-2 text-text-secondary">
+                                            <Heart size={16} />
+                                            <span className="font-mono text-2xl">—</span>
+                                        </div>
+                                        <span className="text-xs text-text-secondary">
+                                            Arranca el entreno en el Watch
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Targets */}
