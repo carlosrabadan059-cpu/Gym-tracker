@@ -368,23 +368,13 @@ revisando código relacionado — quedan aquí para no perderlas; encajaría
 también abrirlas como issues sueltos en GitHub si se prefiere seguir el
 flujo normal de `docs/agents/issue-tracker.md`.
 
-- **Diálogo nativo de iOS "Shake to Undo" apareciendo durante el entreno**
-  (el usuario lo describe como "me pregunta si deseo cancelar" al mover el
-  móvil). Causa real encontrada en
-  [GymTrackerApp.jsx:31-87](../src/GymTrackerApp.jsx#L31-L87)
-  (`useShakeToUndoPrevention`): el hook está pensado para desenfocar el
-  input activo ANTES de que iOS muestre su diálogo nativo (~15 m/s²), pero
-  el umbral se subió de `8` a `22` en el commit `bfd20fe` ("shake threshold")
-  para evitar falsos positivos por el móvil en el bolsillo. El problema: 22
-  está POR ENCIMA del umbral real de iOS (~15), así que ya no lo adelanta —
-  durante un entreno (brazo moviéndose, móvil en banda/soporte) el diálogo
-  nativo de iOS dispara igual. Bajar el número sin más reintroduce el
-  problema original (falsos positivos en bolsillo) que motivó subirlo a 22.
-  Mejor solución probable: en vez de un único umbral instantáneo, exigir 2+
-  cruces del umbral en una ventana corta (p. ej. 500ms) antes de desenfocar
-  — distingue una sacudida real (oscilación rápida) de un solo golpe o
-  vibración continua, permitiendo bajar el umbral base sin disparar tanto
-  por movimiento normal.
+- **Diálogo nativo de iOS "Shake to Undo" apareciendo durante el entreno.**
+  ✅ Arreglado (commit `e718150`): en vez de un umbral instantáneo, exige 3
+  picos en una ventana de 600ms antes de desenfocar — distingue una
+  sacudida real (oscilación rápida) de un golpe suelto o vibración
+  continua, permitiendo bajar el umbral a 12 (por debajo del de iOS, ~15)
+  sin falsos positivos. Ver `useShakeToUndoPrevention` en
+  [GymTrackerApp.jsx](../src/GymTrackerApp.jsx).
 - **Fallos intermitentes del aviso de fin de descanso**: ver el prerrequisito
   documentado en la Fase 4 arriba — mismo mecanismo (`send-timer-push`),
   mismo diagnóstico.
