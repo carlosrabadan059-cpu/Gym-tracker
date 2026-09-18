@@ -630,6 +630,11 @@ a propósito, para que quede como referencia y no se reabra sin motivo:
   `HKWorkoutSession`"), pero esa premisa era falsa: esa API es de watchOS
   y el iPhone no tiene sensor de pulso, así que leer muestras de HealthKit
   no era el atajo sino el único camino. Acabó sin una línea de Swift.
+- **App de Apple Watch (2026-09-18)**: añadida después de cerrar v2, con su
+  propio spec (`docs/superpowers/specs/2026-09-17-app-watch-design.md`) y
+  validada en dispositivo. Resuelve dos límites que el iPhone solo no puede:
+  el aviso de fin de descanso con el iPhone desbloqueado y el retraso del
+  pulso leído de HealthKit.
 - **Fuera de alcance de v2 desde el principio**: calculadora de discos,
   RPE, superseries, mapa de recuperación muscular — viven en la
   **versión 3** ([plan-gym-app-features.md](plan-gym-app-features.md)).

@@ -104,6 +104,30 @@ Tailwind CSS with CSS variables for theming (light/dark). Theme state is in [The
 - iOS-specific handling: shake-to-undo prevention, safe area insets, mobile viewport meta
 - Pull-to-refresh on Dashboard is implemented with custom touch event handlers
 
+### App de Apple Watch (nativo)
+
+`ios/App/RutinexWatch Watch App/` es un target watchOS propio, dentro del
+mismo proyecto de Xcode. Arranca el entreno en el reloj
+(`HKWorkoutSession` + `HKLiveWorkoutBuilder`), y mientras dura:
+
+- vibra al acabar el descanso, aunque el iPhone esté desbloqueado — iOS solo
+  reenvía notificaciones al Watch con el iPhone bloqueado;
+- manda el pulso al iPhone, que así coincide con el del reloj.
+
+El canal con el iPhone es WatchConnectivity, a través del plugin local
+`ios/App/App/WatchBridgePlugin.swift` y de [src/lib/watchBridge.js](src/lib/watchBridge.js).
+`restNotification.js` lo intenta primero y solo programa la notificación
+local si el Watch no confirma. `appleHealth.getLiveHeartRate` prefiere la
+muestra del Watch y cae a HealthKit si no la hay.
+
+Cardio y fuerza son entrenos separados en el reloj, cada uno con su
+Terminar. **El botón "+" del Watch no vale**: junta los dos en un solo
+`HKWorkout` de un solo tipo, y el plugin de Health no lee los tramos. Al
+terminar la sesión, `TrainingView` lee de Health el cardio y las kcal de
+fuerza; por eso en nativo ya no se pregunta por el cardio al empezar.
+
+Ver [docs/superpowers/specs/2026-09-17-app-watch-design.md](docs/superpowers/specs/2026-09-17-app-watch-design.md).
+
 ## Product planning
 
 Live plans live in `docs/`, versioned:
