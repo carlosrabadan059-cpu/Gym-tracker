@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { startWorkoutActivity, updateWorkoutActivity, endWorkoutActivity } from '../lib/liveActivity';
-import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, cardioFromWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
 import { groupConsecutiveExercises } from '../lib/superset';
 
 const TrainingView = ({ workout, onFinish }) => {
@@ -366,23 +366,39 @@ const TrainingView = ({ workout, onFinish }) => {
                     let realCalories = calculateRealCalories(activeWorkout.exercises, userWeight, durationMinutes);
                     let caloriesSource = 'estimated';
 
+                    let cardio = activeWorkout?.cardio;
+
                     // v2 Fase 2: si hubo un entreno de fuerza en el Watch que
                     // cubre esta sesión, sus kcal reales sustituyen la
                     // estimación MET. Best-effort — si Health falla, se sigue
                     // con la estimación de siempre.
                     if (isHealthAvailableOnThisPlatform()) {
                         try {
-                            const watchWorkout = await getMostRecentWorkout({ sinceMinutesAgo: durationMinutes + 15 });
-                            if (isStrengthWorkout(watchWorkout) && watchWorkout.totalEnergyBurned) {
+                            const watchWorkout = await getMostRecentWorkout({ sinceMinutesAgo: durationMinutes + 15, match: isStrengthWorkout });
+                            if (watchWorkout?.totalEnergyBurned) {
                                 realCalories = Math.round(watchWorkout.totalEnergyBurned);
                                 caloriesSource = 'health';
                             }
                         } catch (err) {
                             console.error('[Health] No se pudo leer el entreno de fuerza del Watch:', err);
                         }
+
+                        // El cardio del Watch no existe en Health hasta que se
+                        // termina en el reloj, así que al empezar la sesión
+                        // (selector de cardio) suele no estar. Se vuelve a
+                        // buscar aquí: tiempo y kcal reales sustituyen lo
+                        // elegido a mano, y si no se eligió nada se añade.
+                        if (cardio?.source !== 'health') {
+                            try {
+                                const watchCardio = cardioFromWorkout(await getMostRecentWorkout({ sinceMinutesAgo: durationMinutes + 90, match: cardioFromWorkout }));
+                                if (watchCardio) cardio = watchCardio;
+                            } catch (err) {
+                                console.error('[Health] No se pudo leer el cardio del Watch:', err);
+                            }
+                        }
                     }
 
-                    const cardioCalories = resolveCardioCalories(activeWorkout?.cardio, userWeight);
+                    const cardioCalories = resolveCardioCalories(cardio, userWeight);
                     const totalCalories = realCalories + cardioCalories;
 
                     const currentExerciseIds = new Set(activeWorkout.exercises?.map(ex => String(ex.id)) || []);
@@ -404,18 +420,22 @@ const TrainingView = ({ workout, onFinish }) => {
                             totalCalories
                         }
                     };
-                    if (activeWorkout?.cardio) {
-                        finalLogs.cardio = { ...activeWorkout.cardio, calories: cardioCalories };
+                    if (cardio) {
+                        finalLogs.cardio = { ...cardio, calories: cardioCalories };
                     }
 
                     // Cierra el círculo con Health: el entreno completado aparece en
                     // los anillos de Actividad. Best-effort, nunca bloquea terminar.
-                    if (isHealthAvailableOnThisPlatform()) {
+                    // Solo las kcal estimadas: las que vienen del Watch ya están en
+                    // Health y escribirlas otra vez las contaría dos veces.
+                    const estimatedCalories = (caloriesSource === 'health' ? 0 : realCalories)
+                        + (cardio?.source === 'health' ? 0 : cardioCalories);
+                    if (isHealthAvailableOnThisPlatform() && estimatedCalories > 0) {
                         try {
                             await writeWorkoutToHealth({
                                 startDate: new Date(workoutStartTime).toISOString(),
                                 endDate: new Date(endTime).toISOString(),
-                                calories: totalCalories,
+                                calories: estimatedCalories,
                             });
                         } catch (err) {
                             console.error('[Health] No se pudo escribir el entreno en Salud:', err);
@@ -510,8 +530,13 @@ const TrainingView = ({ workout, onFinish }) => {
                                         <HeartPulse size={14} className="text-sky-500" />
                                     </div>
                                     <span className="text-text-secondary flex-1">Cardio ({finishSummary.cardio.type})</span>
-                                    <span className="text-text-primary font-medium">
+                                    <span className="text-text-primary font-medium flex items-center gap-1.5">
                                         {finishSummary.cardio.calories} kcal
+                                        {finishSummary.cardio.source === 'health' && (
+                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-primary uppercase tracking-wide">
+                                                <Watch size={11} /> Watch
+                                            </span>
+                                        )}
                                     </span>
                                 </div>
                             )}

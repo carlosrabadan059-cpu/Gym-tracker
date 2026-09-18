@@ -53,7 +53,7 @@ Watch.
   hora de fin. Con un entreno activo la app sigue viva en segundo plano, así
   que el temporizador dispara aunque la muñeca esté bajada.
 - **Pulso:** cada muestra nueva de `heartRate` del builder se manda al iPhone
-  como `{ heartRate: { bpm, sampledAt } }` si hay conexión.
+  como `{ bpm, sampledAt }` (epoch ms) si hay conexión.
 - **Vistas:**
   - Inicio: lista con los 4 cardios y Fuerza.
   - Entreno: tiempo, pulso, kcal, cuenta atrás del descanso si la hay, y
@@ -127,3 +127,19 @@ Sigue el mismo patrón que `HomeWidgetPlugin`: registro manual en
 - Live Activity.
 - PWA.
 - Complicaciones.
+
+## Verificación en dispositivo — ✅ pasada (2026-09-18)
+
+Confirmado en el iPhone y el Apple Watch Ultra 2 (watchOS 26.6):
+
+- El Watch vibra al acabar el descanso con el iPhone desbloqueado, y el iPhone
+  no muestra notificación.
+- El pulso del descanso en el iPhone coincide con el del reloj.
+- Cardio en el Watch → Terminar → Fuerza → Terminar → Terminar en la app: el
+  resumen trae el cardio detectado y las kcal reales de fuerza.
+
+Notas de instalación, por si hay que repetirla: Xcode no ve el Watch hasta que
+está en la misma red y con el modo desarrollador activo, "Fetching debug
+symbols" puede quedarse colgado y no impide instalar, y borrar DerivedData
+obliga a limpiar `~/Library/Caches/org.swift.swiftpm/artifacts/*capacitor*`
+antes de resolver los paquetes otra vez.

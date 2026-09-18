@@ -13,7 +13,7 @@ import { computeMuscleRecovery } from '../lib/muscleRecovery';
 import { MuscleRecoveryCard } from '../components/shared/MuscleRecoveryCard';
 import { useAuth } from '../context/AuthContext';
 import { RetroactiveWorkoutModal } from './RetroactiveWorkoutModal';
-import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, mapWorkoutToCardioType, getTodayMetrics } from '../lib/appleHealth';
+import { isHealthAvailableOnThisPlatform, getTodayMetrics } from '../lib/appleHealth';
 import { getHealthConsentBannerCopy } from '../lib/healthConsent';
 import { checkInactivityNotification, checkWeeklyInsightNotification, checkUnloggedWorkoutNotification } from '../lib/proactiveNotifications';
 import { computeStreak } from '../lib/adherence';
@@ -147,7 +147,6 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
 
     const [showCardioSelector, setShowCardioSelector] = useState(false);
     const [pendingRoutine, setPendingRoutine] = useState(null);
-    const [detectedCardio, setDetectedCardio] = useState(null);
     const [muscleRecovery, setMuscleRecovery] = useState([]);
     const [healthConsentStatus, setHealthConsentStatus] = useState(null);
     const [healthConsentTrainerName, setHealthConsentTrainerName] = useState(null);
@@ -246,31 +245,6 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
             setRespondingConsent(false);
         }
     };
-
-    // v2 Fase 2 — al abrir el selector, mira si hay un workout de cardio
-    // reciente en el Watch (última hora y media) para ofrecer kcal reales en
-    // vez de la estimación MET manual. Best-effort: si Health falla o no hay
-    // nada, el flujo manual de siempre sigue intacto.
-    useEffect(() => {
-        if (!showCardioSelector || !isHealthAvailableOnThisPlatform()) return;
-        let cancelled = false;
-        (async () => {
-            try {
-                const workout = await getMostRecentWorkout({ sinceMinutesAgo: 90 });
-                const type = mapWorkoutToCardioType(workout);
-                if (!cancelled && type && workout.totalEnergyBurned) {
-                    setDetectedCardio({
-                        type,
-                        duration: Math.max(1, Math.round(workout.duration / 60)),
-                        calories: Math.round(workout.totalEnergyBurned),
-                    });
-                }
-            } catch (err) {
-                console.error('[Health] No se pudo detectar cardio reciente:', err);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [showCardioSelector]);
 
     // v2 Fase 3 — card "Salud" del Dashboard: pasos/kcal activas de hoy desde
     // HealthKit. No-op fuera de la app nativa (la PWA no tiene acceso a
@@ -442,7 +416,11 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
             return;
         }
         const hasSavedSession = !!localStorage.getItem(`gymTracker_workout_${routine.id}`);
-        if (hasSavedSession) {
+        // En nativo no se pregunta por el cardio: elegir tipo y minutos lo
+        // daba por hecho sin haberlo empezado. Lo pone el Watch al terminar
+        // la sesión (TrainingView). La PWA no lee Health y sigue con el
+        // selector y la estimación MET.
+        if (hasSavedSession || isHealthAvailableOnThisPlatform()) {
             onStartDaily(routine);
         } else {
             setPendingRoutine(routine);
@@ -621,28 +599,6 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                             ¿Vas a calentar antes de empezar?
                         </p>
 
-                        {detectedCardio && (
-                            <button
-                                onClick={() => setPendingRoutine({
-                                    ...pendingRoutine,
-                                    cardio: { ...detectedCardio, source: 'health' },
-                                })}
-                                className={cn(
-                                    "w-full text-left mb-4 p-3 rounded-xl border-2 transition-all animate-fadeIn",
-                                    pendingRoutine.cardio?.source === 'health'
-                                        ? "border-primary bg-primary/10"
-                                        : "border-surface-highlight bg-background hover:border-primary/50"
-                                )}
-                            >
-                                <p className="text-[11px] font-bold text-primary uppercase tracking-wider mb-0.5">
-                                    Detectado en tu Watch
-                                </p>
-                                <p className="text-sm text-text-primary font-medium">
-                                    {detectedCardio.type} · {detectedCardio.duration} min · {detectedCardio.calories} kcal
-                                </p>
-                            </button>
-                        )}
-
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             {[
                                 { name: 'Andar en cinta', img: '/exercises/cardio-andar.png' },
@@ -714,7 +670,6 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                                     onStartDaily(pendingRoutine);
                                     setShowCardioSelector(false);
                                     setPendingRoutine(null);
-                                    setDetectedCardio(null);
                                 }}
                             >
                                 {pendingRoutine.cardio?.duration ? 'Guardar e Iniciar' : 'Empezar sin Cardio'}
@@ -725,7 +680,6 @@ const DashboardView = ({ onStartDaily, completedRoutines = [] }) => {
                                 onClick={() => {
                                     setShowCardioSelector(false);
                                     setPendingRoutine(null);
-                                    setDetectedCardio(null);
                                 }}
                             >
                                 Cancelar

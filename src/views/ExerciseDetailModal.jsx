@@ -525,10 +525,15 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
             // handleDurationSelect solo se invoca desde un onClick, nunca durante el render.
             // eslint-disable-next-line react-hooks/purity
             const newTarget = Date.now() + duration * 1000;
+            // Descanso nuevo a efectos de aviso: sin esto la notificación
+            // local y el push seguían programados para la duración anterior.
+            const sessionId = ++timerSessionIdRef.current;
             setTargetTime(newTarget);
             setTimeLeft(duration);
             scheduleEndBeep(duration);
-
+            scheduleSWNotification(newTarget, false, sessionId);
+            cancelRestEnd(sessionId - 1);
+            scheduleRestEnd({ userId: user?.id, targetTime: newTarget, sessionId });
         }
     };
 

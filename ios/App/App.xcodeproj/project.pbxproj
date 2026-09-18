@@ -24,6 +24,8 @@
 		9E556B473051E3A000A4C116 /* LiveActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B453051E3A000A4C116 /* LiveActivityPlugin.swift */; };
 		9E556B483051E3A000A4C116 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B463051E3A000A4C116 /* MainViewController.swift */; };
 		9E556B4A3051E3A000A4C116 /* HomeWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */; };
+		9EC8969A305C3C02009F95D7 /* RutinexWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9EC89690305C3C01009F95D7 /* RutinexWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9EC896A7305C3F05009F95D7 /* WatchBridgePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC896A6305C3F05009F95D7 /* WatchBridgePlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -33,6 +35,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 9E556B1D3051DEF400A4C116;
 			remoteInfo = RutinexWidgetsExtension;
+		};
+		9EC89698305C3C02009F95D7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9EC8968F305C3C01009F95D7;
+			remoteInfo = "RutinexWatch Watch App";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -46,6 +55,17 @@
 				9E556B343051DEF500A4C116 /* RutinexWidgetsExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9EC8969B305C3C02009F95D7 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				9EC8969A305C3C02009F95D7 /* RutinexWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -67,8 +87,10 @@
 		9E556B223051DEF400A4C116 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		9E556B423051E3A000A4C116 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		9E556B453051E3A000A4C116 /* LiveActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityPlugin.swift; sourceTree = "<group>"; };
-		9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetPlugin.swift; sourceTree = "<group>"; };
 		9E556B463051E3A000A4C116 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
+		9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetPlugin.swift; sourceTree = "<group>"; };
+		9EC89690305C3C01009F95D7 /* RutinexWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "RutinexWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EC896A6305C3F05009F95D7 /* WatchBridgePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridgePlugin.swift; sourceTree = "<group>"; };
 		9EE1C5C6304FF54400D4C8A7 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -84,6 +106,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9E556B243051DEF400A4C116 /* RutinexWidgets */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (9E556B383051DEF500A4C116 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = RutinexWidgets; sourceTree = "<group>"; };
+		9EC89691305C3C01009F95D7 /* RutinexWatch Watch App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "RutinexWatch Watch App"; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -104,6 +127,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9EC8968D305C3C01009F95D7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -113,6 +143,7 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				9E556B243051DEF400A4C116 /* RutinexWidgets */,
+				9EC89691305C3C01009F95D7 /* RutinexWatch Watch App */,
 				9E556B1F3051DEF400A4C116 /* Frameworks */,
 				504EC3051FED79650016851F /* Products */,
 			);
@@ -123,6 +154,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				9E556B1E3051DEF400A4C116 /* RutinexWidgetsExtension.appex */,
+				9EC89690305C3C01009F95D7 /* RutinexWatch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -143,6 +175,7 @@
 				9E556B423051E3A000A4C116 /* LiveActivityAttributes.swift */,
 				9E556B453051E3A000A4C116 /* LiveActivityPlugin.swift */,
 				9E556B493051E3A000A4C116 /* HomeWidgetPlugin.swift */,
+				9EC896A6305C3F05009F95D7 /* WatchBridgePlugin.swift */,
 				9E556B463051E3A000A4C116 /* MainViewController.swift */,
 			);
 			path = App;
@@ -168,11 +201,13 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				9E556B353051DEF500A4C116 /* Embed Foundation Extensions */,
+				9EC8969B305C3C02009F95D7 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				9E556B333051DEF500A4C116 /* PBXTargetDependency */,
+				9EC89699305C3C02009F95D7 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -204,6 +239,28 @@
 			productReference = 9E556B1E3051DEF400A4C116 /* RutinexWidgetsExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		9EC8968F305C3C01009F95D7 /* RutinexWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9EC8969E305C3C02009F95D7 /* Build configuration list for PBXNativeTarget "RutinexWatch Watch App" */;
+			buildPhases = (
+				9EC8968C305C3C01009F95D7 /* Sources */,
+				9EC8968D305C3C01009F95D7 /* Frameworks */,
+				9EC8968E305C3C01009F95D7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				9EC89691305C3C01009F95D7 /* RutinexWatch Watch App */,
+			);
+			name = "RutinexWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "RutinexWatch Watch App";
+			productReference = 9EC89690305C3C01009F95D7 /* RutinexWatch Watch App.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -219,6 +276,9 @@
 						ProvisioningStyle = Automatic;
 					};
 					9E556B1D3051DEF400A4C116 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					9EC8968F305C3C01009F95D7 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -241,6 +301,7 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				9E556B1D3051DEF400A4C116 /* RutinexWidgetsExtension */,
+				9EC8968F305C3C01009F95D7 /* RutinexWatch Watch App */,
 			);
 		};
 /* End PBXProject section */
@@ -266,6 +327,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9EC8968E305C3C01009F95D7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -274,6 +342,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+				9EC896A7305C3F05009F95D7 /* WatchBridgePlugin.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				9E556B443051E3A000A4C116 /* LiveActivityAttributes.swift in Sources */,
 				9E556B473051E3A000A4C116 /* LiveActivityPlugin.swift in Sources */,
@@ -290,6 +359,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9EC8968C305C3C01009F95D7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -297,6 +373,11 @@
 			isa = PBXTargetDependency;
 			target = 9E556B1D3051DEF400A4C116 /* RutinexWidgetsExtension */;
 			targetProxy = 9E556B323051DEF500A4C116 /* PBXContainerItemProxy */;
+		};
+		9EC89699305C3C02009F95D7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9EC8968F305C3C01009F95D7 /* RutinexWatch Watch App */;
+			targetProxy = 9EC89698305C3C02009F95D7 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -563,6 +644,98 @@
 			};
 			name = Release;
 		};
+		9EC8969C305C3C02009F95D7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = "RutinexWatch Watch App/RutinexWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DM3RF7387;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RutinexWatch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = RutinexWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.rutinex.app;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rutinex.app.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		9EC8969D305C3C02009F95D7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = "RutinexWatch Watch App/RutinexWatch Watch App.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9DM3RF7387;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "RutinexWatch-Watch-App-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = RutinexWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.rutinex.app;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rutinex.app.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -589,6 +762,15 @@
 			buildConfigurations = (
 				9E556B363051DEF500A4C116 /* Debug */,
 				9E556B373051DEF500A4C116 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9EC8969E305C3C02009F95D7 /* Build configuration list for PBXNativeTarget "RutinexWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EC8969C305C3C02009F95D7 /* Debug */,
+				9EC8969D305C3C02009F95D7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

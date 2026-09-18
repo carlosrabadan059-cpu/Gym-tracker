@@ -8,6 +8,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Health } from '@capgo/capacitor-health';
 import { pickLiveHeartRate } from './heartRate';
+import { getWatchHeartRateSample } from './watchBridge';
 
 export const isHealthAvailableOnThisPlatform = () => Capacitor.isNativePlatform();
 
@@ -200,8 +201,17 @@ export async function getRestingHrHistory({ days = 7 } = {}) {
  * min). La ventana de consulta es más ancha que el umbral de frescura a
  * propósito: el filtro vive en pickLiveHeartRate, en un solo sitio.
  */
+// El Watch manda una muestra cada ~5 s; más vieja significa entreno parado.
+const WATCH_HR_MAX_AGE_MS = 15_000;
+
 export async function getLiveHeartRate() {
     if (!isHealthAvailableOnThisPlatform()) return null;
+
+    // Con entreno en la app de Rutinex del Watch, el pulso llega en vivo por
+    // WatchConnectivity y coincide con el del reloj. HealthKit va por detrás
+    // (el Watch sincroniza por lotes), así que solo es el plan B.
+    const fromWatch = pickLiveHeartRate([await getWatchHeartRateSample()], { maxAgeMs: WATCH_HR_MAX_AGE_MS });
+    if (fromWatch) return fromWatch;
 
     try {
         const endDate = new Date();
@@ -266,17 +276,35 @@ export function isStrengthWorkout(workout) {
     return !!workout && STRENGTH_WORKOUT_TYPES.includes(workout.workoutType);
 }
 
-export async function getMostRecentWorkout({ sinceMinutesAgo = 90 } = {}) {
+/**
+ * Workout de cardio del Watch con la forma de `cardio` del log, o null si no
+ * es uno de los tipos reconocidos o no trae kcal.
+ */
+export function cardioFromWorkout(workout) {
+    const type = mapWorkoutToCardioType(workout);
+    if (!type || !workout.totalEnergyBurned) return null;
+    return {
+        type,
+        duration: Math.max(1, Math.round(workout.duration / 60)),
+        calories: Math.round(workout.totalEnergyBurned),
+        source: 'health',
+    };
+}
+
+// `match` filtra entre los últimos workouts en vez de mirar solo el último:
+// con cardio y fuerza como dos entrenos separados en el Watch, el más
+// reciente puede no ser el que busca quien llama.
+export async function getMostRecentWorkout({ sinceMinutesAgo = 90, match = () => true } = {}) {
     if (!isHealthAvailableOnThisPlatform()) return null;
 
     const startDate = new Date(Date.now() - sinceMinutesAgo * 60_000).toISOString();
     const { workouts } = await Health.queryWorkouts({
         startDate,
         endDate: new Date().toISOString(),
-        limit: 1,
+        limit: 10,
         ascending: false,
     });
-    return workouts[0] ?? null;
+    return workouts.find(match) ?? null;
 }
 
 /**

@@ -12,6 +12,7 @@
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { subscribeToPush, scheduleServerPush } from './pushNotifications';
+import { sendRestStartToWatch, sendRestCancelToWatch } from './watchBridge';
 
 const TITLE = '¡Recuperación completada! 💪';
 const BODY = '¡Es hora de tu siguiente serie!';
@@ -27,6 +28,10 @@ const isNative = () => Capacitor.isNativePlatform();
  */
 export async function scheduleRestEnd({ userId, targetTime, sessionId }) {
     if (isNative()) {
+        // Con entreno activo en la app del Watch, vibra él aunque el iPhone
+        // esté desbloqueado (caso en que iOS no reenvía notificaciones). La
+        // local sobraría y avisaría dos veces.
+        if (await sendRestStartToWatch(targetTime)) return;
         try {
             await LocalNotifications.schedule({
                 notifications: [{
@@ -58,6 +63,7 @@ export async function scheduleRestEnd({ userId, targetTime, sessionId }) {
  */
 export async function cancelRestEnd(sessionId) {
     if (!isNative()) return;
+    sendRestCancelToWatch();
     try {
         await LocalNotifications.cancel({ notifications: [{ id: sessionId }] });
     } catch (err) {

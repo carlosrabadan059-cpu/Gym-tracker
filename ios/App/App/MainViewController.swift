@@ -14,5 +14,6 @@ class MainViewController: CAPBridgeViewController {
     override func capacitorDidLoad() {
         bridge?.registerPluginInstance(LiveActivityPlugin())
         bridge?.registerPluginInstance(HomeWidgetPlugin())
+        bridge?.registerPluginInstance(WatchBridgePlugin())
     }
 }
