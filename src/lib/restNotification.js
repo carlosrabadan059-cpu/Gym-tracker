@@ -41,6 +41,10 @@ export async function scheduleRestEnd({ userId, targetTime, sessionId }) {
                     title: TITLE,
                     body: BODY,
                     schedule: { at: new Date(targetTime) },
+                    // Sin `sound` el plugin la entrega en silencio: ni suena
+                    // en el iPhone ni vibra en el Watch. Un nombre que no
+                    // existe en el bundle hace que iOS use el sonido por defecto.
+                    sound: 'default',
                 }],
             });
             console.log('[RestNotification] Aviso local programado para', new Date(targetTime).toISOString());
