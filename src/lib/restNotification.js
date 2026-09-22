@@ -31,7 +31,9 @@ export async function scheduleRestEnd({ userId, targetTime, sessionId }) {
         // Con entreno activo en la app del Watch, vibra él aunque el iPhone
         // esté desbloqueado (caso en que iOS no reenvía notificaciones). La
         // local sobraría y avisaría dos veces.
-        if (await sendRestStartToWatch(targetTime)) return;
+        const deliveredToWatch = await sendRestStartToWatch(targetTime);
+        console.log('[RestNotification] Watch confirmó:', deliveredToWatch);
+        if (deliveredToWatch) return;
         try {
             await LocalNotifications.schedule({
                 notifications: [{
@@ -41,6 +43,7 @@ export async function scheduleRestEnd({ userId, targetTime, sessionId }) {
                     schedule: { at: new Date(targetTime) },
                 }],
             });
+            console.log('[RestNotification] Aviso local programado para', new Date(targetTime).toISOString());
         } catch (err) {
             console.error('[RestNotification] No se pudo programar el aviso local:', err);
         }

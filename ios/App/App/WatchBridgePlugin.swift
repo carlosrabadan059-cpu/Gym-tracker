@@ -51,6 +51,10 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
             call.reject("Falta endDate")
             return
         }
+        if WCSession.isSupported() {
+            let s = WCSession.default
+            CAPLog.print("[WatchBridge] restStart activation=\(s.activationState.rawValue) paired=\(s.isPaired) installed=\(s.isWatchAppInstalled) reachable=\(s.isReachable)")
+        }
         guard let session = reachableSession else {
             call.resolve(["delivered": false])
             return
@@ -58,9 +62,11 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
         session.sendMessage(
             ["type": "restStart", "endDate": endDate],
             replyHandler: { reply in
+                CAPLog.print("[WatchBridge] restStart reply=\(reply)")
                 call.resolve(["delivered": reply["ok"] as? Bool ?? false])
             },
-            errorHandler: { _ in
+            errorHandler: { error in
+                CAPLog.print("[WatchBridge] restStart error=\(error.localizedDescription)")
                 call.resolve(["delivered": false])
             }
         )

@@ -176,8 +176,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
 
     useEffect(() => {
         try {
+            // En nativo no hay pitido: desde iOS 27 reproducir audio en el
+            // WKWebView para la música del usuario (ni audioSession 'ambient'
+            // lo evita). Allí avisan la vibración, el Watch y la notificación.
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (AudioContext) {
+            if (AudioContext && !Capacitor.isNativePlatform()) {
                 audioCtxRef.current = new AudioContext();
             }
         } catch (e) {
@@ -239,6 +242,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
 
     const unlockAudio = () => {
         askForNotificationPermission().catch(() => {});
+        // En nativo no hay pitido que desbloquear, y el speechSynthesis vacío
+        // de abajo pausa la música del usuario desde iOS 27.
+        if (Capacitor.isNativePlatform()) return;
         try {
             if (audioCtxRef.current) {
                 if (audioCtxRef.current.state === 'suspended') {
@@ -344,6 +350,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
     };
 
     const playBeep = useCallback((type = 'end') => {
+        if (Capacitor.isNativePlatform()) {
+            if (type === 'end') hapticRestEnd();
+            return;
+        }
         try {
             const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
             if (!ctx) return;
