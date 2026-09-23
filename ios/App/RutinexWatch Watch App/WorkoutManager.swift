@@ -223,7 +223,8 @@ final class WorkoutManager: NSObject, ObservableObject {
         deathNote = nil
         lastAliveAt = Date()
         let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.checkAlive() }
+            guard let manager = self else { return }
+            Task { @MainActor in manager.checkAlive() }
         }
         RunLoop.main.add(timer, forMode: .common)
         watchdog = timer
