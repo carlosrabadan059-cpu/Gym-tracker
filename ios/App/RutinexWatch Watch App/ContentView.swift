@@ -32,6 +32,11 @@ struct StartView: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
             }
+            if let note = workout.deathNote {
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
         }
         .navigationTitle("Rutinex")
     }
@@ -73,6 +78,17 @@ struct WorkoutView: View {
 
                 Button("Terminar", role: .destructive) {
                     Task { await workout.end() }
+                }
+
+                // Diagnóstico temporal (23-09-2026): descansos recibidos del
+                // iPhone y avisos que llegaron a sonar. Quitar al resolverlo.
+                Text("desc \(workout.restsReceived) · avisos \(workout.alertsFired) · est \(workout.lastState)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                if let note = workout.deathNote {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
                 }
             }
         }

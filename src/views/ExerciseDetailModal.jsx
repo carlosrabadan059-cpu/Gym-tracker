@@ -678,7 +678,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                     <div className="bg-surface-highlight rounded-2xl p-4 border border-surface-highlight flex flex-col items-center">
                         <h3 className="text-xs text-text-secondary uppercase tracking-wider mb-3">Temporizador de Descanso</h3>
                         <div className="flex items-center gap-4 mb-4">
-                            {[...new Set([prescription.rest, 60, 90].filter(Boolean))].sort((a, b) => a - b).map(duration => (
+                            {[...new Set([prescription.rest, 60, 90, 120].filter(Boolean))].sort((a, b) => a - b).map(duration => (
                                 <button
                                     key={duration}
                                     onClick={() => handleDurationSelect(duration)}
