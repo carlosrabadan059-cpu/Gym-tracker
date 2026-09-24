@@ -243,8 +243,9 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
     const unlockAudio = () => {
         askForNotificationPermission().catch(() => {});
         // En nativo no hay pitido que desbloquear, y el speechSynthesis vacío
-        // de abajo pausa la música del usuario desde iOS 27.
-        if (Capacitor.isNativePlatform()) return;
+        // de abajo pausa la música del usuario desde iOS 27. En PWA con push
+        // ya concedido pasa lo mismo, y el push ya avisa sin necesitar audio.
+        if (Capacitor.isNativePlatform() || notificationsAllowed) return;
         try {
             if (audioCtxRef.current) {
                 if (audioCtxRef.current.state === 'suspended') {
@@ -350,7 +351,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
     };
 
     const playBeep = useCallback((type = 'end') => {
-        if (Capacitor.isNativePlatform()) {
+        if (Capacitor.isNativePlatform() || notificationsAllowed) {
             if (type === 'end') hapticRestEnd();
             return;
         }
@@ -388,7 +389,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         } catch (error) {
             console.error('No se pudo reproducir el sonido del temporizador', error);
         }
-    }, []);
+    }, [notificationsAllowed]);
 
     // El pitido final se programa al empezar el descanso, hasta 60 s antes de
     // que suene. Si iOS suspende el AudioContext en ese intervalo (pantalla
