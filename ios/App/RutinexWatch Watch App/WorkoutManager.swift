@@ -88,6 +88,12 @@ final class WorkoutManager: NSObject, ObservableObject {
     // normal del que hace watchOS por su cuenta, que es el único que debe
     // avisar de entreno zombi.
     private var isEndingDeliberately = false
+    // start() la espera: si se pulsa un ejercicio antes de que acabe, habría
+    // dos sesiones a la vez y watchOS mata una (visto el 25-09-2026).
+    private var recoveryTask: Task<Void, Never>?
+    // Una sesión huérfana más vieja que esto es de otro día: se descarta en
+    // vez de reengancharla, o acabaría en Health un entreno de horas.
+    private static let maxRecoverableAge: TimeInterval = 4 * 3600
 
     override init() {
         super.init()
@@ -99,8 +105,8 @@ final class WorkoutManager: NSObject, ObservableObject {
         Task {
             _ = try? await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .sound])
-            await recoverOrphanedSession()
         }
+        recoveryTask = Task { await recoverOrphanedSession() }
     }
 
     // MARK: - Entreno
@@ -122,12 +128,14 @@ final class WorkoutManager: NSObject, ObservableObject {
             recovered.delegate = self
             builder.delegate = self
 
-            // Un tipo que la app no reconoce no se puede pintar; se cierra
+            // Un tipo que la app no reconoce no se puede pintar, y una sesión
+            // de otro día no es el entreno de ahora: se cierran sin guardar
             // para no dejar la sesión huérfana dando guerra.
-            guard let recoveredKind = WorkoutKind(activityType: recovered.workoutConfiguration.activityType) else {
-                session = recovered
-                self.builder = builder
-                await end()
+            let isStale = recovered.startDate.map { Date().timeIntervalSince($0) > Self.maxRecoverableAge } ?? true
+            guard let recoveredKind = WorkoutKind(activityType: recovered.workoutConfiguration.activityType), !isStale else {
+                recovered.end()
+                builder.discardWorkout()
+                await waitForSessionEnd()
                 return
             }
 
@@ -142,6 +150,9 @@ final class WorkoutManager: NSObject, ObservableObject {
     }
 
     func start(_ kind: WorkoutKind) async {
+        await recoveryTask?.value
+        // Se recuperó un entreno en marcha: la pantalla ya lo enseña.
+        guard session == nil else { return }
         errorMessage = nil
         do {
             try await store.requestAuthorization(
