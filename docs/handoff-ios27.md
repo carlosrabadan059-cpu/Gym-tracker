@@ -2,8 +2,7 @@
 
 Carlos actualizó el iPhone y el Watch a 27, y Xcode a 27.0 (SDK iOS/watchOS
 27). Ambos schemes compilan sin errores ni avisos propios. Todo está
-commiteado en `main`; `c4075a6` y anteriores están en `origin/main`, y
-`4861021` y `c4f234d` **siguen sin push**. El detalle vive en los commits;
+commiteado y pusheado a `origin/main`. El detalle vive en los commits;
 aquí solo lo que no se deduce de ellos.
 
 ## Firma caducada el 24-09, antes de lo esperado
@@ -16,10 +15,32 @@ desde Xcode, el iPhone marcó el certificado de desarrollador como
 Con la firma gratuita esto se repite semanalmente; sin Apple Developer
 Program de pago no hay forma de evitarlo, solo de recordarlo.
 
+**Cada scheme tiene su propio perfil y caduca por separado.** El 24-09 solo
+se redesplegó `App`, y el perfil de `com.rutinex.app.watchkitapp` (del 18-09)
+caducó el 25-09 a las 00:29: la app del Watch no abrió en el entreno. Al
+renovar, redesplegar **los dos** schemes. Las caducidades se ven con:
+
+```bash
+for f in ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*; do
+  security cms -D -i "$f" | plutil -extract ExpirationDate raw - ; done
+```
+
+El Watch se puede reinstalar sin Xcode, con el reloj conectado (id en
+`xcrun devicectl list devices`):
+
+```bash
+cd ios/App
+xcodebuild -project App.xcodeproj -scheme "RutinexWatch Watch App" \
+  -destination 'id=<id del Watch>' -derivedDataPath /tmp/dd -allowProvisioningUpdates build
+xcrun devicectl device install app --device <id del Watch> \
+  "/tmp/dd/Build/Products/Debug-watchos/RutinexWatch Watch App.app"
+```
+
 ## Lo único pendiente ahora mismo
 
-**Carlos entrena el 25-09 y comprueba si los avisos de descanso aguantan un
-entreno entero** (se pospuso del 24-09 por la firma caducada). Ya tiene los
+**Carlos comprueba en su próximo entreno si los avisos de descanso aguantan
+un entreno entero.** Se pospuso del 24-09 por la firma del iPhone y el 25-09
+por la del Watch (entrenó con la app Entreno de Apple). Ya tiene los
 dos schemes instalados. Al terminar, antes de pulsar Terminar en el reloj,
 mirará la línea de diagnóstico de la pantalla del entreno y dirá qué marca:
 
