@@ -108,7 +108,7 @@ Cada punto está verificado en el dispositivo de Carlos salvo donde se diga.
 - **La firma de Apple ID gratuito caduca cada 7 días** (caducó el 24-09, no
   el 29-09 como se pensaba). Al desplegar tras caducar, el iPhone pide
   confiar de nuevo en el desarrollador (Ajustes → General → VPN y gestión de
-  dispositivos). Hay evento semanal los miércoles a las 19:00 en el
+  dispositivos). Hay evento semanal los martes a las 19:00 en el
   calendario de Carlos.
 - **Solo cuenta lo verificado en su iPhone y su Watch.** No tocar sus datos de
   producción; ver CLAUDE.md.
