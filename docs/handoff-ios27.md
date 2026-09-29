@@ -36,24 +36,13 @@ xcrun devicectl device install app --device <id del Watch> \
   "/tmp/dd/Build/Products/Debug-watchos/RutinexWatch Watch App.app"
 ```
 
-## Lo único pendiente ahora mismo
+## Prueba del entreno entero: superada (29-09)
 
-**Carlos comprueba en su próximo entreno si los avisos de descanso aguantan
-un entreno entero.** Se pospuso del 24-09 por la firma del iPhone y el 25-09
-por la del Watch (entrenó con la app Entreno de Apple). Ya tiene los
-dos schemes instalados. Al terminar, antes de pulsar Terminar en el reloj,
-mirará la línea de diagnóstico de la pantalla del entreno y dirá qué marca:
-
-- `desc N` — descansos que el reloj recibió del iPhone.
-- `avisos N` — veces que le tocó avisar.
-- `est N` — último estado que reportó el delegado (2 = en marcha, 3 =
-  terminada, 4 = pausada, 6 = detenida).
-- Línea naranja, si aparece: `viva HH:MM:SS · muerta HH:MM:SS` o `fallo: …`.
-
-Si el entreno va bien, **quitar ese diagnóstico**: los `@Published`
-`restsReceived`, `alertsFired`, `lastState`, `deathNote`, el `watchdog` de
-`WorkoutManager.swift` y los `Text` de `ContentView.swift`. Están marcados con
-`Diagnóstico temporal (23-09-2026)`.
+Fuerza de 1:16 h con Rutinex en el Watch: `desc 28 · avisos 26 · est 2`. Los
+2 descansos sin aviso son los que Carlos paró a mano a los 30 s. Los avisos
+aguantan un entreno entero, así que se quitó el diagnóstico temporal. La
+línea naranja que salió al terminar la elíptica (`est 3` a los 5 s) era un
+falso positivo del vigilante: veía el cierre pedido con Terminar.
 
 ## Qué se resolvió
 
@@ -89,8 +78,8 @@ Cada punto está verificado en el dispositivo de Carlos salvo donde se diga.
   nativa; nadie ha comprobado que en Safari siga sonando.
 - **Por qué watchOS mata la sesión** sigue sin saberse. Lo de `4861021` es
   recuperación, no causa raíz. El `WKBackgroundModes` con `workout-processing`
-  ya está declarado, así que no es eso. La línea naranja del diagnóstico
-  existe para acotar cuándo pasa.
+  ya está declarado, así que no es eso. El 25-09 lo causó una carrera al
+  arrancar (`b1d48a3`), y en el entreno del 29-09 no volvió a pasar.
 - **El Watch sale dos veces** en Ajustes → Notificaciones → Rutinex → Reenvío.
   Carlos decidió dejarlo.
 

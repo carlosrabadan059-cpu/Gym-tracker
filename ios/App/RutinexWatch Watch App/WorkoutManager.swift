@@ -60,18 +60,6 @@ final class WorkoutManager: NSObject, ObservableObject {
     @Published var calories = 0
     @Published var restEndDate: Date?
     @Published var errorMessage: String?
-    // Diagnóstico temporal (23-09-2026): saber si el fallo está en que el
-    // mensaje del descanso no llega al reloj, o en que llega y el aviso no
-    // suena. Se ve en la pantalla del entreno; quitar cuando esté resuelto.
-    @Published var restsReceived = 0
-    @Published var alertsFired = 0
-    @Published var lastState = 0
-    // Acota cuándo muere la sesión: la última vez que se la vio en marcha y
-    // el momento en que se la encontró muerta. Sobrevive a clearSession a
-    // propósito, para poder leerlo después en la pantalla de inicio.
-    @Published var deathNote: String?
-    private var watchdog: Timer?
-    private var lastAliveAt: Date?
 
     private let store = HKHealthStore()
     private var session: HKWorkoutSession?
@@ -143,7 +131,6 @@ final class WorkoutManager: NSObject, ObservableObject {
             self.builder = builder
             kind = recoveredKind
             startDate = recovered.startDate
-            startWatchdog()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -177,7 +164,6 @@ final class WorkoutManager: NSObject, ObservableObject {
             startDate = start
             heartRate = nil
             calories = 0
-            startWatchdog()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -216,8 +202,6 @@ final class WorkoutManager: NSObject, ObservableObject {
     /// Deja la app como recién abierta. `message` avisa de un cierre que no
     /// pidió quien entrena; nil para el cierre normal.
     private func clearSession(message: String?) {
-        watchdog?.invalidate()
-        watchdog = nil
         cancelRest()
         session = nil
         builder = nil
@@ -225,32 +209,6 @@ final class WorkoutManager: NSObject, ObservableObject {
         startDate = nil
         heartRate = nil
         errorMessage = message
-    }
-
-    /// El delegado no avisa cuando watchOS mata la sesión, así que hay que
-    /// preguntar. Diagnóstico temporal (23-09-2026).
-    private func startWatchdog() {
-        watchdog?.invalidate()
-        deathNote = nil
-        lastAliveAt = Date()
-        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
-            guard let manager = self else { return }
-            Task { @MainActor in manager.checkAlive() }
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        watchdog = timer
-    }
-
-    private func checkAlive() {
-        guard let session, deathNote == nil else { return }
-        if session.state == .running || session.state == .prepared {
-            lastAliveAt = Date()
-            return
-        }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        let alive = lastAliveAt.map(formatter.string(from:)) ?? "?"
-        deathNote = "viva \(alive) · muerta \(formatter.string(from: Date())) · est \(session.state.rawValue)"
     }
 
     /// Espera a que HealthKit confirme el cierre (vía didChangeTo) antes de
@@ -281,7 +239,6 @@ final class WorkoutManager: NSObject, ObservableObject {
 
     private func startRest(until end: Date) {
         cancelRest()
-        restsReceived += 1
         restEndDate = end
 
         let content = UNMutableNotificationContent()
@@ -317,7 +274,6 @@ final class WorkoutManager: NSObject, ObservableObject {
     private func restFinished() {
         restTimer = nil
         restEndDate = nil
-        alertsFired += 1
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: [Self.restNotificationId])
         // Un solo toque se pierde en plena serie; tres seguidos no.
@@ -367,7 +323,6 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
     // not currently active". Al ver .ended/.stopped se limpia el estado y
     // vuelve a la pantalla de inicio.
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
-        Task { @MainActor in self.lastState = toState.rawValue }
         guard toState == .ended || toState == .stopped else { return }
         Task { @MainActor in
             // Resuelve la espera de end() (cierre normal) o limpia un entreno
@@ -389,11 +344,7 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
         let message = error.localizedDescription
-        Task { @MainActor in
-            self.errorMessage = message
-            // deathNote no lo pisa nadie: es lo que se lee después del fallo.
-            self.deathNote = "fallo: \(message)"
-        }
+        Task { @MainActor in self.errorMessage = message }
     }
 }
 
