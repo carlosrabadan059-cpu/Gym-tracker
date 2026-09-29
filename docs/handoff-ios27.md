@@ -77,8 +77,8 @@ Cada punto está verificado en el dispositivo de Carlos salvo donde se diga.
 
 ## Pendiente, sin prisa
 
-- **Pitido de la PWA sin probar.** `0fcfa67` solo quitó el audio en la app
-  nativa; nadie ha comprobado que en Safari siga sonando.
+- ~~**Pitido de la PWA sin probar.**~~ Cerrado el 29-09 por decisión de
+  Carlos, junto con el fix de la música de `c8b9a6f`.
 - **Por qué watchOS mata la sesión** sigue sin saberse. Lo de `4861021` es
   recuperación, no causa raíz. El `WKBackgroundModes` con `workout-processing`
   ya está declarado, así que no es eso. El 25-09 lo causó una carrera al
