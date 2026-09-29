@@ -5,6 +5,9 @@ Carlos actualizó el iPhone y el Watch a 27, y Xcode a 27.0 (SDK iOS/watchOS
 commiteado y pusheado a `origin/main`. El detalle vive en los commits;
 aquí solo lo que no se deduce de ellos.
 
+**Estado: terminado (29-09-2026).** El paso a 27 está cerrado y verificado en
+el iPhone y el Watch de Carlos. Lo de "Pendiente, sin prisa" no bloquea.
+
 ## Firma caducada el 24-09, antes de lo esperado
 
 La firma de Apple ID gratuito no aguantó hasta el 29-09 como se pensaba: el
@@ -82,6 +85,10 @@ Cada punto está verificado en el dispositivo de Carlos salvo donde se diga.
   arrancar (`b1d48a3`), y en el entreno del 29-09 no volvió a pasar.
 - **El Watch sale dos veces** en Ajustes → Notificaciones → Rutinex → Reenvío.
   Carlos decidió dejarlo.
+- **Entrenos de prueba de ~1 min en Salud** (25-09 y 29-09), de probar el
+  Watch. No se pudieron borrar desde Salud y Carlos decidió dejarlos: la app
+  solo lee Health al terminar una sesión (ventana de minutos) y para el aviso
+  de entreno sin registrar (solo el día de hoy), así que no interfieren.
 
 ## Lo que hay que saber para continuar
 
