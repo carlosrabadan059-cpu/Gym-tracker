@@ -28,6 +28,15 @@ for f in ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*; do
   security cms -D -i "$f" | plutil -extract ExpirationDate raw - ; done
 ```
 
+**Xcode no renueva un perfil que sigue siendo válido** (comprobado el
+30-09): redesplegar antes de la caducidad deja la misma fecha. Para renovar
+antes hay que borrar los perfiles guardados y redesplegar; Xcode genera
+unos nuevos de 7 días, iguales para las tres apps:
+
+```bash
+rm ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*
+```
+
 El Watch se puede reinstalar sin Xcode, con el reloj conectado (id en
 `xcrun devicectl list devices`):
 
