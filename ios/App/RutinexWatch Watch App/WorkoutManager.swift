@@ -324,6 +324,7 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
     // vuelve a la pantalla de inicio.
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         guard toState == .ended || toState == .stopped else { return }
+        let endedSession = ObjectIdentifier(workoutSession)
         Task { @MainActor in
             // Resuelve la espera de end() (cierre normal) o limpia un entreno
             // zombi que el sistema cerró él solo sin que se llamara a end().
@@ -331,7 +332,13 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
                 self.sessionEndedContinuation = nil
                 pending.resume()
             }
-            guard !self.isEndingDeliberately, self.kind != nil else { return }
+            // El aviso del cierre puede llegar después de los 3 s que espera
+            // end(), con la siguiente sesión ya empezada (cardio → Terminar →
+            // Fuerza). Sin comprobar de qué sesión es, se cargaba la nueva:
+            // "se cerró solo" y el descanso sin llegar al reloj (30-09-2026).
+            guard !self.isEndingDeliberately,
+                  let current = self.session,
+                  ObjectIdentifier(current) == endedSession else { return }
             self.cancelRest()
             self.session = nil
             self.builder = nil
