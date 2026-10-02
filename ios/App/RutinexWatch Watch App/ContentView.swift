@@ -26,6 +26,10 @@ struct StartView: View {
                 Button(kind.rawValue) {
                     Task { await workout.start(kind) }
                 }
+                .disabled(workout.isBusy)
+            }
+            if workout.isBusy {
+                ProgressView()
             }
             if let error = workout.errorMessage {
                 Text(error)
@@ -71,8 +75,12 @@ struct WorkoutView: View {
                     .foregroundStyle(.green)
                 }
 
-                Button("Terminar", role: .destructive) {
-                    Task { await workout.end() }
+                if workout.isBusy {
+                    ProgressView()
+                } else {
+                    Button("Terminar", role: .destructive) {
+                        Task { await workout.end() }
+                    }
                 }
             }
         }

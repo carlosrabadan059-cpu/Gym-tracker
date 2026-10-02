@@ -295,7 +295,13 @@ export function cardioFromWorkout(workout) {
 // con cardio y fuerza como dos entrenos separados en el Watch, el más
 // reciente puede no ser el que busca quien llama.
 export async function getMostRecentWorkout({ sinceMinutesAgo = 90, match = () => true } = {}) {
-    if (!isHealthAvailableOnThisPlatform()) return null;
+    const workouts = await getRecentWorkouts({ sinceMinutesAgo });
+    return workouts.find(match) ?? null;
+}
+
+/** Workouts de Health de los últimos `sinceMinutesAgo` minutos, del más reciente al más antiguo. */
+export async function getRecentWorkouts({ sinceMinutesAgo = 90 } = {}) {
+    if (!isHealthAvailableOnThisPlatform()) return [];
 
     const startDate = new Date(Date.now() - sinceMinutesAgo * 60_000).toISOString();
     const { workouts } = await Health.queryWorkouts({
@@ -304,7 +310,7 @@ export async function getMostRecentWorkout({ sinceMinutesAgo = 90, match = () =>
         limit: 10,
         ascending: false,
     });
-    return workouts.find(match) ?? null;
+    return workouts;
 }
 
 /**

@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { startWorkoutActivity, updateWorkoutActivity, endWorkoutActivity } from '../lib/liveActivity';
-import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, isStrengthWorkout, cardioFromWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
+import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, getRecentWorkouts, isStrengthWorkout, cardioFromWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
 import { groupConsecutiveExercises } from '../lib/superset';
 
 const TrainingView = ({ workout, onFinish }) => {
@@ -374,9 +374,13 @@ const TrainingView = ({ workout, onFinish }) => {
                     // con la estimación de siempre.
                     if (isHealthAvailableOnThisPlatform()) {
                         try {
-                            const watchWorkout = await getMostRecentWorkout({ sinceMinutesAgo: durationMinutes + 15, match: isStrengthWorkout });
-                            if (watchWorkout?.totalEnergyBurned) {
-                                realCalories = Math.round(watchWorkout.totalEnergyBurned);
+                            // Si watchOS cortó la sesión, el Watch la rearranca y
+                            // la fuerza queda en varios tramos: se suman todos.
+                            const strengthKcal = (await getRecentWorkouts({ sinceMinutesAgo: durationMinutes + 15 }))
+                                .filter(isStrengthWorkout)
+                                .reduce((sum, w) => sum + (w.totalEnergyBurned || 0), 0);
+                            if (strengthKcal) {
+                                realCalories = Math.round(strengthKcal);
                                 caloriesSource = 'health';
                             }
                         } catch (err) {

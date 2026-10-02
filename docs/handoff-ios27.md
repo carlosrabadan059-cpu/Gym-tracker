@@ -103,6 +103,10 @@ Cada punto está verificado en el dispositivo de Carlos salvo donde se diga.
 
 - **Una web nueva no llega al iPhone** hasta hacer `npm run build` y
   `npx cap sync ios`, y después `git checkout -- public/version.json`.
+- **Registro del Watch** (desde el 01-10): la app guarda cada paso de
+  las sesiones en `Documents/eventos.log` del reloj. Se lee desde el Mac con
+  el Watch cerca:
+  `xcrun devicectl device copy from --device <id del Watch> --domain-type appDataContainer --domain-identifier com.rutinex.app.watchkitapp --source Documents/eventos.log --destination eventos.log`.
 - **La consola del iPhone** se ve con ▶ (Run) en Xcode y ⇧⌘C, filtrando por
   `WatchBridge` o `RestNotification`. La del Watch no es práctica: de ahí que
   el diagnóstico se pinte en su pantalla.
