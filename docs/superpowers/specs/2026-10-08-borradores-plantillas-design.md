@@ -1,8 +1,9 @@
 # Borradores y plantillas en el panel del entrenador
 
 **Fecha:** 2026-10-08
-**Estado:** diseño aprobado, prototipo aprobado (rama
-`prototype/borrador-plantillas`). Sin implementar.
+**Estado:** implementado (2026-10-08, commit 7713f5c), prototipo aprobado
+(rama `prototype/borrador-plantillas`). Falta aplicar la migración en
+producción y probarlo con el entrenador.
 
 ## Qué se quiere
 
@@ -82,8 +83,9 @@ cliente").
 
 ### Cliente
 
-- `DashboardView.jsx` y `ChatView.jsx` filtran `sent_at` no nulo además de la
-  RLS, por claridad.
+- `DashboardView.jsx` y `ChatView.jsx` no cambian: la RLS ya oculta los
+  borradores. Filtrar por `sent_at` en el cliente rompería la app si el código
+  llegara antes que la migración (columna inexistente).
 - La notificación llega al enviar, no al guardar el borrador.
 
 ### Resto
@@ -115,6 +117,11 @@ plantilla:
   asignación.
 - **Editar** abre el mismo editor relleno. Guardar actualiza la rutina y
   reemplaza sus ejercicios. No toca las copias ya asignadas.
+- La progresión semanal no se edita en este editor (tampoco al crear una
+  rutina hoy); si la plantilla la tiene, se conserva y se copia sin peso.
+- Solo salen las plantillas con `trainer_id` del propio entrenador: las
+  rutinas base `day1`–`day3` (sin entrenador, respaldo de clientes sin
+  asignaciones) nunca se editan desde aquí.
 
 ### Asignar a…
 
