@@ -4,6 +4,7 @@ import { enrichExercisesWithCatalog } from '../../lib/utils';
 import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check, SlidersHorizontal, X, Link2, Unlink } from 'lucide-react';
 import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
 import { toggleSupersetLink } from '../../lib/superset';
+import { isPerSet, resizeReps, normalizeReps } from '../../lib/repScheme';
 
 export function AddExercisePanel({ assignment, onClose, onAdded }) {
     const [catalog, setCatalog] = useState([]);
@@ -70,7 +71,11 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
 
     const updateSelected = (catalogId, field, value) => {
         setSelected(prev =>
-            prev.map(s => s.catalog_id === catalogId ? { ...s, [field]: value } : s)
+            prev.map(s => {
+                if (s.catalog_id !== catalogId) return s;
+                // Con pirámide, cambiar las series añade o quita casillas de reps.
+                return field === 'series' ? { ...s, series: value, reps: resizeReps(s.reps, value) } : { ...s, [field]: value };
+            })
         );
     };
 
@@ -105,7 +110,7 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 routine_id: routineId,
                 name: ex.name,
                 series: String(ex.series),
-                reps: String(ex.reps),
+                reps: normalizeReps(ex.reps, ex.series),
                 image_url: ex.image_url,
                 catalog_id: ex.catalog_id ?? null,
                 ui_order: maxOrder + i + 1,
@@ -286,11 +291,15 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                                                                 </div>
                                                                 <div className="flex flex-col items-center gap-0.5">
                                                                     <span className="text-[8px] text-white/60 uppercase">Reps</span>
+                                                                    {isPerSet(sel.reps) ? (
+                                                                        <span className="h-5 flex items-center text-[10px] font-bold text-white">{sel.reps}</span>
+                                                                    ) : (
                                                                     <div className="flex items-center gap-0.5">
                                                                         <button onClick={(e) => { e.stopPropagation(); updateSelected(ex.id, 'reps', Math.max(1, sel.reps - 1)); }} className="w-5 h-5 rounded bg-black/30 flex items-center justify-center"><Minus size={8} className="text-white" /></button>
                                                                         <span className="w-4 text-center text-xs font-bold text-white">{sel.reps}</span>
                                                                         <button onClick={(e) => { e.stopPropagation(); updateSelected(ex.id, 'reps', Math.min(99, sel.reps + 1)); }} className="w-5 h-5 rounded bg-black/30 flex items-center justify-center"><Plus size={8} className="text-white" /></button>
                                                                     </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>

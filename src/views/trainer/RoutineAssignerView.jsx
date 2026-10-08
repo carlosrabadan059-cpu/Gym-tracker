@@ -8,6 +8,7 @@ import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, Chevro
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
 import { clearBrokenSupersetGroups, toggleSupersetLink } from '../../lib/superset';
+import { isPerSet, resizeReps, normalizeReps } from '../../lib/repScheme';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -80,11 +81,15 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
                             value={selected.series}
                             onChange={(v) => onUpdate(ex.id, 'series', v)}
                         />
+                        {isPerSet(selected.reps) ? (
+                            <span className="self-end text-[10px] font-bold text-white">{selected.reps}</span>
+                        ) : (
                         <Stepper
                             label={ex.id === 97 || ex.name?.toLowerCase().includes('plancha') ? "Min" : "Reps"}
                             value={selected.reps}
                             onChange={(v) => onUpdate(ex.id, 'reps', v)}
                         />
+                        )}
                     </div>
                     <p className="text-[9px] text-white/60 mt-0.5 text-center leading-tight line-clamp-1">{ex.name}</p>
                 </div>
@@ -734,7 +739,11 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
 
     const updateSelected = (catalogId, field, value) => {
         setSelectedExercises(prev =>
-            prev.map(s => s.catalog_id === catalogId ? { ...s, [field]: value } : s)
+            prev.map(s => {
+                if (s.catalog_id !== catalogId) return s;
+                // Con pirámide, cambiar las series añade o quita casillas de reps.
+                return field === 'series' ? { ...s, series: value, reps: resizeReps(s.reps, value) } : { ...s, [field]: value };
+            })
         );
     };
 
@@ -791,7 +800,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     routine_id: routineId,
                     name: ex.name,
                     series: String(ex.series),
-                    reps: String(ex.reps),
+                    reps: normalizeReps(ex.reps, ex.series),
                     image_url: ex.image_url,
                     catalog_id: ex.catalog_id ?? null,
                     ui_order: i + 1,

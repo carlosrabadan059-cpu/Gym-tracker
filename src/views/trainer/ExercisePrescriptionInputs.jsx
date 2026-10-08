@@ -1,10 +1,17 @@
 import React from 'react';
+import { PerSetReps } from '../../components/trainer/PerSetReps';
+import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 
 // Peso/RIR/descanso opcionales al crear la rutina (Fase 1 prescripción).
 // Mismo estilo visual que el editor post-creación de ClientProfileView.jsx.
 export function ExercisePrescriptionInputs({ values, onChange }) {
     return (
         <div className="grid grid-cols-3 gap-2 px-3 pb-3">
+            {values.series != null && !isTimeBasedExercise(values) && (
+                <div className="col-span-3">
+                    <PerSetReps series={values.series} reps={values.reps} onChange={(v) => onChange('reps', v)} />
+                </div>
+            )}
             <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
                 Peso (kg)
                 <input

@@ -17,6 +17,8 @@ import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal'
 import { ExerciseCommentThread } from '../../components/shared/ExerciseCommentThread';
 import { PrintableProgram } from './PrintableProgram';
 import { buildPrintableProgram } from '../../lib/printableProgram';
+import { isPerSet, resizeReps, normalizeReps } from '../../lib/repScheme';
+import { PerSetReps } from '../../components/trainer/PerSetReps';
 
 const PROGRESSION_SUGGESTION_TIMEOUT_MS = 30000;
 
@@ -403,7 +405,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             category: ex.category,
             assignmentId,
             series: Number(ex.series) || 3,
-            reps: Number(ex.reps) || 10,
+            // Texto, no Number(): "12-10-8-6" se convertía en 10 al editar.
+            reps: ex.reps || '10',
             // Prescripción (Fase 1). Cadenas vacías = sin prescribir.
             target_weight: ex.target_weight ?? '',
             target_rir: ex.target_rir ?? '',
@@ -414,7 +417,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             useWeeklyProgression: hasProgression,
             weeklyProgression: hasProgression
                 ? [...ex.weekly_progression].sort((a, b) => a.week - b.week)
-                : [{ week: 1, series: Number(ex.series) || 3, reps: Number(ex.reps) || 10, target_weight: ex.target_weight ?? '', target_rir: ex.target_rir ?? '' }],
+                : [{ week: 1, series: Number(ex.series) || 3, reps: ex.reps || '10', target_weight: ex.target_weight ?? '', target_rir: ex.target_rir ?? '' }],
         });
     };
 
@@ -438,9 +441,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
     const updateProgressionRow = (week, field, value) => {
         setEditingExercise(prev => ({
             ...prev,
-            weeklyProgression: prev.weeklyProgression.map(row =>
-                row.week === week ? { ...row, [field]: value } : row
-            ),
+            weeklyProgression: prev.weeklyProgression.map(row => {
+                if (row.week !== week) return row;
+                // Con pirámide, cambiar las series añade o quita casillas de reps.
+                return field === 'series' ? { ...row, series: value, reps: resizeReps(row.reps, value) } : { ...row, [field]: value };
+            }),
         }));
     };
 
@@ -524,7 +529,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                 const weeklyProgression = editingExercise.weeklyProgression.map(row => ({
                     week: Number(row.week),
                     series: Number(row.series),
-                    reps: Number(row.reps),
+                    reps: normalizeReps(row.reps, row.series),
                     target_weight: numOrNull(row.target_weight),
                     target_rir: numOrNull(row.target_rir),
                 }));
@@ -542,7 +547,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             } else {
                 patch = {
                     series: String(editingExercise.series),
-                    reps: String(editingExercise.reps),
+                    reps: normalizeReps(editingExercise.reps, editingExercise.series),
                     target_weight: numOrNull(editingExercise.target_weight),
                     target_rir: numOrNull(editingExercise.target_rir),
                     rest_seconds: numOrNull(editingExercise.rest_seconds),
@@ -910,9 +915,10 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                 <span className="text-[9px] text-text-secondary uppercase">Series</span>
                                                                                 <Stepper
                                                                                     value={editingExercise.series}
-                                                                                    onChange={(v) => setEditingExercise(prev => ({ ...prev, series: v }))}
+                                                                                    onChange={(v) => setEditingExercise(prev => ({ ...prev, series: v, reps: resizeReps(prev.reps, v) }))}
                                                                                 />
                                                                             </div>
+                                                                            {!isPerSet(editingExercise.reps) && (
                                                                             <div className="flex flex-col items-center gap-0.5">
                                                                                 <span className="text-[9px] text-text-secondary uppercase">{isTimeBasedExercise(ex) ? "Min" : "Reps"}</span>
                                                                                 <Stepper
@@ -920,6 +926,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                     onChange={(v) => setEditingExercise(prev => ({ ...prev, reps: v }))}
                                                                                 />
                                                                             </div>
+                                                                            )}
                                                                             <button
                                                                                 onClick={handleSaveEdit}
                                                                                 disabled={savingEdit}
@@ -987,6 +994,15 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                 {suggestingProgression ? 'Generando...' : 'Sugerir con IA'}
                                                                             </button>
                                                                         </div>
+                                                                        {!editingExercise.useWeeklyProgression && !isTimeBasedExercise(ex) && (
+                                                                            <div className="col-span-2">
+                                                                                <PerSetReps
+                                                                                    series={editingExercise.series}
+                                                                                    reps={editingExercise.reps}
+                                                                                    onChange={(v) => setEditingExercise(p => ({ ...p, reps: v }))}
+                                                                                />
+                                                                            </div>
+                                                                        )}
                                                                         {suggestionError && (
                                                                             <p className="col-span-2 text-[10px] text-red-500">{suggestionError}</p>
                                                                         )}
@@ -999,9 +1015,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                             <input type="number" min="1" value={row.series}
                                                                                                 onChange={(e) => updateProgressionRow(row.week, 'series', e.target.value)}
                                                                                                 className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Ser." />
+                                                                                            {!isPerSet(row.reps) && (
                                                                                             <input type="number" min="1" value={row.reps}
                                                                                                 onChange={(e) => updateProgressionRow(row.week, 'reps', e.target.value)}
                                                                                                 className="w-12 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Reps" />
+                                                                                            )}
                                                                                             <input type="number" inputMode="decimal" value={row.target_weight}
                                                                                                 onChange={(e) => updateProgressionRow(row.week, 'target_weight', e.target.value)}
                                                                                                 className="w-16 bg-surface border border-surface-highlight rounded-lg px-1.5 py-1 text-xs text-text-primary focus:outline-none focus:border-primary" placeholder="Kg" />
@@ -1016,6 +1034,16 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                                                 <X size={11} className="text-text-secondary hover:text-red-500" />
                                                                                             </button>
                                                                                         </div>
+                                                                                        {!isTimeBasedExercise(ex) && (
+                                                                                            <div className="pl-16 mt-1">
+                                                                                                <PerSetReps
+                                                                                                    label="Por serie"
+                                                                                                    series={row.series}
+                                                                                                    reps={row.reps}
+                                                                                                    onChange={(v) => updateProgressionRow(row.week, 'reps', v)}
+                                                                                                />
+                                                                                            </div>
+                                                                                        )}
                                                                                         {row.motivo && (
                                                                                             <p className="text-[9px] text-text-secondary italic pl-16 mt-0.5">{row.motivo}</p>
                                                                                         )}

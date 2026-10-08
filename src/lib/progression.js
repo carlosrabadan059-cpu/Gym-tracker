@@ -8,6 +8,10 @@
 //     ≥ 9  → subir peso un incremento.
 //   - Alguna serie con RPE ≥ 9, o reps por debajo del objetivo → mantener.
 //   - Sin datos de la última vez → no se sugiere nada.
+// En pirámides ("12-10-8-6") la regla se aplica serie a serie: ver
+// suggestSetWeights.
+
+import { parseRepScheme } from './repScheme';
 
 /** Incremento de peso sugerido según el peso actual (kg). */
 function weightStep(weight) {
@@ -83,4 +87,32 @@ export function suggestNextWeight(lastLog, exerciseReps) {
             ? `La última vez acabaste con RPE ${maxRpe} — repite peso y consolida`
             : `La última vez te quedaste en ${minReps} reps — repite peso hasta llegar a ${target}`,
     };
+}
+
+/**
+ * Sugerencia serie a serie para una pirámide ("12-10-8-6"). Cada serie se
+ * compara con la misma serie de la última sesión: sube un incremento si
+ * llegó a sus reps objetivo sin RPE ≥ 9; si no, repite peso.
+ *
+ * @param {{ setsData: object } | null} lastLog
+ * @param {string} reps     reps del ejercicio ("12-10-8-6")
+ * @param {number|string} series
+ * @returns {Array<{ weight: number, up: boolean, last: { weight: number, reps: number, rpe: number|null } } | null>}
+ *          una entrada por serie; null si esa serie no tiene datos la última vez
+ */
+export function suggestSetWeights(lastLog, reps, series) {
+    const last = lastLog?.setsData || {};
+    return parseRepScheme(reps, series).map((target, i) => {
+        const set = last[i];
+        const weight = parseFloat(set?.weight);
+        const done = parseInt(set?.reps, 10);
+        if (!(weight > 0) || !(done > 0)) return null;
+        const rpe = set?.rpe != null ? Number(set.rpe) : null;
+        const up = done >= target && (rpe == null || rpe < 9);
+        return {
+            weight: up ? Math.round((weight + weightStep(weight)) * 100) / 100 : weight,
+            up,
+            last: { weight, reps: done, rpe },
+        };
+    });
 }

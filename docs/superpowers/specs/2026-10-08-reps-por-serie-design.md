@@ -1,8 +1,8 @@
 # Repeticiones por serie (pirámides)
 
 **Fecha:** 2026-10-08
-**Estado:** aprobado el diseño; pendiente de probar el prototipo antes de
-desarrollarlo.
+**Estado:** implementado (2026-10-08), prototipo aprobado
+(rama `prototype/reps-por-serie`). Falta probarlo en el iPhone.
 
 ## Qué se quiere
 

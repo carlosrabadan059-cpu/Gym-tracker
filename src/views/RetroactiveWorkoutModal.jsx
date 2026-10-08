@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, ChevronRight, ChevronLeft, Check, Calendar, Dumbbell } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { repsForSet } from '../lib/repScheme';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ const StepLogExercises = ({ exercises, logsData, onChange }) => (
                                 <div className="flex-1 flex items-center gap-1 bg-surface border border-surface-highlight rounded-lg px-3 py-1.5">
                                     <input
                                         type="number"
-                                        placeholder={ex.reps}
+                                        placeholder={String(repsForSet(ex.reps, i))}
                                         value={logsData[ex.id]?.setsData?.[i]?.reps || ''}
                                         onChange={e => onChange(ex.id, i, 'reps', e.target.value)}
                                         className="w-full bg-transparent text-text-primary text-right text-sm font-mono focus:outline-none placeholder-text-secondary/50"
@@ -190,7 +191,7 @@ export function RetroactiveWorkoutModal({ routines, onClose, onSaved }) {
             const setCount = parseInt(ex.series) || 3;
             const setsData = {};
             for (let i = 0; i < setCount; i++) {
-                setsData[i] = { weight: '', reps: ex.reps || '10' };
+                setsData[i] = { weight: '', reps: String(repsForSet(ex.reps, i)) };
             }
             initial[ex.id] = { setsData, completedSets: {} };
         });
