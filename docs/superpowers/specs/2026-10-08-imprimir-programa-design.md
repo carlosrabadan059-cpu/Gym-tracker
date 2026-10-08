@@ -1,7 +1,7 @@
 # Imprimir el programa de entrenamiento de un cliente
 
 **Fecha:** 2026-10-08
-**Estado:** aprobado, pendiente de implementar.
+**Estado:** implementado (2026-10-08).
 
 ## Qué se quiere
 
@@ -19,6 +19,9 @@ series, repeticiones, descanso y observaciones.
 - **Lesión y Calentamiento salen como líneas en blanco**, para escribir a
   mano. No se guardan en ningún sitio.
 - **La columna Peso sale siempre en blanco**, como en el papel.
+- **Dibujos:** en pantalla, en color; en papel, pequeños (~19 mm) y en
+  escala de grises, porque las ilustraciones del catálogo son de fondo oscuro
+  (decidido con el prototipo `prototype/printable-program`).
 - **Impresión con el navegador** (`window.print()` y `@media print`). El
   entrenador trabaja en iPad o escritorio desde la web; en la app nativa del
   iPhone `window.print()` no funciona sin un plugin, y no hace falta.
@@ -27,7 +30,7 @@ series, repeticiones, descanso y observaciones.
 
 ## Dónde
 
-Un botón **"Imprimir programa"** en
+Un botón **"Programa"** (icono de impresora) en
 [ClientProfileView.jsx](../../../src/views/trainer/ClientProfileView.jsx),
 junto a las rutinas asignadas. Solo aparece si el cliente tiene al menos una
 rutina asignada. Abre la vista de impresión a pantalla completa, encima de la
@@ -47,8 +50,8 @@ que pinta la hoja:
   startDate,            // el mesocycle_start_date más temprano de las rutinas, o null
   durationWeeks,        // la semana más alta de weekly_progression entre todos los ejercicios, o null
   days: [{
-    label,              // "Día 1", "Día 2"... por orden de las asignaciones
-    name,               // nombre de la rutina
+    label,              // "Día 1", "Día 2"... por el primer día programado (L→D), sin programar al final
+    name,               // nombre de la rutina, sin el prefijo "Dia N -" que ya pone la etiqueta
     scheduledDays,      // p. ej. "L · X", o null si no tiene días programados
     exercises: [{
       number,           // 1, 2, 3... dentro del día
@@ -58,7 +61,7 @@ que pinta la hoja:
       series, reps,     // de la semana activa del mesociclo (applyMesocycleWeek)
       rest,             // '90"' a partir de rest_seconds, o null
       observations,     // notas y "RIR n" juntos, o null
-      supersetGroupId,  // para agrupar visualmente, o null
+      superset,         // 'A', 'B'... por orden de aparición en el día, o null
     }],
   }],
 }

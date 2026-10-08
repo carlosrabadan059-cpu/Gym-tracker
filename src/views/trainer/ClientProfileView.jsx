@@ -10,11 +10,13 @@ import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { getCurrentMesocycleWeek, applyMesocycleWeek } from '../../lib/mesocycle';
-import { ArrowLeft, PlusCircle, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Printer, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
 import { ExerciseCommentThread } from '../../components/shared/ExerciseCommentThread';
+import { PrintableProgram } from './PrintableProgram';
+import { buildPrintableProgram } from '../../lib/printableProgram';
 
 const PROGRESSION_SUGGESTION_TIMEOUT_MS = 30000;
 
@@ -108,6 +110,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
     const [addingToAssignment, setAddingToAssignment] = useState(null);
     const [selectedHistoryEntry, setSelectedHistoryEntry] = useState(null);
     const [reviewingAssignmentId, setReviewingAssignmentId] = useState(null);
+    const [showProgram, setShowProgram] = useState(false);
 
     // Fase 5 (parte 2): series por grupo muscular de la semana en curso. La
     // categoría sale de los ejercicios ya cargados para las rutinas asignadas
@@ -589,6 +592,12 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
 
     return (
         <>
+            {showProgram && (
+                <PrintableProgram
+                    program={buildPrintableProgram(client, assignedRoutines, new Date())}
+                    onBack={() => setShowProgram(false)}
+                />
+            )}
             {selectedHistoryEntry && (
                 <WorkoutDetailPanel
                     entry={selectedHistoryEntry}
@@ -707,13 +716,24 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="font-bold text-lg text-text-primary">Rutinas Asignadas</h3>
-                            <button
-                                onClick={() => onAssignRoutine(client)}
-                                className="bg-primary text-black px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-primary-hover transition-colors"
-                            >
-                                <PlusCircle size={16} />
-                                Asignar
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {!loading && assignedRoutines.length > 0 && (
+                                    <button
+                                        onClick={() => setShowProgram(true)}
+                                        className="bg-surface border border-surface-highlight text-text-primary px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 hover:border-primary transition-colors"
+                                    >
+                                        <Printer size={16} />
+                                        Programa
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => onAssignRoutine(client)}
+                                    className="bg-primary text-black px-3 py-1.5 rounded-full text-sm font-bold flex items-center gap-2 hover:bg-primary-hover transition-colors"
+                                >
+                                    <PlusCircle size={16} />
+                                    Asignar
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-3">
