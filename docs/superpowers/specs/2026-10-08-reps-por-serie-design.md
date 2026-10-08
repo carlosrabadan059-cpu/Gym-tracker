@@ -77,6 +77,10 @@ y en cada semana de la progresión.
 - La hoja impresa del programa ya muestra el texto tal cual.
 - La IA del entrenador (borrador y revisión de rutinas) recibe y devuelve
   `reps` como texto; se le indica que puede usar el formato "12-10-8-6".
+  Hecho el 2026-10-08 en n8n (`Gym_App_RoutineDraft`, `Gym_App_Trainer_Review`
+  y `Gym_App_ProgressionSuggestion`): el esquema de salida admite `reps` como
+  número o texto, la progresión mantiene la pirámide si el ejercicio ya la
+  tiene y la revisión no la trata como un error.
 
 ## Prototipo antes de desarrollar
 
