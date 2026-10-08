@@ -1,9 +1,10 @@
 # Borradores y plantillas en el panel del entrenador
 
 **Fecha:** 2026-10-08
-**Estado:** implementado (2026-10-08, commit 7713f5c), prototipo aprobado
-(rama `prototype/borrador-plantillas`). Falta aplicar la migración en
-producción y probarlo con el entrenador.
+**Estado:** implementado (2026-10-08, commit 7713f5c; migración aplicada en
+producción el mismo día), prototipo aprobado
+(rama `prototype/borrador-plantillas`). Falta probarlo con el entrenador.
+n8n revisado: ningún flujo lee `assigned_routines`.
 
 ## Qué se quiere
 
@@ -90,8 +91,8 @@ cliente").
 
 ### Resto
 
-- Revisar los flujos de n8n que lean `assigned_routines` con la clave de
-  servicio (se saltan la RLS): deben ignorar los borradores.
+- n8n: ningún flujo lee `assigned_routines` (el chat recibe las rutinas desde
+  la app, ya filtradas por la RLS).
 
 ## Parte 2 — Plantillas
 
