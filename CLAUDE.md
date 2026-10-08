@@ -148,8 +148,7 @@ data. Open at `http://localhost:5173/prototype-<name>.html`.
 Finished prototypes are kept on throwaway branches, not `main`:
 `prototype/statistics-health-ui`, `prototype/logging-ui`,
 `prototype/printable-program`, `prototype/reps-por-serie`,
-`prototype/borrador-plantillas`. Each has a `NOTES.md` with the verdict
-(except `borrador-plantillas`, approved 2026-10-08).
+`prototype/borrador-plantillas`. Each has a `NOTES.md` with the verdict.
 
 ## Agent skills
 
