@@ -63,7 +63,7 @@ Workout completion data lives in the `workout_logs` Supabase table (JSONB `logs`
 | `workout_logs` | Per-session exercise logs (user_id, routine_id, date, logs JSONB) |
 | `profiles` | User data + `role` field for trainer gating |
 | `exercises` | Exercise library |
-| `assigned_routines` | Trainer → client routine assignments |
+| `assigned_routines` | Trainer → client routine assignments. `sent_at` nulo = borrador: la RLS se lo oculta al cliente |
 | `notifications` | Real-time notifications (Supabase Realtime subscription in [NotificationsContext.jsx](src/context/NotificationsContext.jsx)) |
 
 SQL migrations are in [supabase/migrations/](supabase/migrations/).
@@ -135,6 +135,7 @@ Live plans live in `docs/`, versioned:
 - [docs/plan-apple-health-integration.md](docs/plan-apple-health-integration.md) — **v2**: Apple Health/Watch via Capacitor + HealthKit, cardio/strength detection, Live Activity. UI already decided (prototyped).
 - [docs/plan-gym-app-features.md](docs/plan-gym-app-features.md) — **v3**: plate calculator, 1RM + PR alerts, RPE/RIR, supersets, muscle recovery map.
 - [docs/plan-trainer-improvements.md](docs/plan-trainer-improvements.md) — trainer side: full prescription (weight, rest, tempo, RIR, notes), scheduling, adherence tracking.
+- [docs/handoff-2026-10-08.md](docs/handoff-2026-10-08.md) — **estado actual**: programa imprimible, pirámides, borradores y plantillas publicados en web; pendiente llevarlos a la app nativa.
 - [docs/plan-v4-premium.md](docs/plan-v4-premium.md) — **v4, proposal, not started**: premium plan (payments infra, readiness, full Watch, volume per muscle) and Pro for trainers (per-client tiers, weekly check-ins, churn risk).
 
 ## UI prototypes
@@ -145,8 +146,10 @@ Supabase login: `prototype-<name>.html` at the repo root + a
 data. Open at `http://localhost:5173/prototype-<name>.html`.
 
 Finished prototypes are kept on throwaway branches, not `main`:
-`prototype/statistics-health-ui`, `prototype/logging-ui`. Each has a `NOTES.md`
-with the verdict.
+`prototype/statistics-health-ui`, `prototype/logging-ui`,
+`prototype/printable-program`, `prototype/reps-por-serie`,
+`prototype/borrador-plantillas`. Each has a `NOTES.md` with the verdict
+(except `borrador-plantillas`, approved 2026-10-08).
 
 ## Agent skills
 
