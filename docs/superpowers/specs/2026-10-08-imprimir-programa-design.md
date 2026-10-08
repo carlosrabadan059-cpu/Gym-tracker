@@ -5,7 +5,7 @@
 
 ## Qué se quiere
 
-Desde la app de entrenador, imprimir el programa completo de un cliente en
+Desde la app de entrenador, ver en pantalla e imprimir el programa completo de un cliente en
 una hoja A4, parecida a la hoja en papel del gimnasio ("Programa de
 entrenamiento avanzado"): cabecera con los datos del cliente, una fila con
 los días y, por cada día, los dibujos de los ejercicios y una tabla con
@@ -82,8 +82,14 @@ Pinta la hoja a partir del resultado de `buildPrintableProgram`.
   miniaturas numeradas; tabla con Nº, Ejercicio, Variante, Series,
   Repeticiones, Descanso, Peso (vacía) y Observaciones. Las superseries
   llevan una marca común en la columna Nº, como en la app.
-- **Pantalla:** barra arriba con "Imprimir" (llama a `window.print()`) y
-  "Volver". La barra no sale en el papel.
+- **Pantalla:** el informe es también una vista para consultar, no solo la
+  vista previa del papel. Se lee bien en escritorio, iPad y móvil: en
+  pantallas estrechas la rejilla de días pasa a una columna, las miniaturas
+  hacen scroll horizontal y la tabla va en su propio contenedor con scroll
+  horizontal, sin que la página entera se desplace de lado. Usa los colores
+  del tema (claro/oscuro); el papel siempre sale en blanco y negro. Barra
+  arriba con "Imprimir" (llama a `window.print()`) y "Volver"; la barra no
+  sale en el papel. Solo la ve el entrenador.
 - **Papel:** A4 vertical, blanco y negro, bordes finos. Cada bloque de día
   intenta no partirse entre páginas (`break-inside: avoid`). Al imprimir se
   oculta el resto de la app.
