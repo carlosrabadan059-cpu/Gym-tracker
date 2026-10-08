@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { enrichExercisesWithCatalog, loadExerciseHistory } from '../../lib/utils';
-import { deleteClientRoutineCopy, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from '../../lib/trainerUtils';
+import { deleteClientRoutineCopy, sendDraftAssignment, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from '../../lib/trainerUtils';
 import { canShowHealthData } from '../../lib/healthConsent';
 import { computeWeeklyMuscleVolume } from '../../lib/muscleVolume';
 import { MuscleVolumeCard } from '../../components/shared/MuscleVolumeCard';
@@ -10,7 +10,7 @@ import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 import { computeStreak, computeDaysSinceLastSession } from '../../lib/adherence';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { getCurrentMesocycleWeek, applyMesocycleWeek } from '../../lib/mesocycle';
-import { ArrowLeft, PlusCircle, Printer, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame } from 'lucide-react';
+import { ArrowLeft, PlusCircle, Printer, Activity, Dumbbell, ChevronRight, ChevronUp, ChevronDown, Trash2, Calendar, Clock, Edit2, Check, X, Minus, Plus, Pencil, Sparkles, Flame, Send } from 'lucide-react';
 import { WorkoutDetailPanel } from './WorkoutDetailPanel';
 import { AddExercisePanel } from './AddExercisePanel';
 import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal';
@@ -356,6 +356,17 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         }
     };
 
+    // Borrador: sent_at nulo. Enviar lo hace visible al cliente y le avisa.
+    const handleSendDraft = async (assignment) => {
+        try {
+            await sendDraftAssignment(assignment.id, client.user_id, assignment.routine.name);
+            setAssignedRoutines(prev => prev.map(a => a.id === assignment.id ? { ...a, sent_at: new Date().toISOString() } : a));
+        } catch (err) {
+            console.error('Error sending draft:', err);
+            alert('No se pudo enviar la rutina. Inténtalo de nuevo.');
+        }
+    };
+
     const handleDeleteRoutine = async (assignmentId) => {
         try {
             const assignment = assignedRoutines.find(a => a.id === assignmentId);
@@ -599,7 +610,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         <>
             {showProgram && (
                 <PrintableProgram
-                    program={buildPrintableProgram(client, assignedRoutines, new Date())}
+                    program={buildPrintableProgram(client, assignedRoutines.filter(a => a.sent_at !== null), new Date())}
                     onBack={() => setShowProgram(false)}
                 />
             )}
@@ -753,10 +764,11 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                     const { routine } = assignment;
                                     const isExpanded = expandedRoutine === assignment.id;
                                     const activeWeek = getCurrentMesocycleWeek(routine.mesocycle_start_date, new Date());
+                                    const isDraft = assignment.sent_at === null;
                                     return (
                                         <div
                                             key={assignment.id}
-                                            className={`bg-surface p-4 rounded-2xl border transition-all cursor-pointer border-l-4 ${routine.border_color || 'border-surface-highlight'} ${isExpanded ? 'border-primary shadow-lg' : 'hover:border-gray-500'}`}
+                                            className={`bg-surface p-4 rounded-2xl border transition-all cursor-pointer border-l-4 ${isDraft ? 'border-dashed border-amber-500/60' : routine.border_color || 'border-surface-highlight'} ${isExpanded ? 'border-primary shadow-lg' : 'hover:border-gray-500'}`}
                                             onClick={() => toggleRoutine(assignment.id)}
                                         >
                                             {editingRoutineNameId === assignment.id ? (
@@ -789,14 +801,27 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                 <>
                                                 <div className="flex justify-between items-center">
                                                     <div className="flex-1 min-w-0 mr-2">
-                                                        <h4 className={`font-bold ${routine.text_color || 'text-text-primary'}`}>
+                                                        <h4 className={`font-bold flex items-center gap-2 ${routine.text_color || 'text-text-primary'}`}>
                                                             {routine.name}
+                                                            {isDraft && (
+                                                                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500">Borrador</span>
+                                                            )}
                                                         </h4>
                                                         <p className="text-xs text-text-secondary mt-1">
-                                                            Asignado el {new Date(assignment.assigned_at || assignment.created_at || Date.now()).toLocaleDateString()}
+                                                            {isDraft
+                                                                ? `${client?.username || 'El cliente'} aún no la ve`
+                                                                : `Asignado el ${new Date(assignment.assigned_at || assignment.created_at || Date.now()).toLocaleDateString()}`}
                                                         </p>
                                                     </div>
                                                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                                        {isDraft && (
+                                                            <button
+                                                                onClick={() => handleSendDraft(assignment)}
+                                                                className="flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-primary text-black"
+                                                            >
+                                                                <Send size={13} /> Enviar
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={() => setReviewingAssignmentId(assignment.id)}
                                                             className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"

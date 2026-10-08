@@ -9,12 +9,18 @@ import { pickTopWeightSets } from './progression';
  * editable: tocar la rutina de uno nunca afecta a otro (Fase 0.2, decisión
  * "clonar siempre").
  *
+ * La copia lleva toda la prescripción menos el peso, que depende de cada
+ * cliente y se pone en su ficha (ver
+ * docs/superpowers/specs/2026-10-08-borradores-plantillas-design.md).
+ *
  * @param {string} sourceRoutineId  rutina origen a copiar
  * @param {object} client           { user_id, username? }
  * @param {string} trainerId        auth.uid() del entrenador
+ * @param {{draft?: boolean, scheduledDays?: number[]|null, startDate?: string|null}} [options]
+ *        draft: el cliente no la ve hasta enviarla (sin notificación).
  * @returns {Promise<string>} el id de la rutina clonada
  */
-export async function cloneRoutineToClient(sourceRoutineId, client, trainerId) {
+export async function cloneRoutineToClient(sourceRoutineId, client, trainerId, { draft = false, scheduledDays = null, startDate = null } = {}) {
     if (!sourceRoutineId || !client?.user_id || !trainerId) {
         throw new Error('cloneRoutineToClient: faltan datos (rutina, cliente o entrenador)');
     }
@@ -22,7 +28,7 @@ export async function cloneRoutineToClient(sourceRoutineId, client, trainerId) {
     const [{ data: source, error: srcErr }, { data: exercises, error: exErr }] = await Promise.all([
         supabase.from('routines').select('name, color, border_color, text_color').eq('id', sourceRoutineId).single(),
         supabase.from('exercises')
-            .select('name, series, reps, image_url, catalog_id, ui_order')
+            .select('name, series, reps, image_url, catalog_id, ui_order, target_rir, rest_seconds, tempo, notes, weekly_progression, superset_group_id')
             .eq('routine_id', sourceRoutineId)
             .order('ui_order'),
     ]);
@@ -40,21 +46,13 @@ export async function cloneRoutineToClient(sourceRoutineId, client, trainerId) {
         trainer_id: trainerId,
         owner_client_id: client.user_id,
         is_template: false,
+        scheduled_days: scheduledDays?.length ? scheduledDays : null,
+        mesocycle_start_date: startDate || null,
     }]);
     if (insRoutineErr) throw insRoutineErr;
 
     if (exercises?.length) {
-        const { error: insExErr } = await supabase.from('exercises').insert(
-            exercises.map((ex, i) => ({
-                routine_id: newRoutineId,
-                name: ex.name,
-                series: ex.series,
-                reps: ex.reps,
-                image_url: ex.image_url,
-                catalog_id: ex.catalog_id ?? null,
-                ui_order: ex.ui_order ?? i + 1,
-            }))
-        );
+        const { error: insExErr } = await supabase.from('exercises').insert(cloneExercises(exercises, newRoutineId));
         if (insExErr) throw insExErr;
     }
 
@@ -62,21 +60,57 @@ export async function cloneRoutineToClient(sourceRoutineId, client, trainerId) {
         client_id: client.user_id,
         routine_id: newRoutineId,
         assigned_by: trainerId,
+        sent_at: draft ? null : new Date().toISOString(),
     }]);
     if (assignErr) throw assignErr;
 
+    if (!draft) await notifyNewRoutine(client.user_id, source.name);
+
+    return newRoutineId;
+}
+
+/** Ejercicios de la copia: toda la prescripción, sin peso (tampoco en la progresión). */
+export function cloneExercises(exercises, routineId) {
+    return exercises.map((ex, i) => ({
+        routine_id: routineId,
+        name: ex.name,
+        series: ex.series,
+        reps: ex.reps,
+        image_url: ex.image_url,
+        catalog_id: ex.catalog_id ?? null,
+        ui_order: ex.ui_order ?? i + 1,
+        target_weight: null,
+        target_rir: ex.target_rir ?? null,
+        rest_seconds: ex.rest_seconds ?? null,
+        tempo: ex.tempo ?? null,
+        notes: ex.notes ?? null,
+        superset_group_id: ex.superset_group_id ?? null,
+        weekly_progression: Array.isArray(ex.weekly_progression)
+            ? ex.weekly_progression.map(w => ({ ...w, target_weight: null }))
+            : null,
+    }));
+}
+
+export async function notifyNewRoutine(clientId, routineName) {
     try {
         await supabase.from('notifications').insert([{
-            user_id: client.user_id,
+            user_id: clientId,
             title: '¡Nueva Rutina Asignada!',
-            message: `Tu entrenador te ha asignado: ${source.name}. ¡A darle duro!`,
+            message: `Tu entrenador te ha asignado: ${routineName}. ¡A darle duro!`,
             read: false,
         }]);
     } catch (notifErr) {
         console.warn('Could not insert notification, table likely missing', notifErr);
     }
+}
 
-    return newRoutineId;
+/** Envía al cliente una rutina guardada como borrador. */
+export async function sendDraftAssignment(assignmentId, clientId, routineName) {
+    const { error } = await supabase.from('assigned_routines')
+        .update({ sent_at: new Date().toISOString() })
+        .eq('id', assignmentId);
+    if (error) throw error;
+    await notifyNewRoutine(clientId, routineName);
 }
 
 /**

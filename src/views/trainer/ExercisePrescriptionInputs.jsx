@@ -4,7 +4,8 @@ import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 
 // Peso/RIR/descanso opcionales al crear la rutina (Fase 1 prescripción).
 // Mismo estilo visual que el editor post-creación de ClientProfileView.jsx.
-export function ExercisePrescriptionInputs({ values, onChange }) {
+// hideWeight: en plantillas el peso se pone por cliente, al asignarla.
+export function ExercisePrescriptionInputs({ values, onChange, hideWeight = false }) {
     return (
         <div className="grid grid-cols-3 gap-2 px-3 pb-3">
             {values.series != null && !isTimeBasedExercise(values) && (
@@ -14,6 +15,9 @@ export function ExercisePrescriptionInputs({ values, onChange }) {
             )}
             <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
                 Peso (kg)
+                {hideWeight ? (
+                    <span className="border border-dashed border-surface-highlight rounded-lg px-2 py-1.5 text-xs whitespace-nowrap normal-case tracking-normal">Por cliente</span>
+                ) : (
                 <input
                     type="number"
                     inputMode="decimal"
@@ -22,6 +26,7 @@ export function ExercisePrescriptionInputs({ values, onChange }) {
                     className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary"
                     placeholder="—"
                 />
+                )}
             </label>
             <label className="flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
                 RIR (0-5)

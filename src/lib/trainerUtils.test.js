@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { summarizeWorkoutHistory, matchDraftExercisesToCatalog, buildRoutineDraftPayload, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload } from './trainerUtils';
+import { summarizeWorkoutHistory, matchDraftExercisesToCatalog, buildRoutineDraftPayload, summarizeExerciseHistoryForAI, buildProgressionSuggestionPayload, cloneExercises } from './trainerUtils';
 
 describe('summarizeWorkoutHistory', () => {
     it('devuelve un texto sin historial cuando no hay logs', () => {
@@ -267,5 +267,34 @@ describe('buildProgressionSuggestionPayload', () => {
             historySummary: 'algo',
         });
         expect(result.clientAge).toBeNull();
+    });
+});
+
+describe('cloneExercises', () => {
+    const source = {
+        name: 'Press de banca', series: '4', reps: '12-10-8-6', image_url: 'x.png', catalog_id: 7, ui_order: 1,
+        target_weight: 60, target_rir: 2, rest_seconds: 90, tempo: '3-1-1', notes: 'Codos a 45º',
+        superset_group_id: 'superset_a',
+        weekly_progression: [{ week: 1, series: 4, reps: '12-10-8-6', target_weight: 60, target_rir: 2 }],
+    };
+
+    it('copia toda la prescripción en la rutina nueva', () => {
+        const [ex] = cloneExercises([source], 'custom_new');
+        expect(ex).toMatchObject({
+            routine_id: 'custom_new', name: 'Press de banca', series: '4', reps: '12-10-8-6',
+            target_rir: 2, rest_seconds: 90, tempo: '3-1-1', notes: 'Codos a 45º', superset_group_id: 'superset_a',
+        });
+    });
+
+    it('deja el peso en blanco, también en la progresión semanal', () => {
+        const [ex] = cloneExercises([source], 'custom_new');
+        expect(ex.target_weight).toBeNull();
+        expect(ex.weekly_progression).toEqual([{ week: 1, series: 4, reps: '12-10-8-6', target_weight: null, target_rir: 2 }]);
+        expect(source.weekly_progression[0].target_weight).toBe(60);
+    });
+
+    it('sin progresión ni campos opcionales, nulos', () => {
+        const [ex] = cloneExercises([{ name: 'Curl', series: '3', reps: '10' }], 'r');
+        expect(ex).toMatchObject({ ui_order: 1, target_rir: null, rest_seconds: null, weekly_progression: null });
     });
 });

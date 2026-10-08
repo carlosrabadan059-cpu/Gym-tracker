@@ -1,4 +1,4 @@
-import { Home, Users, Dumbbell, LogOut } from 'lucide-react';
+import { Home, Users, Dumbbell, LogOut, LayoutTemplate } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 
@@ -15,6 +15,12 @@ const NAV = [
         label: 'Clientes',
         icon: Users,
         match: ['trainer_clients', 'trainer_client_profile', 'trainer_assign_routine'],
+    },
+    {
+        id: 'trainer_templates',
+        label: 'Plantillas',
+        icon: LayoutTemplate,
+        match: ['trainer_templates', 'trainer_template_edit'],
     },
     { id: 'trainer_library', label: 'Librería', icon: Dumbbell },
 ];

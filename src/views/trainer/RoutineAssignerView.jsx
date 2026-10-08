@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { enrichExercisesWithCatalog } from '../../lib/utils';
-import { cloneRoutineToClient, fetchRecentHistorySummary, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from '../../lib/trainerUtils';
+import { cloneRoutineToClient, notifyNewRoutine, fetchRecentHistorySummary, matchDraftExercisesToCatalog, buildRoutineDraftPayload } from '../../lib/trainerUtils';
 import { WEEKDAY_LABELS, isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, Search, Dumbbell, Check, Minus, Plus, X, ChevronDown, ChevronUp, ChevronRight, Trash2, Pencil, Star, Sparkles, Loader2, SlidersHorizontal, Link2, Unlink } from 'lucide-react';
@@ -107,7 +107,7 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
 
 // Lista de ejercicios elegidos con reordenar/quitar. Se reusa en el rail
 // derecho (md+) y en la barra inferior colapsable (móvil).
-function SelectedExerciseList({ selected, onMove, onRemove, onUpdate, onLinkNext }) {
+function SelectedExerciseList({ selected, onMove, onRemove, onUpdate, onLinkNext, hideWeight }) {
     const [expanded, setExpanded] = useState({});
     const toggleExpanded = (catalogId) => setExpanded(prev => ({ ...prev, [catalogId]: !prev[catalogId] }));
 
@@ -165,6 +165,7 @@ function SelectedExerciseList({ selected, onMove, onRemove, onUpdate, onLinkNext
                     </div>
                     {onUpdate && expanded[ex.catalog_id] && (
                         <ExercisePrescriptionInputs
+                            hideWeight={hideWeight}
                             values={ex}
                             onChange={(field, value) => onUpdate(ex.catalog_id, field, value)}
                         />
@@ -490,13 +491,14 @@ function AssignExistingTab({ client, user, onSuccess }) {
         }
     };
 
-    const handleAssign = async () => {
+    const handleAssign = async (draft) => {
         if (!selectedRoutineId || !client) return;
         setSaving(true);
         try {
             // Clonar-siempre: el cliente recibe una copia propia, no la rutina
-            // compartida. La notificación la manda cloneRoutineToClient.
-            await cloneRoutineToClient(selectedRoutineId, client, user.id);
+            // compartida. La notificación la manda cloneRoutineToClient (si no
+            // es borrador).
+            await cloneRoutineToClient(selectedRoutineId, client, user.id, { draft });
             onSuccess();
         } catch (err) {
             console.error('Error assigning routine:', err);
@@ -648,11 +650,19 @@ function AssignExistingTab({ client, user, onSuccess }) {
 
             {/* Fixed bottom bar */}
             {selectedRoutineId && (
-                <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
+                <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-highlight p-4 z-20 flex gap-2">
                     <button
-                        onClick={handleAssign}
+                        onClick={() => handleAssign(true)}
                         disabled={saving}
-                        className="w-full bg-primary text-black font-bold py-3 rounded-xl hover:bg-primary-hover transition-colors disabled:opacity-50"
+                        title="El cliente no la ve hasta que la envíes desde su ficha"
+                        className="shrink-0 border border-surface-highlight text-text-primary font-bold px-4 py-3 rounded-xl hover:bg-surface-highlight transition-colors disabled:opacity-50"
+                    >
+                        Borrador
+                    </button>
+                    <button
+                        onClick={() => handleAssign(false)}
+                        disabled={saving}
+                        className="flex-1 min-w-0 truncate bg-primary text-black font-bold py-3 rounded-xl hover:bg-primary-hover transition-colors disabled:opacity-50"
                     >
                         {saving ? 'Asignando...' : `Asignar "${routines.find(r => r.id === selectedRoutineId)?.name}"`}
                     </button>
@@ -664,19 +674,38 @@ function AssignExistingTab({ client, user, onSuccess }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function RoutineAssignerView({ client, onBack, onSuccess }) {
+// `template`: modo plantilla, sin cliente ({} = nueva; una rutina con sus
+// ejercicios = editarla). Sin días ni peso: se ponen al asignarla. Ver
+// docs/superpowers/specs/2026-10-08-borradores-plantillas-design.md.
+export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
     const { user } = useAuth();
-    const [mode, setMode] = useState('existing'); // 'existing' | 'new' | 'ai'
+    const isTemplate = template !== undefined;
+    const [mode, setMode] = useState(isTemplate ? 'new' : 'existing'); // 'existing' | 'new' | 'ai'
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    const [routineName, setRoutineName] = useState('');
-    const [routineColor, setRoutineColor] = useState(COLORS[0]);
+    const [routineName, setRoutineName] = useState(template?.name || '');
+    const [routineColor, setRoutineColor] = useState(COLORS.find(c => c.value === template?.color) || COLORS[0]);
     const [scheduledDays, setScheduledDays] = useState([]);
 
     const [catalog, setCatalog] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedExercises, setSelectedExercises] = useState([]);
+    const [selectedExercises, setSelectedExercises] = useState(() => (template?.exercises || []).map(ex => ({
+        // ponytail: la lista usa catalog_id como identidad; las plantillas
+        // salen del catálogo, así que siempre lo tienen.
+        catalog_id: ex.catalog_id,
+        name: ex.name,
+        image_url: ex.image_url || null,
+        series: Number(ex.series) || 3,
+        reps: ex.reps,
+        target_weight: null,
+        target_rir: ex.target_rir ?? null,
+        rest_seconds: ex.rest_seconds ?? null,
+        tempo: ex.tempo ?? null,
+        notes: ex.notes ?? null,
+        weekly_progression: ex.weekly_progression ?? null,
+        superset_group_id: ex.superset_group_id ?? null,
+    })));
     const [collapsedGroups, setCollapsedGroups] = useState({});
     const [showSelected, setShowSelected] = useState(false);
     const [saveError, setSaveError] = useState(null);
@@ -774,7 +803,61 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
     const canSave = routineName.trim() && selectedExercises.length > 0;
 
 
-    const handleSave = async () => {
+    const exerciseRows = (routineId) => selectedExercises.map((ex, i) => ({
+        routine_id: routineId,
+        name: ex.name,
+        series: String(ex.series),
+        reps: normalizeReps(ex.reps, ex.series),
+        image_url: ex.image_url,
+        catalog_id: ex.catalog_id ?? null,
+        ui_order: i + 1,
+        target_weight: isTemplate ? null : ex.target_weight ?? null,
+        target_rir: ex.target_rir ?? null,
+        rest_seconds: ex.rest_seconds ?? null,
+        tempo: ex.tempo ?? null,
+        notes: ex.notes ?? null,
+        weekly_progression: ex.weekly_progression ?? null,
+        superset_group_id: ex.superset_group_id ?? null,
+    }));
+
+    // Plantilla: rutina sin cliente ni asignación. Editarla reemplaza sus
+    // ejercicios; las copias ya asignadas no cambian (son rutinas aparte).
+    const handleSaveTemplate = async () => {
+        if (!canSave) return;
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const fields = {
+                name: routineName.trim(),
+                color: routineColor.value,
+                border_color: routineColor.border,
+                text_color: routineColor.text,
+            };
+            let routineId = template.id;
+            if (routineId) {
+                const { error } = await supabase.from('routines').update(fields).eq('id', routineId);
+                if (error) throw error;
+                const { error: delError } = await supabase.from('exercises').delete().eq('routine_id', routineId);
+                if (delError) throw delError;
+            } else {
+                routineId = `custom_${crypto.randomUUID()}`;
+                const { error } = await supabase.from('routines').insert([{
+                    ...fields, id: routineId, trainer_id: user.id, is_template: true, owner_client_id: null,
+                }]);
+                if (error) throw error;
+            }
+            const { error: exError } = await supabase.from('exercises').insert(exerciseRows(routineId));
+            if (exError) throw exError;
+            onSuccess();
+        } catch (err) {
+            console.error('Error saving template:', err);
+            setSaveError(err.message || 'Error al guardar la plantilla. Inténtalo de nuevo.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSave = async (draft) => {
         if (!canSave || !client) return;
         setSaving(true);
         setSaveError(null);
@@ -795,22 +878,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 }]);
             if (routineError) throw routineError;
 
-            const { error: exError } = await supabase.from('exercises').insert(
-                selectedExercises.map((ex, i) => ({
-                    routine_id: routineId,
-                    name: ex.name,
-                    series: String(ex.series),
-                    reps: normalizeReps(ex.reps, ex.series),
-                    image_url: ex.image_url,
-                    catalog_id: ex.catalog_id ?? null,
-                    ui_order: i + 1,
-                    target_weight: ex.target_weight ?? null,
-                    target_rir: ex.target_rir ?? null,
-                    rest_seconds: ex.rest_seconds ?? null,
-                    notes: ex.notes ?? null,
-                    superset_group_id: ex.superset_group_id ?? null,
-                }))
-            );
+            const { error: exError } = await supabase.from('exercises').insert(exerciseRows(routineId));
             if (exError) {
                 setSaveError(`❌ Error al guardar ejercicios: ${exError.message}`);
                 return;
@@ -820,24 +888,15 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 client_id: client.user_id,
                 routine_id: routineId,
                 assigned_by: user.id,
+                // Borrador: el cliente no la ve hasta que se envía desde su ficha.
+                sent_at: draft ? null : new Date().toISOString(),
             }]);
             if (assignError) {
                 setSaveError(`❌ Error al asignar rutina: ${assignError.message}`);
                 return;
             }
 
-            if (client.user_id) {
-                try {
-                    await supabase.from('notifications').insert([{
-                        user_id: client.user_id,
-                        title: '¡Nueva Rutina Personalizada!',
-                        message: `Tu entrenador te ha asignado: ${routineName.trim()}. ¡A darle duro!`,
-                        read: false,
-                    }]);
-                } catch (notifErr) {
-                    console.warn('Could not insert notification, table likely missing', notifErr);
-                }
-            }
+            if (!draft) await notifyNewRoutine(client.user_id, routineName.trim());
 
             onSuccess();
         } catch (err) {
@@ -857,8 +916,12 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                     <ArrowLeft size={22} className="text-text-primary" />
                 </button>
                 <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-bold text-text-primary">Asignar Rutina</h2>
-                    <p className="text-xs text-text-secondary truncate">{client?.username}</p>
+                    <h2 className="text-lg font-bold text-text-primary">
+                        {isTemplate ? (template.id ? 'Editar plantilla' : 'Nueva plantilla') : 'Asignar Rutina'}
+                    </h2>
+                    <p className="text-xs text-text-secondary truncate">
+                        {isTemplate ? 'Sin cliente: días y peso se ponen al asignarla' : client?.username}
+                    </p>
                 </div>
                 {mode === 'new' && (
                     <>
@@ -869,13 +932,31 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                         >
                             Revisar con IA
                         </button>
+                        {isTemplate ? (
                         <button
-                            onClick={handleSave}
+                            onClick={handleSaveTemplate}
                             disabled={!canSave || saving}
                             className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
                         >
-                            {saving ? 'Guardando...' : 'Guardar'}
+                            {saving ? 'Guardando...' : 'Guardar plantilla'}
                         </button>
+                        ) : (<>
+                        <button
+                            onClick={() => handleSave(true)}
+                            disabled={!canSave || saving}
+                            title="El cliente no la ve hasta que la envíes desde su ficha"
+                            className="border border-surface-highlight text-text-primary font-bold px-3 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface-highlight transition-colors flex-shrink-0"
+                        >
+                            Borrador
+                        </button>
+                        <button
+                            onClick={() => handleSave(false)}
+                            disabled={!canSave || saving}
+                            className="bg-primary text-black font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-hover transition-colors flex-shrink-0"
+                        >
+                            {saving ? 'Guardando...' : 'Enviar'}
+                        </button>
+                        </>)}
                     </>
                 )}
             </header>
@@ -887,7 +968,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
             )}
 
             {/* Mode tabs */}
-            <div className="flex gap-1 p-3 border-b border-surface-highlight bg-background">
+            {!isTemplate && <div className="flex gap-1 p-3 border-b border-surface-highlight bg-background">
                 <button
                     onClick={() => setMode('existing')}
                     className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${mode === 'existing' ? 'bg-primary text-black' : 'bg-surface text-text-secondary hover:text-text-primary'}`}
@@ -906,7 +987,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                 >
                     Con IA
                 </button>
-            </div>
+            </div>}
 
             {mode === 'existing' ? (
                 <AssignExistingTab client={client} user={user} onSuccess={onSuccess} />
@@ -944,7 +1025,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 ))}
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        {!isTemplate && <div className="flex items-center gap-2">
                             <span className="text-xs text-text-secondary flex-shrink-0">Días:</span>
                             <div className="flex gap-1">
                                 {WEEKDAY_LABELS.map(({ value, label }) => (
@@ -961,7 +1042,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                     </button>
                                 ))}
                             </div>
-                        </div>
+                        </div>}
                     </div>
 
                     {/* Search */}
@@ -1057,7 +1138,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                             ))}
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    {!isTemplate && <div className="flex items-center gap-2">
                         <span className="text-xs text-text-secondary flex-shrink-0">Días:</span>
                         <div className="flex gap-1">
                             {WEEKDAY_LABELS.map(({ value, label }) => (
@@ -1074,7 +1155,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 </button>
                             ))}
                         </div>
-                    </div>
+                    </div>}
                     <div className="border-t border-surface-highlight pt-3">
                         <p className="text-sm font-bold text-text-primary mb-2">
                             {selectedExercises.length} ejercicio{selectedExercises.length !== 1 ? 's' : ''}
@@ -1086,6 +1167,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
                                 onUpdate={updateSelected}
                                 onLinkNext={linkSelectedWithNext}
+                                hideWeight={isTemplate}
                             />
                         ) : (
                             <p className="text-xs text-text-secondary">Toca ejercicios del catálogo para añadirlos a la rutina.</p>
@@ -1116,6 +1198,7 @@ export function RoutineAssignerView({ client, onBack, onSuccess }) {
                                 onRemove={(id) => setSelectedExercises(prev => prev.filter(s => s.catalog_id !== id))}
                                 onUpdate={updateSelected}
                                 onLinkNext={linkSelectedWithNext}
+                                hideWeight={isTemplate}
                             />
                         </div>
                     )}

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { computeStreak, computeDaysSinceLastSession, INACTIVITY_ALERT_DAYS } from '../../lib/adherence';
 import { isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { categorizeClient } from '../../lib/trainerPriority';
-import { Users, LayoutDashboard, LogOut, ChevronRight, Flame, AlertTriangle } from 'lucide-react';
+import { Users, LayoutDashboard, LogOut, ChevronRight, Flame, AlertTriangle, LayoutTemplate } from 'lucide-react';
 
 // Compara dos fechas por día calendario local, ignorando la hora — igual
 // criterio que src/lib/adherence.js usa internamente para "hoy"/"ayer",
@@ -71,15 +71,17 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
             const [
                 { data: profiles, error: profilesError },
                 { data: logs, error: logsError },
-                { data: assigned, error: assignedError },
+                { data: assignedRows, error: assignedError },
             ] = await Promise.all([
                 supabase.from('profiles').select('*').in('user_id', clientIds),
                 supabase.from('workout_logs').select('user_id, date').in('user_id', clientIds),
-                supabase.from('assigned_routines').select('client_id, routine_id').in('client_id', clientIds),
+                supabase.from('assigned_routines').select('*').in('client_id', clientIds),
             ]);
             if (profilesError) throw profilesError;
             if (logsError) throw logsError;
             if (assignedError) throw assignedError;
+            // Los borradores (sent_at nulo) aún no cuentan como asignados.
+            const assigned = (assignedRows || []).filter(a => a.sent_at !== null);
 
             const routineIds = [...new Set((assigned || []).map(a => a.routine_id))];
             let scheduledDaysByRoutineId = {};
@@ -222,13 +224,21 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
                     </>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="grid grid-cols-3 gap-4 pt-2">
                     <button
                         onClick={() => onNavigate('trainer_clients')}
                         className="bg-surface p-4 rounded-2xl border border-surface-highlight hover:border-primary transition-all flex flex-col items-center justify-center gap-2 text-center group"
                     >
                         <Users size={24} className="text-primary group-hover:scale-110 transition-transform" />
                         <h3 className="font-bold text-sm">Todos los clientes</h3>
+                    </button>
+
+                    <button
+                        onClick={() => onNavigate('trainer_templates')}
+                        className="bg-surface p-4 rounded-2xl border border-surface-highlight hover:border-primary transition-all flex flex-col items-center justify-center gap-2 text-center group"
+                    >
+                        <LayoutTemplate size={24} className="text-primary group-hover:scale-110 transition-transform" />
+                        <h3 className="font-bold text-sm">Plantillas</h3>
                     </button>
 
                     <button

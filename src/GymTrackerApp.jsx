@@ -19,6 +19,7 @@ import { TRAINER_ROLES, isTrainer } from './lib/constants';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
 import { TrainerClientsView } from './components/layout/TrainerClientsView';
 import { RoutineAssignerView } from './views/trainer/RoutineAssignerView';
+import { TemplatesView } from './views/trainer/TemplatesView';
 import { TrainerLibraryView } from './views/trainer/TrainerLibraryView';
 
 /**
@@ -223,6 +224,7 @@ const AuthenticatedApp = () => {
     const [currentWorkout, setCurrentWorkout] = useState(null);
     const [completedRoutines, setCompletedRoutines] = useState([]);
     const [currentClient, setCurrentClient] = useState(null); // Added for trainer views
+    const [editingTemplate, setEditingTemplate] = useState(null);
     const prevUserIdRef = useRef(null);
 
     // Resetear a 'setup' cuando cambia el usuario (nuevo login)
@@ -358,6 +360,20 @@ const AuthenticatedApp = () => {
                             client={currentClient}
                             onBack={() => setView('trainer_client_profile')}
                             onSuccess={() => setView('trainer_client_profile')}
+                        />
+                    )}
+                    {view === 'trainer_templates' && (
+                        <TemplatesView
+                            onBack={() => setView('trainer')}
+                            onEdit={(template) => { setEditingTemplate(template); setView('trainer_template_edit'); }}
+                        />
+                    )}
+                    {view === 'trainer_template_edit' && (
+                        <RoutineAssignerView
+                            key={editingTemplate?.id || 'new'}
+                            template={editingTemplate || {}}
+                            onBack={() => setView('trainer_templates')}
+                            onSuccess={() => setView('trainer_templates')}
                         />
                     )}
                     {view === 'trainer_library' && (
