@@ -162,6 +162,7 @@ const LOCAL_IMAGES = [
     'v2_biceps_25.png',
     'v2_biceps_26.png',
     'v2_biceps_27.png',
+    'v2_biceps_27_curl.png',
     'v2_biceps_28.png',
     'v2_biceps_29.png',
     'v2_biceps_30.png',
