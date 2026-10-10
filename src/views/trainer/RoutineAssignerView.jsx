@@ -20,23 +20,28 @@ const COLORS = [
     { value: 'bg-orange-500', border: 'border-orange-500', text: 'text-orange-500' },
 ];
 
+// Contador de la tarjeta del catálogo: botones de 28px para pulsarlos bien
+// en el iPad; los dos contadores (series y reps) van uno encima del otro
+// porque lado a lado no caben en la tarjeta.
 function Stepper({ label, value, onChange, min = 1, max = 99 }) {
     return (
-        <div className="flex flex-col items-center gap-1">
-            <span className="text-[10px] text-text-secondary uppercase tracking-wide">{label}</span>
-            <div className="flex items-center gap-1.5">
+        <div className="flex flex-col items-center gap-0.5">
+            <span className="text-[10px] text-white/70 uppercase tracking-wide leading-none">{label}</span>
+            <div className="flex items-center gap-1">
                 <button
                     onClick={(e) => { e.stopPropagation(); onChange(Math.max(min, Number(value) - 1)); }}
-                    className="w-6 h-6 rounded-md bg-black/20 flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                    aria-label={`Menos ${label.toLowerCase()}`}
+                    className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
                 >
-                    <Minus size={10} />
+                    <Minus size={12} />
                 </button>
-                <span className="w-5 text-center text-sm font-bold text-white">{value}</span>
+                <span className="w-6 text-center text-sm font-bold text-white tabular-nums">{value}</span>
                 <button
                     onClick={(e) => { e.stopPropagation(); onChange(Math.min(max, Number(value) + 1)); }}
-                    className="w-6 h-6 rounded-md bg-black/20 flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                    aria-label={`Más ${label.toLowerCase()}`}
+                    className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-white hover:bg-white/30 transition-colors"
                 >
-                    <Plus size={10} />
+                    <Plus size={12} />
                 </button>
             </div>
         </div>
@@ -67,23 +72,25 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
             {/* Gradient overlay always */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-            {/* Exercise name */}
-            <div className="absolute bottom-0 inset-x-0 p-1.5">
+            {/* Exercise name (seleccionada, lo pone el overlay) */}
+            {!selected && <div className="absolute bottom-0 inset-x-0 p-1.5">
                 <p className="text-white text-[10px] font-semibold leading-tight line-clamp-2">{ex.name}</p>
-            </div>
+            </div>}
 
             {/* Selected overlay with steppers */}
             {selected && onUpdate && (
-                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-1">
-                    <Check size={16} className="text-primary" strokeWidth={3} />
-                    <div className="flex gap-2">
+                <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-1.5 p-1">
+                    <div className="flex flex-col items-center gap-1.5">
                         <Stepper
                             label="Series"
                             value={selected.series}
                             onChange={(v) => onUpdate(ex.id, 'series', v)}
                         />
                         {isPerSet(selected.reps) ? (
-                            <span className="self-end text-[10px] font-bold text-white">{selected.reps}</span>
+                            <div className="flex flex-col items-center gap-0.5">
+                                <span className="text-[10px] text-white/70 uppercase tracking-wide leading-none">Reps</span>
+                                <span className="h-7 flex items-center text-sm font-bold text-white">{selected.reps}</span>
+                            </div>
                         ) : (
                         <Stepper
                             label={ex.id === 97 || ex.name?.toLowerCase().includes('plancha') ? "Min" : "Reps"}
@@ -92,7 +99,7 @@ function ExerciseCard({ ex, selected, onToggle, onUpdate }) {
                         />
                         )}
                     </div>
-                    <p className="text-[9px] text-white/60 mt-0.5 text-center leading-tight line-clamp-1">{ex.name}</p>
+                    <p className="text-[10px] text-white font-semibold text-center leading-tight line-clamp-1 px-1">{ex.name}</p>
                 </div>
             )}
 
@@ -1028,10 +1035,10 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                     }}
                 />
             ) : (
-                <div className="md:flex md:flex-1 md:min-h-0">
-                  <div className="flex-1 overflow-y-auto md:border-r md:border-surface-highlight">
+                <div className="lg:flex lg:flex-1 lg:min-h-0">
+                  <div className="flex-1 overflow-y-auto lg:border-r lg:border-surface-highlight">
                     {/* Routine config — en md se repite en el rail derecho */}
-                    <div className="md:hidden p-4 space-y-3 border-b border-surface-highlight">
+                    <div className="lg:hidden p-4 space-y-3 border-b border-surface-highlight">
                         <input
                             type="text"
                             placeholder="Nombre de la rutina (ej: Día 1 - Pecho)"
@@ -1087,9 +1094,9 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                     </div>
 
                     {/* Exercise grid by group */}
-                    <div className="px-4 pb-32 md:pb-8 pt-4 space-y-6">
+                    <div className="px-4 pb-32 lg:pb-8 pt-4 space-y-6">
                         {loading ? (
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
                                 {Array.from({ length: 12 }).map((_, i) => (
                                     <div key={i} className="aspect-square bg-surface rounded-xl animate-pulse border border-surface-highlight" />
                                 ))}
@@ -1122,7 +1129,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                                         </button>
 
                                         {!isCollapsed && (
-                                            <div className="grid grid-cols-4 gap-2">
+                                            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
                                                 {exercises.map(ex => {
                                                     const sel = getSelected(ex.id);
                                                     return (
@@ -1145,7 +1152,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                   </div>
 
                   {/* Rail derecho — md+: configuración + rutina en construcción */}
-                  <aside className="hidden md:flex md:w-80 md:flex-col md:overflow-y-auto md:flex-shrink-0 p-4 space-y-4">
+                  <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:overflow-y-auto lg:flex-shrink-0 p-4 space-y-4">
                     <input
                         type="text"
                         placeholder="Nombre de la rutina (ej: Día 1 - Pecho)"
@@ -1207,7 +1214,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
 
             {/* Barra inferior de seleccionados — solo móvil */}
             {mode === 'new' && selectedExercises.length > 0 && (
-                <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
+                <div className="lg:hidden fixed bottom-0 left-0 md:left-56 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
                     <button
                         onClick={() => setShowSelected(!showSelected)}
                         className="w-full flex items-center justify-between"
