@@ -717,7 +717,24 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
         superset_group_id: ex.superset_group_id ?? null,
     })));
     const [collapsedGroups, setCollapsedGroups] = useState({});
-    const [showSelected, setShowSelected] = useState(false);
+    // Desplegada: el entrenador quiere ver lo que lleva incluido mientras añade.
+    const [showSelected, setShowSelected] = useState(true);
+    const searchInputRef = React.useRef(null);
+    // "+": limpia la búsqueda y deja el cursor listo para el siguiente ejercicio.
+    const startNextExercise = () => {
+        setSearchQuery('');
+        searchInputRef.current?.focus();
+        searchInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    };
+    const addAnotherButton = (
+        <button
+            type="button"
+            onClick={startNextExercise}
+            className="mt-3 w-full rounded-xl border border-dashed border-primary/60 py-2.5 text-sm font-bold text-primary flex items-center justify-center gap-2 hover:bg-primary/10 transition-colors"
+        >
+            <Plus size={16} /> Añadir otro ejercicio
+        </button>
+    );
     const [saveError, setSaveError] = useState(null);
     const [showReview, setShowReview] = useState(false);
 
@@ -918,11 +935,11 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
     return (
         <div className="flex flex-col h-full bg-background">
             {/* Header */}
-            <header className="flex items-center gap-3 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
+            <header className="flex flex-wrap items-center gap-3 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
                 <button onClick={onBack} className="p-2 rounded-full hover:bg-surface-highlight transition-colors">
                     <ArrowLeft size={22} className="text-text-primary" />
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-[10rem]">
                     <h2 className="text-lg font-bold text-text-primary">
                         {isTemplate ? (template.id ? 'Editar plantilla' : 'Nueva plantilla') : 'Asignar Rutina'}
                     </h2>
@@ -1061,18 +1078,9 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                                 placeholder="Buscar ejercicio por nombre o número..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-surface border border-surface-highlight rounded-xl pl-9 pr-9 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                                ref={searchInputRef}
+                                className="w-full bg-surface border border-surface-highlight rounded-xl pl-9 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
                             />
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchQuery('')}
-                                    title="Borrar búsqueda"
-                                    className="absolute right-2 top-1.5 w-7 h-7 flex items-center justify-center rounded-full text-text-secondary hover:text-primary hover:bg-surface-highlight transition-colors"
-                                >
-                                    <X size={14} />
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -1186,10 +1194,10 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                                 onLinkNext={linkSelectedWithNext}
                                 hideWeight={isTemplate}
                             />
-                        ) : null}
-                        <p className="text-xs text-text-secondary mt-3">
-                            Para añadir {selectedExercises.length > 0 ? 'otro ejercicio' : 'ejercicios'}, búscalo en el catálogo (nombre o número) y toca su tarjeta.
-                        </p>
+                        ) : (
+                            <p className="text-xs text-text-secondary">Busca en el catálogo (nombre o número) y toca la tarjeta del ejercicio.</p>
+                        )}
+                        {selectedExercises.length > 0 && addAnotherButton}
                     </div>
                   </aside>
                 </div>
@@ -1218,6 +1226,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                                 onLinkNext={linkSelectedWithNext}
                                 hideWeight={isTemplate}
                             />
+                            {addAnotherButton}
                         </div>
                     )}
                 </div>
