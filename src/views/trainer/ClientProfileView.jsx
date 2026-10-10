@@ -423,6 +423,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
             target_rir: ex.target_rir ?? '',
             rest_seconds: ex.rest_seconds ?? '',
             tempo: ex.tempo ?? '',
+            variant: ex.variant ?? '',
             notes: ex.notes ?? '',
             // Progresión por semanas (Fase 3 parte 2).
             useWeeklyProgression: hasProgression,
@@ -552,6 +553,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                     target_rir: firstWeek.target_rir,
                     rest_seconds: numOrNull(editingExercise.rest_seconds),
                     tempo: strOrNull(editingExercise.tempo),
+                    variant: strOrNull(editingExercise.variant),
                     notes: strOrNull(editingExercise.notes),
                     weekly_progression: weeklyProgression,
                 };
@@ -563,6 +565,7 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                     target_rir: numOrNull(editingExercise.target_rir),
                     rest_seconds: numOrNull(editingExercise.rest_seconds),
                     tempo: strOrNull(editingExercise.tempo),
+                    variant: strOrNull(editingExercise.variant),
                     notes: strOrNull(editingExercise.notes),
                     weekly_progression: null,
                 };
@@ -1108,6 +1111,12 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                             <input type="text" value={editingExercise.tempo}
                                                                                 onChange={(e) => setEditingExercise(p => ({ ...p, tempo: e.target.value }))}
                                                                                 className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="3-1-2" />
+                                                                        </label>
+                                                                        <label className="col-span-2 flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                                                                            Variante
+                                                                            <input type="text" value={editingExercise.variant}
+                                                                                onChange={(e) => setEditingExercise(p => ({ ...p, variant: e.target.value }))}
+                                                                                className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary focus:outline-none focus:border-primary" placeholder="Agarre cerrado, inclinado 30º…" />
                                                                         </label>
                                                                         <label className="col-span-2 flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
                                                                             Notas

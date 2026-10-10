@@ -273,7 +273,7 @@ describe('buildProgressionSuggestionPayload', () => {
 describe('cloneExercises', () => {
     const source = {
         name: 'Press de banca', series: '4', reps: '12-10-8-6', image_url: 'x.png', catalog_id: 7, ui_order: 1,
-        target_weight: 60, target_rir: 2, rest_seconds: 90, tempo: '3-1-1', notes: 'Codos a 45º',
+        target_weight: 60, target_rir: 2, rest_seconds: 90, tempo: '3-1-1', variant: 'Agarre cerrado', notes: 'Codos a 45º',
         superset_group_id: 'superset_a',
         weekly_progression: [{ week: 1, series: 4, reps: '12-10-8-6', target_weight: 60, target_rir: 2 }],
     };
@@ -282,7 +282,7 @@ describe('cloneExercises', () => {
         const [ex] = cloneExercises([source], 'custom_new');
         expect(ex).toMatchObject({
             routine_id: 'custom_new', name: 'Press de banca', series: '4', reps: '12-10-8-6',
-            target_rir: 2, rest_seconds: 90, tempo: '3-1-1', notes: 'Codos a 45º', superset_group_id: 'superset_a',
+            target_rir: 2, rest_seconds: 90, tempo: '3-1-1', variant: 'Agarre cerrado', notes: 'Codos a 45º', superset_group_id: 'superset_a',
         });
     });
 
@@ -295,6 +295,6 @@ describe('cloneExercises', () => {
 
     it('sin progresión ni campos opcionales, nulos', () => {
         const [ex] = cloneExercises([{ name: 'Curl', series: '3', reps: '10' }], 'r');
-        expect(ex).toMatchObject({ ui_order: 1, target_rir: null, rest_seconds: null, weekly_progression: null });
+        expect(ex).toMatchObject({ ui_order: 1, target_rir: null, rest_seconds: null, variant: null, weekly_progression: null });
     });
 });

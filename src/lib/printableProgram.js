@@ -54,13 +54,13 @@ export function buildPrintableProgram(client, assignments, today) {
                     if (group && !supersetLabels[group]) {
                         supersetLabels[group] = String.fromCharCode(65 + Object.keys(supersetLabels).length);
                     }
-                    const observations = [ex.notes, ex.target_rir != null && ex.target_rir !== '' ? `RIR ${ex.target_rir}` : null]
+                    const observations = [ex.notes, ex.tempo ? `Tempo ${ex.tempo}` : null, ex.target_rir != null && ex.target_rir !== '' ? `RIR ${ex.target_rir}` : null]
                         .filter(Boolean).join(' · ');
                     return {
                         number: j + 1,
                         name: ex.name,
                         imageUrl: ex.image_url || null,
-                        variant: ex.tempo || null,
+                        variant: ex.variant || null,
                         series: ex.series,
                         reps: ex.reps,
                         rest: formatRest(ex.rest_seconds),

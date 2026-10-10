@@ -67,12 +67,12 @@ describe('buildPrintableProgram', () => {
     it('maps each exercise to a numbered row', () => {
         const program = buildPrintableProgram({}, [
             assignment({ id: 'a', name: 'Pecho', exercises: [
-                ex({ rest_seconds: 90, tempo: '3-1-2', notes: 'Codos altos', target_rir: 2 }),
+                ex({ rest_seconds: 90, variant: 'Agarre cerrado', tempo: '3-1-2', notes: 'Codos altos', target_rir: 2 }),
                 ex({ id: 2, name: 'Fondos', image_url: null }),
             ] }),
         ], TODAY);
         expect(program.days[0].exercises).toEqual([
-            { number: 1, name: 'Press de banca', imageUrl: '/exercises/v2_pecho_9.png', variant: '3-1-2', series: '4', reps: '10', rest: '90"', observations: 'Codos altos · RIR 2', superset: null },
+            { number: 1, name: 'Press de banca', imageUrl: '/exercises/v2_pecho_9.png', variant: 'Agarre cerrado', series: '4', reps: '10', rest: '90"', observations: 'Codos altos · Tempo 3-1-2 · RIR 2', superset: null },
             { number: 2, name: 'Fondos', imageUrl: null, variant: null, series: '4', reps: '10', rest: null, observations: null, superset: null },
         ]);
     });

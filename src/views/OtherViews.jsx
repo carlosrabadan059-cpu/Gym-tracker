@@ -305,6 +305,7 @@ const TrainingView = ({ workout, onFinish }) => {
                             </div>
                             <div className="flex-1 text-left">
                                 <h4 className="font-bold text-black dark:text-white">{ex.name}</h4>
+                                {ex.variant && <p className="text-xs text-text-secondary">{ex.variant}</p>}
                                 <p className="text-sm text-primary">{ex.series} series x {ex.reps} reps</p>
                             </div>
                             <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all ${completedExercises[String(ex.id)]

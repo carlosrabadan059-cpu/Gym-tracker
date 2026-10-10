@@ -8,6 +8,16 @@ import { isTimeBasedExercise } from '../../lib/exerciseUtils';
 export function ExercisePrescriptionInputs({ values, onChange, hideWeight = false }) {
     return (
         <div className="grid grid-cols-3 gap-2 px-3 pb-3">
+            <label className="col-span-3 flex flex-col gap-1 text-[10px] uppercase tracking-wide text-text-secondary">
+                Variante
+                <input
+                    type="text"
+                    value={values.variant ?? ''}
+                    onChange={(e) => onChange('variant', e.target.value === '' ? null : e.target.value)}
+                    className="bg-surface border border-surface-highlight rounded-lg px-2 py-1.5 text-sm text-text-primary normal-case tracking-normal focus:outline-none focus:border-primary"
+                    placeholder="Agarre cerrado, inclinado 30º…"
+                />
+            </label>
             {values.series != null && !isTimeBasedExercise(values) && (
                 <div className="col-span-3">
                     <PerSetReps series={values.series} reps={values.reps} onChange={(v) => onChange('reps', v)} />

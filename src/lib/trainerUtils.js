@@ -28,7 +28,7 @@ export async function cloneRoutineToClient(sourceRoutineId, client, trainerId, {
     const [{ data: source, error: srcErr }, { data: exercises, error: exErr }] = await Promise.all([
         supabase.from('routines').select('name, color, border_color, text_color').eq('id', sourceRoutineId).single(),
         supabase.from('exercises')
-            .select('name, series, reps, image_url, catalog_id, ui_order, target_rir, rest_seconds, tempo, notes, weekly_progression, superset_group_id')
+            .select('name, series, reps, image_url, catalog_id, ui_order, target_rir, rest_seconds, tempo, variant, notes, weekly_progression, superset_group_id')
             .eq('routine_id', sourceRoutineId)
             .order('ui_order'),
     ]);
@@ -83,6 +83,7 @@ export function cloneExercises(exercises, routineId) {
         target_rir: ex.target_rir ?? null,
         rest_seconds: ex.rest_seconds ?? null,
         tempo: ex.tempo ?? null,
+        variant: ex.variant ?? null,
         notes: ex.notes ?? null,
         superset_group_id: ex.superset_group_id ?? null,
         weekly_progression: Array.isArray(ex.weekly_progression)

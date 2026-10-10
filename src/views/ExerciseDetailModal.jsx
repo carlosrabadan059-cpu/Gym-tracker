@@ -585,6 +585,11 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                     </button>
                     <div className="absolute bottom-4 left-6">
                         <h2 className="text-3xl font-bold text-black dark:text-white leading-tight">{exercise.name}</h2>
+                        {exercise.variant && (
+                            <span className="mt-2 inline-block rounded-full bg-primary px-3 py-1 text-sm font-bold text-black">
+                                Variante: {exercise.variant}
+                            </span>
+                        )}
                     </div>
                 </div>
 

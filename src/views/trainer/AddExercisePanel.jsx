@@ -115,6 +115,7 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
                 target_weight: ex.target_weight || null,
                 target_rir: ex.target_rir || null,
                 rest_seconds: ex.rest_seconds || null,
+                variant: ex.variant?.trim() || null,
                 superset_group_id: ex.superset_group_id || null,
             }));
 
