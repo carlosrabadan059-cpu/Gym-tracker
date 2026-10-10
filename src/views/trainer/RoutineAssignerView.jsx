@@ -1058,11 +1058,21 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                             <Search className="absolute left-3 top-2.5 text-text-secondary" size={16} />
                             <input
                                 type="text"
-                                placeholder="Buscar ejercicio..."
+                                placeholder="Buscar ejercicio por nombre o número..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-surface border border-surface-highlight rounded-xl pl-9 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
+                                className="w-full bg-surface border border-surface-highlight rounded-xl pl-9 pr-9 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary transition-colors"
                             />
+                            {searchQuery && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchQuery('')}
+                                    title="Borrar búsqueda"
+                                    className="absolute right-2 top-1.5 w-7 h-7 flex items-center justify-center rounded-full text-text-secondary hover:text-primary hover:bg-surface-highlight transition-colors"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -1176,9 +1186,10 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                                 onLinkNext={linkSelectedWithNext}
                                 hideWeight={isTemplate}
                             />
-                        ) : (
-                            <p className="text-xs text-text-secondary">Toca ejercicios del catálogo para añadirlos a la rutina.</p>
-                        )}
+                        ) : null}
+                        <p className="text-xs text-text-secondary mt-3">
+                            Para añadir {selectedExercises.length > 0 ? 'otro ejercicio' : 'ejercicios'}, búscalo en el catálogo (nombre o número) y toca su tarjeta.
+                        </p>
                     </div>
                   </aside>
                 </div>
