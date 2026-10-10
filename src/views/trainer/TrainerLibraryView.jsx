@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { ArrowLeft, Search, Dumbbell, ChevronDown, ChevronRight, Plus, X, Trash2, Check, ImageIcon, Pencil } from 'lucide-react';
 
 import { MUSCLE_VOCABULARY, normalizeSecondaryMuscles } from '../../lib/muscleTaxonomy';
+import { matchesCatalogSearch } from '../../lib/exerciseUtils';
 
 const MUSCLE_GROUPS = [
     'Pecho', 'Dorsal', 'Hombro', 'Bíceps', 'Tríceps',
@@ -604,12 +605,7 @@ export function TrainerLibraryView({ onBack }) {
     }, []);
 
     const groups = useMemo(() => {
-        const query = searchQuery.toLowerCase().trim();
-        const filtered = catalog.filter(ex => {
-            const safeName = (ex.name || '').toLowerCase();
-            const safeId = (ex.id || '').toString();
-            return safeName.includes(query) || safeId.includes(query);
-        });
+        const filtered = catalog.filter(ex => matchesCatalogSearch(ex, searchQuery));
         const map = {};
         for (const ex of filtered) {
             if (!map[ex.group]) map[ex.group] = [];

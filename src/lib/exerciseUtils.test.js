@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isBodyweightExercise, isTimeBasedExercise } from './exerciseUtils';
+import { isBodyweightExercise, isTimeBasedExercise, matchesCatalogSearch } from './exerciseUtils';
 
 describe('isBodyweightExercise', () => {
     describe('vía catalog_id (fuente de verdad)', () => {
@@ -79,5 +79,31 @@ describe('isTimeBasedExercise', () => {
 
     it('un catalog_id distinto de 97 descarta el nombre', () => {
         expect(isTimeBasedExercise({ catalog_id: 84, name: 'Plancha' })).toBe(false);
+    });
+});
+
+describe('matchesCatalogSearch', () => {
+    const ex = (id, name) => ({ id, name });
+
+    it('un número busca el id exacto, no los que lo contienen', () => {
+        expect(matchesCatalogSearch(ex(1, 'Press de banca'), '1')).toBe(true);
+        expect(matchesCatalogSearch(ex(10, 'Pull-over'), '1')).toBe(false);
+        expect(matchesCatalogSearch(ex(21, 'Remo'), '1')).toBe(false);
+    });
+
+    it('acepta "#" y espacios', () => {
+        expect(matchesCatalogSearch(ex(12, 'Flexiones'), '#12')).toBe(true);
+        expect(matchesCatalogSearch(ex(12, 'Flexiones'), ' # 12 ')).toBe(true);
+        expect(matchesCatalogSearch(ex(12, 'Flexiones'), '012')).toBe(true);
+    });
+
+    it('el texto busca en el nombre, sin distinguir mayúsculas', () => {
+        expect(matchesCatalogSearch(ex(1, 'Press de banca'), 'BANCA')).toBe(true);
+        expect(matchesCatalogSearch(ex(1, 'Press de banca'), 'remo')).toBe(false);
+    });
+
+    it('vacío lo muestra todo', () => {
+        expect(matchesCatalogSearch(ex(5, 'Curl'), '')).toBe(true);
+        expect(matchesCatalogSearch(ex(5, 'Curl'), '   ')).toBe(true);
     });
 });

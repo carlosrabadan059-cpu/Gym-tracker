@@ -5,6 +5,7 @@ import { ArrowLeft, Dumbbell, ChevronRight, Search, Minus, Plus, Check, SlidersH
 import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
 import { toggleSupersetLink } from '../../lib/superset';
 import { isPerSet, resizeReps, normalizeReps } from '../../lib/repScheme';
+import { matchesCatalogSearch } from '../../lib/exerciseUtils';
 
 export function AddExercisePanel({ assignment, onClose, onAdded }) {
     const [catalog, setCatalog] = useState([]);
@@ -37,10 +38,7 @@ export function AddExercisePanel({ assignment, onClose, onAdded }) {
     }, []);
 
     const groups = useMemo(() => {
-        const q = search.toLowerCase().replace(/^#/, '').trim();
-        const filtered = catalog.filter(ex =>
-            ex.name.toLowerCase().includes(q) || String(ex.id).includes(q)
-        );
+        const filtered = catalog.filter(ex => matchesCatalogSearch(ex, search));
         const map = {};
         for (const ex of filtered) {
             if (!map[ex.group]) map[ex.group] = [];

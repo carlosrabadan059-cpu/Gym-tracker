@@ -9,6 +9,7 @@ import { RoutineReviewModal } from '../../components/trainer/RoutineReviewModal'
 import { ExercisePrescriptionInputs } from './ExercisePrescriptionInputs';
 import { clearBrokenSupersetGroups, toggleSupersetLink } from '../../lib/superset';
 import { isPerSet, resizeReps, normalizeReps } from '../../lib/repScheme';
+import { matchesCatalogSearch } from '../../lib/exerciseUtils';
 
 const COLORS = [
     { value: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' },
@@ -734,10 +735,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
     }, []);
 
     const groups = useMemo(() => {
-        const q = searchQuery.toLowerCase().replace(/^#/, '').trim();
-        const filtered = catalog.filter(ex =>
-            ex.name.toLowerCase().includes(q) || String(ex.id).includes(q)
-        );
+        const filtered = catalog.filter(ex => matchesCatalogSearch(ex, searchQuery));
         const map = {};
         for (const ex of filtered) {
             if (!map[ex.group]) map[ex.group] = [];

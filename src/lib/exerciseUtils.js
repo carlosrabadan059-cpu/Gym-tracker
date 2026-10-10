@@ -25,3 +25,16 @@ export function isTimeBasedExercise(exercise) {
     }
     return (exercise.name || '').toLowerCase().includes('plancha');
 }
+
+/**
+ * Buscador del catálogo: un número (con o sin "#") busca ese ejercicio
+ * exacto — "1" es el #1, no todos los que contienen un 1. Cualquier otro
+ * texto busca en el nombre.
+ */
+export function matchesCatalogSearch(exercise, search) {
+    const q = String(search ?? '').toLowerCase().trim();
+    if (!q) return true;
+    const idQuery = q.match(/^#?\s*(\d+)$/);
+    if (idQuery) return String(exercise.id) === String(Number(idQuery[1]));
+    return (exercise.name || '').toLowerCase().includes(q);
+}
