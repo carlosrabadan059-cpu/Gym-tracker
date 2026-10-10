@@ -141,18 +141,27 @@ function SelectedExerciseList({ selected, onMove, onRemove, onUpdate, onLinkNext
                                 <Dumbbell size={12} className="text-text-secondary" />
                             </div>
                         )}
-                        <div className="flex-1 min-w-0">
-                            <span className="block text-xs text-text-primary truncate">{ex.name}</span>
-                            {ex.motivo && (
-                                <span className="block text-[10px] text-text-secondary italic truncate">{ex.motivo}</span>
-                            )}
-                        </div>
-                        <span className="text-xs text-text-secondary font-bold flex-shrink-0">{ex.series}×{ex.reps}</span>
+                        {/* Pulsar el nombre o el "4×10" abre los ajustes: el
+                            interruptor de reps por serie (pirámide) vive ahí y
+                            el icono solo pasaba desapercibido. */}
+                        <button
+                            type="button"
+                            onClick={() => onUpdate && toggleExpanded(ex.catalog_id)}
+                            className="flex-1 min-w-0 flex items-center gap-3 text-left"
+                        >
+                            <div className="flex-1 min-w-0">
+                                <span className="block text-xs text-text-primary truncate">{ex.name}</span>
+                                {ex.motivo && (
+                                    <span className="block text-[10px] text-text-secondary italic truncate">{ex.motivo}</span>
+                                )}
+                            </div>
+                            <span className={`text-xs font-bold flex-shrink-0 ${onUpdate ? 'text-primary underline decoration-dotted underline-offset-2' : 'text-text-secondary'}`}>{ex.series}×{ex.reps}</span>
+                        </button>
                         {onUpdate && (
                             <button
                                 onClick={() => toggleExpanded(ex.catalog_id)}
                                 className={`w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 transition-colors ${expanded[ex.catalog_id] ? 'text-primary' : 'text-text-secondary hover:text-primary'}`}
-                                title="Prescribir peso, RIR y descanso"
+                                title="Reps por serie (pirámide), peso, RIR y descanso"
                             >
                                 <SlidersHorizontal size={13} />
                             </button>
