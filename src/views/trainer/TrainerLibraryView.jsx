@@ -205,6 +205,7 @@ const LOCAL_IMAGES = [
     'v2_hombro_62.png',
     'v2_hombro_98.png',
     'v2_pecho_1.png',
+    'v2_pecho_1_maquina.png',
     'v2_pecho_10.png',
     'v2_pecho_11.png',
     'v2_pecho_12.png',
