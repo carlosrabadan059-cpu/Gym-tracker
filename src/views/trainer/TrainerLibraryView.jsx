@@ -188,6 +188,7 @@ const LOCAL_IMAGES = [
     'v2_dorsal_23.png',
     'v2_dorsal_23_remo.png',
     'v2_dorsal_24.png',
+    'v2_dorsal_24_remo.png',
     'v2_dorsal_99.png',
     'v2_dorsal_101.png',
     'v2_gluteo_76.png',
