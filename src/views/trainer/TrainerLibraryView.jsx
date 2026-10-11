@@ -198,6 +198,7 @@ const LOCAL_IMAGES = [
     'v2_gluteo_80.png',
     'v2_gluteo_81.png',
     'v2_gluteo_82.png',
+    'v2_gluteo_82_banda.png',
     'v2_hombro_50.png',
     'v2_hombro_51.png',
     'v2_hombro_52.png',
