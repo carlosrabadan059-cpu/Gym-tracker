@@ -214,6 +214,7 @@ const LOCAL_IMAGES = [
     'v2_pecho_12.png',
     'v2_pecho_13.png',
     'v2_pecho_14.png',
+    'v2_pecho_103.png',
     'v2_pecho_2.png',
     'v2_pecho_3.png',
     'v2_pecho_4.png',
