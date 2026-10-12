@@ -19,6 +19,7 @@ import { PrintableProgram } from './PrintableProgram';
 import { buildPrintableProgram } from '../../lib/printableProgram';
 import { isPerSet, resizeReps, normalizeReps } from '../../lib/repScheme';
 import { PerSetReps } from '../../components/trainer/PerSetReps';
+import MesocycleBadge from '../../components/shared/MesocycleBadge';
 
 const PROGRESSION_SUGGESTION_TIMEOUT_MS = 30000;
 
@@ -324,34 +325,35 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
         }
     };
 
-    // Fase 3 (parte 2): fecha de inicio del mesociclo de esta rutina.
+    // Fase 3 (parte 2): fecha de inicio (`mesocycle_start_date`) y duración
+    // en semanas (`mesocycle_weeks`) del mesociclo de esta rutina.
     // Mismo patrón optimista + re-fetch-en-el-catch que
     // handleToggleScheduledDay — no revertir a un snapshot local obsoleto.
-    const handleSetMesocycleStart = async (assignmentId, dateOrNull) => {
+    const handleSetMesocycleField = async (assignmentId, field, value) => {
         const assignment = assignedRoutines.find(a => a.id === assignmentId);
         if (!assignment) return;
 
         setAssignedRoutines(prev => prev.map(a =>
-            a.id === assignmentId ? { ...a, routine: { ...a.routine, mesocycle_start_date: dateOrNull } } : a
+            a.id === assignmentId ? { ...a, routine: { ...a.routine, [field]: value } } : a
         ));
 
         try {
-            const { error } = await supabase.from('routines').update({ mesocycle_start_date: dateOrNull }).eq('id', assignment.routine.id);
+            const { error } = await supabase.from('routines').update({ [field]: value }).eq('id', assignment.routine.id);
             if (error) throw error;
         } catch (error) {
-            console.error('Error updating mesocycle_start_date:', error);
+            console.error(`Error updating ${field}:`, error);
             try {
                 const { data, error: refetchError } = await supabase
                     .from('routines')
-                    .select('mesocycle_start_date')
+                    .select(field)
                     .eq('id', assignment.routine.id)
                     .single();
                 if (refetchError) throw refetchError;
                 setAssignedRoutines(prev => prev.map(a =>
-                    a.id === assignmentId ? { ...a, routine: { ...a.routine, mesocycle_start_date: data.mesocycle_start_date } } : a
+                    a.id === assignmentId ? { ...a, routine: { ...a.routine, [field]: data[field] } } : a
                 ));
             } catch (refetchErr) {
-                console.error('Error re-fetching mesocycle_start_date after failed update:', refetchErr);
+                console.error(`Error re-fetching ${field} after failed update:`, refetchErr);
             }
         }
     };
@@ -890,21 +892,37 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         </button>
                                                     ))}
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
+                                                <div className="flex flex-wrap items-center gap-2 mt-2" onClick={e => e.stopPropagation()}>
                                                     <label className="text-[10px] uppercase tracking-wide text-text-secondary flex items-center gap-1.5">
                                                         Mesociclo
                                                         <input
                                                             type="date"
                                                             value={routine.mesocycle_start_date || ''}
-                                                            onChange={(e) => handleSetMesocycleStart(assignment.id, e.target.value || null)}
+                                                            onChange={(e) => handleSetMesocycleField(assignment.id, 'mesocycle_start_date', e.target.value || null)}
                                                             className="bg-surface-highlight border border-transparent rounded-lg px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-primary"
                                                         />
                                                     </label>
-                                                    {routine.mesocycle_start_date && (
-                                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
-                                                            Semana {activeWeek}
-                                                        </span>
-                                                    )}
+                                                    <label className="text-[10px] uppercase tracking-wide text-text-secondary flex items-center gap-1.5">
+                                                        Semanas
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max="52"
+                                                            value={routine.mesocycle_weeks ?? ''}
+                                                            onChange={(e) => {
+                                                                const n = parseInt(e.target.value, 10);
+                                                                handleSetMesocycleField(assignment.id, 'mesocycle_weeks', n >= 1 && n <= 52 ? n : null);
+                                                            }}
+                                                            className="w-14 bg-surface-highlight border border-transparent rounded-lg px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-primary"
+                                                        />
+                                                    </label>
+                                                    {routine.mesocycle_start_date && (routine.mesocycle_weeks
+                                                        ? <MesocycleBadge startDate={routine.mesocycle_start_date} weeks={routine.mesocycle_weeks} showEnd />
+                                                        : (
+                                                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                                                Semana {activeWeek}
+                                                            </span>
+                                                        ))}
                                                 </div>
                                                 </>
                                             )}

@@ -20,6 +20,7 @@ function AssignTemplateModal({ template, onClose, onDone }) {
     const [picked, setPicked] = useState([]);
     const [days, setDays] = useState([]);
     const [startDate, setStartDate] = useState(todayISO());
+    const [weeks, setWeeks] = useState('8');
     const [draft, setDraft] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
@@ -42,7 +43,7 @@ function AssignTemplateModal({ template, onClose, onDone }) {
         try {
             const scheduledDays = [...days].sort((a, b) => a - b);
             for (const client of clients.filter(c => picked.includes(c.user_id))) {
-                await cloneRoutineToClient(template.id, client, user.id, { draft, scheduledDays, startDate });
+                await cloneRoutineToClient(template.id, client, user.id, { draft, scheduledDays, startDate, mesocycleWeeks: parseInt(weeks, 10) || null });
             }
             onDone(picked.length, draft);
         } catch (err) {
@@ -88,6 +89,10 @@ function AssignTemplateModal({ template, onClose, onDone }) {
                 <label className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2.5">
                     <span className="text-sm text-text-primary flex items-center gap-2"><CalendarDays size={15} className="text-primary" /> Fecha de inicio</span>
                     <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent text-sm text-text-primary" />
+                </label>
+                <label className="flex items-center justify-between gap-3 rounded-xl bg-background px-3 py-2.5">
+                    <span className="text-sm text-text-primary">Duración (semanas)</span>
+                    <input type="number" min="1" max="52" value={weeks} onChange={e => setWeeks(e.target.value)} className="w-16 bg-transparent text-sm text-text-primary text-right" />
                 </label>
                 <p className="text-[11px] text-text-secondary">El peso queda en blanco: lo pones en la ficha de cada cliente.</p>
 

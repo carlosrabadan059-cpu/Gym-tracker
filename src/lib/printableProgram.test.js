@@ -108,4 +108,11 @@ describe('buildPrintableProgram', () => {
         expect(program.startDate).toBe('2026-09-15');
         expect(program.durationWeeks).toBe(8);
     });
+
+    it('la duración es la del mesociclo si el entrenador la puso', () => {
+        const program = buildPrintableProgram({}, [
+            assignment({ id: 'a', name: 'Pecho', mesocycle_start_date: '2026-10-12', mesocycle_weeks: 8, exercises: [ex({ weekly_progression: [{ week: 4, series: 3, reps: '8' }] })] }),
+        ], TODAY);
+        expect(program.durationWeeks).toBe(8);
+    });
 });

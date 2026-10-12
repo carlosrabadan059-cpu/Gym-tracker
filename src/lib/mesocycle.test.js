@@ -1,6 +1,6 @@
 // src/lib/mesocycle.test.js
 import { describe, it, expect } from 'vitest';
-import { getCurrentMesocycleWeek, applyMesocycleWeek } from './mesocycle';
+import { getCurrentMesocycleWeek, applyMesocycleWeek, getMesocycleStatus, getMesocycleAlert } from './mesocycle';
 
 describe('getCurrentMesocycleWeek', () => {
     it('returns null without a start date', () => {
@@ -88,5 +88,50 @@ describe('applyMesocycleWeek', () => {
         };
         expect(applyMesocycleWeek(ex, 1).target_weight).toBe(60);
         expect(applyMesocycleWeek(ex, 2).target_weight).toBe(65);
+    });
+});
+
+describe('getMesocycleStatus', () => {
+    // Mesociclo de Carlos: empieza el lunes 12 de octubre, 8 semanas.
+    const at = (d) => getMesocycleStatus('2026-10-12', 8, new Date(`${d}T10:00:00`));
+
+    it('null sin fecha de inicio o sin duración', () => {
+        expect(getMesocycleStatus(null, 8, new Date('2026-10-12'))).toBeNull();
+        expect(getMesocycleStatus('2026-10-12', null, new Date('2026-10-12'))).toBeNull();
+    });
+
+    it('semana 1 de 8 el primer día, y termina el domingo de la semana 8', () => {
+        expect(at('2026-10-12')).toEqual({ week: 1, total: 8, endDate: '2026-12-06', state: 'active' });
+    });
+
+    it('la semana 7 aún no es la última', () => {
+        expect(at('2026-11-29')).toMatchObject({ week: 7, state: 'active' });
+    });
+
+    it('última semana desde el lunes de la semana 8 hasta su domingo', () => {
+        expect(at('2026-11-30')).toMatchObject({ week: 8, state: 'last' });
+        expect(at('2026-12-06')).toMatchObject({ week: 8, state: 'last' });
+    });
+
+    it('terminado al día siguiente del último, sin pasar de la semana 8', () => {
+        expect(at('2026-12-07')).toMatchObject({ week: 8, state: 'finished' });
+        expect(at('2027-01-20')).toMatchObject({ week: 8, state: 'finished' });
+    });
+});
+
+describe('getMesocycleAlert', () => {
+    const r = (start, weeks) => ({ mesocycle_start_date: start, mesocycle_weeks: weeks });
+    const today = new Date('2026-12-02T10:00:00');
+
+    it('null si ningún mesociclo está en su última semana ni terminado', () => {
+        expect(getMesocycleAlert([r('2026-11-30', 8), r(null, 8), r('2026-10-12', null)], today)).toBeNull();
+    });
+
+    it('avisa de la última semana', () => {
+        expect(getMesocycleAlert([r('2026-11-30', 8), r('2026-10-12', 8)], today)).toMatchObject({ state: 'last', endDate: '2026-12-06' });
+    });
+
+    it('terminado gana a última semana', () => {
+        expect(getMesocycleAlert([r('2026-10-12', 8), r('2026-10-05', 8)], today)).toMatchObject({ state: 'finished', endDate: '2026-11-29' });
     });
 });

@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { computeStreak, computeDaysSinceLastSession, INACTIVITY_ALERT_DAYS } from '../../lib/adherence';
 import { isRoutineScheduledForDay } from '../../lib/routineSchedule';
 import { categorizeClient } from '../../lib/trainerPriority';
-import { Users, LayoutDashboard, LogOut, ChevronRight, Flame, AlertTriangle, LayoutTemplate } from 'lucide-react';
+import { getMesocycleAlert } from '../../lib/mesocycle';
+import { Users, LayoutDashboard, LogOut, ChevronRight, Flame, AlertTriangle, LayoutTemplate, CalendarClock } from 'lucide-react';
 
 // Compara dos fechas por día calendario local, ignorando la hora — igual
 // criterio que src/lib/adherence.js usa internamente para "hoy"/"ayer",
@@ -84,14 +85,14 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
             const assigned = (assignedRows || []).filter(a => a.sent_at !== null);
 
             const routineIds = [...new Set((assigned || []).map(a => a.routine_id))];
-            let scheduledDaysByRoutineId = {};
+            let routineById = {};
             if (routineIds.length > 0) {
                 const { data: routinesData, error: routinesError } = await supabase
                     .from('routines')
-                    .select('id, scheduled_days')
+                    .select('id, scheduled_days, mesocycle_start_date, mesocycle_weeks')
                     .in('id', routineIds);
                 if (routinesError) throw routinesError;
-                scheduledDaysByRoutineId = Object.fromEntries((routinesData || []).map(r => [r.id, r.scheduled_days]));
+                routineById = Object.fromEntries((routinesData || []).map(r => [r.id, r]));
             }
 
             const logsByClient = {};
@@ -114,8 +115,9 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
                 const daysSinceLastSession = computeDaysSinceLastSession(dates);
                 const streak = computeStreak(dates);
                 const trainedToday = dates.some((d) => isSameLocalDay(d, today));
-                const hasRoutineScheduledToday = (routineIdsByClient[profile.user_id] || []).some((routineId) =>
-                    isRoutineScheduledForDay(scheduledDaysByRoutineId[routineId], todayDayOfWeek)
+                const clientRoutines = (routineIdsByClient[profile.user_id] || []).map(id => routineById[id]).filter(Boolean);
+                const hasRoutineScheduledToday = clientRoutines.some((routine) =>
+                    isRoutineScheduledForDay(routine.scheduled_days, todayDayOfWeek)
                 );
 
                 return {
@@ -124,6 +126,7 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
                     streak,
                     category: categorizeClient({ daysSinceLastSession, streak, hasRoutineScheduledToday, trainedToday }),
                     missedToday: hasRoutineScheduledToday && !trainedToday,
+                    mesocycleAlert: getMesocycleAlert(clientRoutines, today),
                 };
             });
 
@@ -143,6 +146,11 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
     const progressingClients = clients.filter(c => c.category === 'progressing');
     const neutralClients = clients.filter(c => c.category === 'neutral');
     const hasHighlightedSections = attentionClients.length > 0 || progressingClients.length > 0;
+    const mesocycleClients = clients.filter(c => c.mesocycleAlert);
+
+    const mesocycleSubtitle = ({ state, endDate }) => state === 'finished'
+        ? 'Mesociclo terminado'
+        : `Última semana · termina el ${new Date(`${endDate}T12:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`;
 
     const attentionSubtitle = (client) => {
         if (client.daysSinceLastSession === null) return 'Sin sesiones';
@@ -162,6 +170,24 @@ export function TrainerDashboardView({ onNavigate, onOpenClient }) {
                     <p className="text-sm text-text-secondary">Cargando clientes...</p>
                 ) : (
                     <>
+                        {mesocycleClients.length > 0 && (
+                            <div>
+                                <h3 className="font-bold text-sm text-red-500 mb-2 uppercase tracking-wide">Mesociclo</h3>
+                                <div className="space-y-2">
+                                    {mesocycleClients.map((client) => (
+                                        <ClientRow
+                                            key={client.user_id}
+                                            client={client}
+                                            onClick={() => onOpenClient(client)}
+                                            subtitle={mesocycleSubtitle(client.mesocycleAlert)}
+                                            subtitleIcon={CalendarClock}
+                                            subtitleClassName={client.mesocycleAlert.state === 'finished' ? 'text-red-500 bg-red-500/10' : 'text-orange-500 bg-orange-500/10'}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {attentionClients.length > 0 && (
                             <div>
                                 <h3 className="font-bold text-sm text-orange-500 mb-2 uppercase tracking-wide">Necesitan atención</h3>

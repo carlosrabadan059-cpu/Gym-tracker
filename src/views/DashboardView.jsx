@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import { getRoutineIcon } from '../lib/routineUtils';
 import { splitRoutinesByToday } from '../lib/routineSchedule';
 import { getCurrentMesocycleWeek, applyMesocycleWeek } from '../lib/mesocycle';
+import MesocycleBadge from '../components/shared/MesocycleBadge';
 import { enrichExercisesWithCatalog, loadLastRoutineSummary, loadWorkoutLogs } from '../lib/utils';
 import { computeMuscleRecovery } from '../lib/muscleRecovery';
 import { MuscleRecoveryCard } from '../components/shared/MuscleRecoveryCard';
@@ -53,9 +54,12 @@ function RoutineCard({ routine, isExpanded, isCompleted, lastSummary, onToggle, 
                             />
                         </div>
                     )}
-                    <h4 className={cn("text-lg font-bold leading-tight", routine.text_color)}>
-                        {routine.name}
-                    </h4>
+                    <div className="min-w-0">
+                        <h4 className={cn("text-lg font-bold leading-tight", routine.text_color)}>
+                            {routine.name}
+                        </h4>
+                        <MesocycleBadge startDate={routine.mesocycle_start_date} weeks={routine.mesocycle_weeks} className="inline-block mt-1" />
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                     <ChevronRight

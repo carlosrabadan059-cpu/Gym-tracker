@@ -16,11 +16,12 @@ import { pickTopWeightSets } from './progression';
  * @param {string} sourceRoutineId  rutina origen a copiar
  * @param {object} client           { user_id, username? }
  * @param {string} trainerId        auth.uid() del entrenador
- * @param {{draft?: boolean, scheduledDays?: number[]|null, startDate?: string|null}} [options]
+ * @param {{draft?: boolean, scheduledDays?: number[]|null, startDate?: string|null, mesocycleWeeks?: number|null}} [options]
  *        draft: el cliente no la ve hasta enviarla (sin notificación).
+ *        mesocycleWeeks: duración del mesociclo que empieza en startDate.
  * @returns {Promise<string>} el id de la rutina clonada
  */
-export async function cloneRoutineToClient(sourceRoutineId, client, trainerId, { draft = false, scheduledDays = null, startDate = null } = {}) {
+export async function cloneRoutineToClient(sourceRoutineId, client, trainerId, { draft = false, scheduledDays = null, startDate = null, mesocycleWeeks = null } = {}) {
     if (!sourceRoutineId || !client?.user_id || !trainerId) {
         throw new Error('cloneRoutineToClient: faltan datos (rutina, cliente o entrenador)');
     }
@@ -48,6 +49,7 @@ export async function cloneRoutineToClient(sourceRoutineId, client, trainerId, {
         is_template: false,
         scheduled_days: scheduledDays?.length ? scheduledDays : null,
         mesocycle_start_date: startDate || null,
+        mesocycle_weeks: mesocycleWeeks >= 1 && mesocycleWeeks <= 52 ? mesocycleWeeks : null,
     }]);
     if (insRoutineErr) throw insRoutineErr;
 

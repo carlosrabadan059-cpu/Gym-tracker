@@ -22,7 +22,7 @@ const firstDay = (days) => (Array.isArray(days) && days.length ? Math.min(...day
 
 /**
  * @param {{username?: string, goal?: string}} client
- * @param {Array<{routine: {name: string, scheduled_days?: number[]|null, mesocycle_start_date?: string|null, exercises: Array}}>} assignments
+ * @param {Array<{routine: {name: string, scheduled_days?: number[]|null, mesocycle_start_date?: string|null, mesocycle_weeks?: number|null, exercises: Array}}>} assignments
  * @param {Date} today
  */
 export function buildPrintableProgram(client, assignments, today) {
@@ -32,7 +32,11 @@ export function buildPrintableProgram(client, assignments, today) {
         .sort((a, b) => firstDay(a.scheduled_days) - firstDay(b.scheduled_days) || (a.name || '').localeCompare(b.name || ''));
 
     const startDates = routines.map((r) => r.mesocycle_start_date).filter(Boolean).sort();
-    const weeks = routines.flatMap((r) => r.exercises.flatMap((ex) => (ex.weekly_progression || []).map((w) => w.week)));
+    // Duración: la del mesociclo si el entrenador la puso; si no, la última
+    // semana de la progresión programada.
+    const weeks = routines.flatMap((r) => r.mesocycle_weeks
+        ? [r.mesocycle_weeks]
+        : r.exercises.flatMap((ex) => (ex.weekly_progression || []).map((w) => w.week)));
 
     return {
         clientName: client?.username || null,

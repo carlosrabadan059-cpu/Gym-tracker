@@ -51,3 +51,33 @@ export function applyMesocycleWeek(exercise, weekNumber) {
         target_rir: entry.target_rir,
     };
 }
+
+/**
+ * Situación del mesociclo con duración: semana actual sobre el total, último
+ * día (el último de la semana `weeks`, contando desde el de inicio) y estado:
+ * 'active', 'last' (su última semana) o 'finished' (ya pasó el último día).
+ * Sin fecha de inicio o sin duración, null: no hay nada que avisar.
+ * Ver docs/superpowers/specs/2026-10-12-duracion-mesociclo-design.md.
+ */
+export function getMesocycleStatus(startDate, weeks, today) {
+    if (!startDate || !weeks) return null;
+    const start = new Date(startDate);
+    const end = new Date(start.getTime() + (weeks * 7 - 1) * 86400000);
+    const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const week = getCurrentMesocycleWeek(startDate, today);
+    const state = todayUTC > end.getTime() ? 'finished' : week >= weeks ? 'last' : 'active';
+    return { week: Math.min(week, weeks), total: weeks, endDate: end.toISOString().slice(0, 10), state };
+}
+
+/**
+ * Aviso de mesociclo para un cliente con varias rutinas: el más urgente de
+ * sus mesociclos que esté en la última semana o ya terminado (terminado
+ * gana; a igualdad, el que acaba antes). null si ninguno pide atención.
+ */
+export function getMesocycleAlert(routines, today) {
+    const rank = { finished: 0, last: 1 };
+    return routines
+        .map(r => getMesocycleStatus(r.mesocycle_start_date, r.mesocycle_weeks, today))
+        .filter(s => s && s.state in rank)
+        .sort((a, b) => rank[a.state] - rank[b.state] || a.endDate.localeCompare(b.endDate))[0] || null;
+}
