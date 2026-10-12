@@ -856,11 +856,14 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                         ) : (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(assignment.id); }}
-                                                                className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
-                                                                title="Desasignar"
+                                                                className="group relative p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
                                                                 aria-label="Desasignar"
                                                             >
                                                                 <Trash2 size={18} />
+                                                                {/* El title nativo tarda o no sale (Safari, app instalada). */}
+                                                                <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1 whitespace-nowrap rounded-md bg-surface-highlight px-2 py-1 text-xs font-medium text-text-primary opacity-0 shadow transition-opacity group-hover:opacity-100">
+                                                                    Desasignar
+                                                                </span>
                                                             </button>
                                                         )}
                                                         <button
