@@ -857,6 +857,8 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(assignment.id); }}
                                                                 className="p-2 text-text-secondary hover:text-red-500 hover:bg-red-500/10 rounded-full transition-colors"
+                                                                title="Desasignar"
+                                                                aria-label="Desasignar"
                                                             >
                                                                 <Trash2 size={18} />
                                                             </button>
