@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, History, Trophy, Sparkles, Heart, TrendingUp, Repeat } from 'lucide-react';
+import { X, Check, History, Trophy, Sparkles, Heart } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
-import { suggestNextWeight, suggestSetWeights } from '../lib/progression';
+import { suggestNextWeight } from '../lib/progression';
 import { isPyramid, repsForSet } from '../lib/repScheme';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
@@ -38,9 +38,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
     const isTimeBased = isTimeBasedExercise(exercise);
     // Pirámide ("12-10-8-6"): cada serie con sus reps y su propio peso.
     const pyramid = !isTimeBased && isPyramid(exercise.reps);
-    const setSuggestions = pyramid && !isBodyweight
-        ? suggestSetWeights(lastLog, exercise.reps, parseInt(exercise.series) || 3)
-        : [];
 
     // Prescripción del entrenador (Fase 1 del plan de entrenador). Campos
     // opcionales — si ninguno está puesto, el modal se ve como siempre.
@@ -82,11 +79,10 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         // Prefill del peso con el objetivo del entrenador si lo hay (Fase 1).
         const prefillWeight = exercise.target_weight != null ? String(exercise.target_weight) : '';
         for (let i = 0; i < count; i++) {
-            // En pirámide, el peso de cada serie sale de esa misma serie la
-            // última vez (subido si toca); si no hay, el prescrito.
-            const suggested = setSuggestions[i]?.weight;
+            // El peso de la última vez no se copia a las series: se ve como
+            // referencia en "Última vez" y el cliente escribe el de hoy.
             initial[i] = {
-                weight: suggested != null ? String(suggested) : prefillWeight,
+                weight: prefillWeight,
                 reps: pyramid ? String(repsForSet(exercise.reps, i)) : (exercise.reps || '10'),
             };
         }
@@ -840,8 +836,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                         const suggestion = !isBodyweight && !isTimeBased && !pyramid
                             ? suggestNextWeight(lastLog, exercise.reps)
                             : null;
-                        const knownSets = setSuggestions.filter(Boolean);
-                        const upCount = knownSets.filter(sg => sg.up).length;
 
                         // Mejor 1RM estimado de la última sesión (Epley).
                         const lastOneRm = !isBodyweight && !isTimeBased
@@ -906,15 +900,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                             </span>
                                         </div>
                                         <p className="text-[11px] text-text-secondary mt-0.5">{suggestion.reason}</p>
-                                    </div>
-                                )}
-
-                                {knownSets.length > 0 && (
-                                    <div className="border-t border-amber-500/20 pt-2 mt-2 flex items-start gap-1.5 text-[11px] text-text-secondary">
-                                        <Sparkles size={12} className="text-primary flex-shrink-0 mt-0.5" />
-                                        {upCount > 0
-                                            ? <span>Sube peso en {upCount === knownSets.length ? 'todas las series' : `${upCount} de ${knownSets.length} series`}: llegaste a las reps sin apurar. Ya está puesto abajo.</span>
-                                            : <span>Repite los pesos: la última vez fuiste justo.</span>}
                                     </div>
                                 )}
 
@@ -984,17 +969,6 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                     {completedSets[i] && <Check size={14} strokeWidth={3} />}
                                 </div>
                               </div>
-
-                              {/* Pirámide: por qué esta serie sube o repite peso */}
-                              {setSuggestions[i] && (
-                                <p className="pl-11 mt-1 text-[11px] text-text-secondary flex items-center gap-1">
-                                    {setSuggestions[i].up
-                                        ? <><TrendingUp size={11} className="text-primary" /> Sube peso</>
-                                        : <><Repeat size={11} /> Repite</>}
-                                    {' · última vez '}{setSuggestions[i].last.reps}×{String(setSuggestions[i].last.weight).replace('.', ',')} kg
-                                    {setSuggestions[i].last.rpe != null && ` RPE ${setSuggestions[i].last.rpe}`}
-                                </p>
-                              )}
 
                               {/* Badge de récord: texto fino, sin bloque propio */}
                               {showPr && (
