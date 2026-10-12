@@ -120,6 +120,11 @@ export async function sendDraftAssignment(assignmentId, clientId, routineName) {
  * evita rutinas huérfanas acumulándose. Nunca toca plantillas ni rutinas
  * estáticas/compartidas.
  *
+ * Tampoco la borra si el cliente tiene entrenos registrados con ella:
+ * `workout_logs.logs` guarda cada serie por el id de la fila de `exercises`,
+ * y sin esas filas el historial y las estadísticas pierden a qué ejercicio
+ * pertenece cada peso. Si no se puede comprobar, no se borra.
+ *
  * @param {string} routineId
  * @returns {Promise<void>}
  */
@@ -139,6 +144,12 @@ export async function deleteClientRoutineCopy(routineId) {
         .select('id', { count: 'exact', head: true })
         .eq('routine_id', routineId);
     if (count && count > 0) return;
+
+    const { count: logCount, error: logError } = await supabase
+        .from('workout_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('routine_id', routineId);
+    if (logError || logCount !== 0) return;
 
     await supabase.from('exercises').delete().eq('routine_id', routineId);
     await supabase.from('routines').delete().eq('id', routineId);
