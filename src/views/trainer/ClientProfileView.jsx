@@ -861,10 +861,17 @@ export function ClientProfileView({ client, onBack, onAssignRoutine, embedded = 
                                                                 <Trash2 size={18} />
                                                             </button>
                                                         )}
-                                                        <ChevronRight
-                                                            size={20}
-                                                            className={`text-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
-                                                        />
+                                                        <button
+                                                            onClick={() => toggleRoutine(assignment.id)}
+                                                            className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                                                            aria-label={isExpanded ? 'Plegar ejercicios' : 'Desplegar ejercicios'}
+                                                            aria-expanded={isExpanded}
+                                                        >
+                                                            <ChevronRight
+                                                                size={20}
+                                                                className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`}
+                                                            />
+                                                        </button>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-2" onClick={e => e.stopPropagation()}>
