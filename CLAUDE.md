@@ -82,6 +82,12 @@ de verificación (Playwright/`npm run browse`): solo navegar y capturar,
 nunca pulsar Guardar/Asignar/Terminar sobre su cuenta. No dejar datos de
 prueba en `workout_logs` de ningún usuario.
 
+**`workout_logs.logs` guarda cada serie por el id de la fila de `exercises`**,
+no por nombre ni por `catalog_id`. Borrar las filas de `exercises` de una
+rutina usada deja el historial y las estadísticas sin saber a qué ejercicio
+pertenece cada peso. Por eso desasignar conserva la rutina si tiene entrenos
+(`deleteClientRoutineCopy`).
+
 ### Views Structure
 
 ```
@@ -135,7 +141,7 @@ Live plans live in `docs/`, versioned:
 - [docs/plan-apple-health-integration.md](docs/plan-apple-health-integration.md) — **v2**: Apple Health/Watch via Capacitor + HealthKit, cardio/strength detection, Live Activity. UI already decided (prototyped).
 - [docs/plan-gym-app-features.md](docs/plan-gym-app-features.md) — **v3**: plate calculator, 1RM + PR alerts, RPE/RIR, supersets, muscle recovery map.
 - [docs/plan-trainer-improvements.md](docs/plan-trainer-improvements.md) — trainer side: full prescription (weight, rest, tempo, RIR, notes), scheduling, adherence tracking.
-- [docs/handoff-2026-10-08.md](docs/handoff-2026-10-08.md) — **estado actual**: programa imprimible, pirámides, borradores y plantillas publicados en web; pendiente llevarlos a la app nativa.
+- [docs/handoff-2026-10-08.md](docs/handoff-2026-10-08.md) — **estado actual** (hasta el 2026-10-12): programa imprimible, pirámides, borradores, plantillas y duración del mesociclo, en web y en el iPhone/Watch.
 - [docs/plan-v4-premium.md](docs/plan-v4-premium.md) — **v4, proposal, not started**: premium plan (payments infra, readiness, full Watch, volume per muscle) and Pro for trainers (per-client tiers, weekly check-ins, churn risk).
 
 ## UI prototypes
