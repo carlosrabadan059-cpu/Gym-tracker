@@ -774,8 +774,8 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                     {/* Objetivo del entrenador (Fase 1 del plan de entrenador) */}
                     {hasPrescription && (
                         <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-2">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Objetivo del entrenador</p>
-                            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-primary text-center">Objetivo del entrenador</p>
+                            <div className="flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm">
                                 {prescription.weight != null && (
                                     <span className="text-text-primary">
                                         <span className="font-bold">{String(prescription.weight).replace('.', ',')} kg</span>
@@ -801,7 +801,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                 )}
                             </div>
                             {prescription.notes && (
-                                <p className="text-sm text-text-secondary border-t border-primary/15 pt-2">{prescription.notes}</p>
+                                <p className="text-sm text-text-secondary text-center border-t border-primary/15 pt-2">{prescription.notes}</p>
                             )}
                         </div>
                     )}
