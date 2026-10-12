@@ -1214,7 +1214,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
 
             {/* Barra inferior de seleccionados — solo móvil */}
             {mode === 'new' && selectedExercises.length > 0 && (
-                <div className="lg:hidden fixed bottom-0 left-0 md:left-56 right-0 bg-surface border-t border-surface-highlight p-4 z-20">
+                <div className="lg:hidden fixed bottom-0 left-0 md:left-[var(--trainer-sidebar-w,14rem)] right-0 bg-surface border-t border-surface-highlight p-4 z-20">
                     <button
                         onClick={() => setShowSelected(!showSelected)}
                         className="w-full flex items-center justify-between"
