@@ -247,6 +247,7 @@ const LOCAL_IMAGES = [
     'v2_pierna_73.png',
     'v2_pierna_74.png',
     'v2_pierna_75.png',
+    'v2_pierna_75_polea.png',
     'v2_pierna_temp_68_final.png',
     'v2_triceps_38.png',
     'v2_triceps_39.png',
