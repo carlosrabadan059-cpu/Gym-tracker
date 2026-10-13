@@ -126,6 +126,9 @@ El canal con el iPhone es WatchConnectivity, a través del plugin local
 local si el Watch no confirma. `appleHealth.getLiveHeartRate` prefiere la
 muestra del Watch y cae a HealthKit si no la hay.
 
+Si el Watch no tiene una sesión de fuerza en marcha, `TrainingView` avisa con un
+banner (`isWatchMissingStrength` -> `strengthStatus` -> mensaje `status`).
+
 Cardio y fuerza son entrenos separados en el reloj, cada uno con su
 Terminar. **El botón "+" del Watch no vale**: junta los dos en un solo
 `HKWorkout` de un solo tipo, y el plugin de Health no lee los tramos. Al
