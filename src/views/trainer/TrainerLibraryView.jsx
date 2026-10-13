@@ -264,6 +264,7 @@ const LOCAL_IMAGES = [
     'v2_triceps_45.png',
     'v2_triceps_46.png',
     'v2_triceps_47.png',
+    'v2_triceps_47_pie.png',
     'v2_triceps_48.png',
     'v2_triceps_49.png',
     'vbar-pulldown-front.png',
