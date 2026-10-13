@@ -942,7 +942,7 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background">
+        <div className="flex flex-col h-full md:h-[calc(100dvh-4rem)] bg-background">
             {/* Header */}
             <header className="flex flex-wrap items-center gap-3 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
                 <button onClick={onBack} className="p-2 rounded-full hover:bg-surface-highlight transition-colors">
@@ -1035,8 +1035,8 @@ export function RoutineAssignerView({ client, template, onBack, onSuccess }) {
                     }}
                 />
             ) : (
-                <div className="lg:flex lg:flex-1 lg:min-h-0">
-                  <div className="flex-1 overflow-y-auto lg:border-r lg:border-surface-highlight">
+                <div className="flex flex-1 min-h-0">
+                  <div className="flex-1 min-w-0 overflow-y-auto lg:border-r lg:border-surface-highlight">
                     {/* Routine config — en md se repite en el rail derecho */}
                     <div className="lg:hidden p-4 space-y-3 border-b border-surface-highlight">
                         <input
