@@ -23,7 +23,8 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "restStart", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "restCancel", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "getHeartRate", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "getHeartRate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "strengthStatus", returnType: CAPPluginReturnPromise)
     ]
 
     // Los callbacks de WCSession llegan en un hilo de fondo.
@@ -76,6 +77,30 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
         // Sin conexión no hay nada que cancelar: el Watch no recibió el inicio.
         reachableSession?.sendMessage(["type": "restCancel"], replyHandler: nil, errorHandler: nil)
         call.resolve()
+    }
+
+    /// paired=false: no hay Watch con la app, no hay nada que avisar. strength=true
+    /// solo si el Watch confirma una sesión de fuerza en marcha; sin respuesta
+    /// (app del Watch cerrada o inalcanzable) cuenta como false.
+    @objc func strengthStatus(_ call: CAPPluginCall) {
+        guard WCSession.isSupported(),
+              WCSession.default.activationState == .activated,
+              WCSession.default.isPaired,
+              WCSession.default.isWatchAppInstalled else {
+            call.resolve(["paired": false, "strength": false])
+            return
+        }
+        guard let session = reachableSession else {
+            call.resolve(["paired": true, "strength": false])
+            return
+        }
+        session.sendMessage(
+            ["type": "status"],
+            replyHandler: { reply in
+                call.resolve(["paired": true, "strength": reply["strength"] as? Bool ?? false])
+            },
+            errorHandler: { _ in call.resolve(["paired": true, "strength": false]) }
+        )
     }
 
     @objc func getHeartRate(_ call: CAPPluginCall) {

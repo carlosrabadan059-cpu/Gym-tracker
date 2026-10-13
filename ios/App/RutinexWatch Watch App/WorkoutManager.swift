@@ -372,6 +372,9 @@ final class WorkoutManager: NSObject, ObservableObject {
         case "restCancel":
             cancelRest()
             return ["ok": true]
+        case "status":
+            let running = session?.state == .running
+            return ["ok": true, "strength": running && kind == .fuerza]
         default:
             return ["ok": false]
         }

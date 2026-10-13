@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card } from '../components/ui/Card';
 import { Check, Flame, Clock, Watch, Dumbbell, HeartPulse } from 'lucide-react';
+import { isWatchMissingStrength } from '../lib/watchBridge';
 import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET, resolveCardioCalories } from '../lib/routineUtils';
 import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary, loadExerciseBest1RM, getWeekStart } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
@@ -41,6 +42,15 @@ const TrainingView = ({ workout, onFinish }) => {
     });
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [finishing, setFinishing] = useState(false);
+    const [watchMissing, setWatchMissing] = useState(false);
+    // Al entrar y cada 15 s: el aviso desaparece solo en cuanto arranca la fuerza en el reloj.
+    useEffect(() => {
+        let alive = true;
+        const check = () => isWatchMissingStrength().then(m => alive && setWatchMissing(m));
+        check();
+        const id = setInterval(check, 15000);
+        return () => { alive = false; clearInterval(id); };
+    }, []);
     const [finishSummary, setFinishSummary] = useState(null);
     const [lastSummary, setLastSummary] = useState(null);
     // v2 Fase 4 — una sola Live Activity para toda la sesión: la primera
@@ -271,6 +281,13 @@ const TrainingView = ({ workout, onFinish }) => {
                     </div>
                 </div>
             </Card>
+
+            {watchMissing && (
+                <div className="w-full flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-left text-xs text-amber-600 dark:text-amber-400">
+                    <Watch size={14} className="flex-shrink-0" />
+                    <span>El Watch no tiene la fuerza en marcha: kcal estimadas y sin vibración de descanso. Empieza Fuerza en el reloj.</span>
+                </div>
+            )}
 
             {lastSummary && <LastSessionCard summary={lastSummary} />}
 

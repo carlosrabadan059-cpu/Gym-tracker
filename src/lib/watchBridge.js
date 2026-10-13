@@ -46,3 +46,15 @@ export async function getWatchHeartRateSample() {
         return null;
     }
 }
+
+/** true si hay Watch emparejado y NO tiene una sesión de fuerza en marcha. */
+export async function isWatchMissingStrength() {
+    if (!isAvailable()) return false;
+    try {
+        const timeout = new Promise(resolve => setTimeout(() => resolve({ paired: false }), REPLY_TIMEOUT_MS));
+        const { paired, strength } = await Promise.race([getPlugin().strengthStatus(), timeout]);
+        return !!paired && !strength;
+    } catch {
+        return false;
+    }
+}
