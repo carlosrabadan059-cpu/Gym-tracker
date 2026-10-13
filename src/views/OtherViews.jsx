@@ -259,10 +259,10 @@ const TrainingView = ({ workout, onFinish }) => {
                         />
                     </div>
                 )}
-                <div className="text-left flex-1">
-                    <h2 className="text-2xl font-bold text-black dark:text-white leading-tight">{activeWorkout?.name || 'Entrenamiento'}</h2>
+                <div className="text-left flex-1 min-w-0">
+                    <h2 className="text-2xl font-bold text-black dark:text-white leading-tight break-words">{activeWorkout?.name || 'Entrenamiento'}</h2>
                     {resumedFromSave ? (
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                             <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Retomando entrenamiento</span>
                             <button
                                 onClick={handleResetSession}
