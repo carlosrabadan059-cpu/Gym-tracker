@@ -739,7 +739,7 @@ export function TrainerLibraryView({ onBack }) {
                 />
             )}
 
-            <div className="flex flex-col h-full bg-background pb-20">
+            <div className="flex flex-col h-full md:h-[calc(100dvh-4rem)] bg-background pb-20 md:pb-0">
                 <header className="flex items-center gap-4 p-4 border-b border-surface-highlight sticky top-0 bg-background z-10">
                     <button
                         onClick={onBack}
