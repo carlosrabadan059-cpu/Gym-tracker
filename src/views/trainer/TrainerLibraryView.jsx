@@ -276,13 +276,25 @@ const LOCAL_IMAGES = [
 
 function ImagePickerPanel({ selected, onSelect, onClose }) {
     const [search, setSearch] = useState('');
+    // Solo las imágenes que usa hoy el catálogo; las antiguas siguen en
+    // LOCAL_IMAGES pero no se ofrecen. Hasta que carga, se muestra todo.
+    const [inCatalog, setInCatalog] = useState(null);
+
+    useEffect(() => {
+        let alive = true;
+        supabase.from('exercise_catalog').select('image_url').then(({ data }) => {
+            if (alive && data) setInCatalog(new Set(data.map(r => r.image_url)));
+        });
+        return () => { alive = false; };
+    }, []);
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase().replace(/[-_]/g, ' ');
         return LOCAL_IMAGES.filter(f =>
+            (!inCatalog || inCatalog.has(`/exercises/${f}`) || selected === `/exercises/${f}`) &&
             f.replace(/[-_.]/g, ' ').toLowerCase().includes(q)
         );
-    }, [search]);
+    }, [search, inCatalog, selected]);
 
     return (
         <div className="fixed inset-0 z-[60] bg-background flex flex-col">
