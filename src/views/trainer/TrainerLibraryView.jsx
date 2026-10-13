@@ -210,6 +210,7 @@ const LOCAL_IMAGES = [
     'v2_hombro_58.png',
     'v2_hombro_59.png',
     'v2_hombro_60.png',
+    'v2_hombro_60_menton.png',
     'v2_hombro_61.png',
     'v2_hombro_61_polea.png',
     'v2_hombro_62.png',
