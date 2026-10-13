@@ -249,18 +249,18 @@ const TrainingView = ({ workout, onFinish }) => {
 
     return (
         <div className="flex h-full flex-col items-center p-6 text-center space-y-6 relative">
-            <Card className="w-full p-6 bg-surface border-l-4 border-primary flex items-center gap-4">
+            <Card className="w-full p-4 bg-surface border-l-4 border-primary flex items-center gap-3">
                 {routineIcon && (
-                    <div className="h-20 w-20 rounded-3xl overflow-hidden bg-surface-highlight/50 border border-surface-highlight flex-shrink-0">
+                    <div className="h-14 w-14 rounded-2xl overflow-hidden bg-surface-highlight/50 border border-surface-highlight flex-shrink-0">
                         <img
                             src={routineIcon}
                             alt="icon"
-                            className="h-full w-full object-cover p-2.5"
+                            className="h-full w-full object-cover p-1.5"
                         />
                     </div>
                 )}
                 <div className="text-left flex-1 min-w-0">
-                    <h2 className="text-2xl font-bold text-black dark:text-white leading-tight break-words">{activeWorkout?.name || 'Entrenamiento'}</h2>
+                    <h2 className="text-lg font-bold text-black dark:text-white leading-tight break-words">{activeWorkout?.name || 'Entrenamiento'}</h2>
                     {resumedFromSave ? (
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
                             <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">Retomando entrenamiento</span>
