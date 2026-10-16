@@ -144,7 +144,8 @@ Live plans live in `docs/`, versioned:
 - [docs/plan-apple-health-integration.md](docs/plan-apple-health-integration.md) — **v2**: Apple Health/Watch via Capacitor + HealthKit, cardio/strength detection, Live Activity. UI already decided (prototyped).
 - [docs/plan-gym-app-features.md](docs/plan-gym-app-features.md) — **v3**: plate calculator, 1RM + PR alerts, RPE/RIR, supersets, muscle recovery map.
 - [docs/plan-trainer-improvements.md](docs/plan-trainer-improvements.md) — trainer side: full prescription (weight, rest, tempo, RIR, notes), scheduling, adherence tracking.
-- [docs/handoff-2026-10-08.md](docs/handoff-2026-10-08.md) — **estado actual** (hasta el 2026-10-12): programa imprimible, pirámides, borradores, plantillas y duración del mesociclo, en web y en el iPhone/Watch.
+- [docs/handoff-2026-10-08.md](docs/handoff-2026-10-08.md) — hasta el 2026-10-13: programa imprimible, pirámides, borradores, plantillas y duración del mesociclo, en web y en el iPhone/Watch.
+- [docs/handoff-2026-10-16.md](docs/handoff-2026-10-16.md) — **estado actual** (hasta el 2026-10-16): aviso de Watch sin fuerza, imágenes del catálogo, cabeceras en iPad, sesiones retomadas, cómo desplegar en iPhone y Watch.
 - [docs/plan-v4-premium.md](docs/plan-v4-premium.md) — **v4, proposal, not started**: premium plan (payments infra, readiness, full Watch, volume per muscle) and Pro for trainers (per-client tiers, weekly check-ins, churn risk).
 
 ## UI prototypes
