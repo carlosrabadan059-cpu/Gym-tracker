@@ -38,7 +38,14 @@ const TrainingView = ({ workout, onFinish }) => {
     const [timerStates, setTimerStates] = useState({});
     const [workoutStartTime] = useState(() => {
         const saved = getSavedState();
-        return saved?.workoutStartTime ?? Date.now();
+        // Una sesión guardada sin terminar de hace más de 12 h no es la
+        // misma sesión: retomarla con su hora de inicio daba duraciones de
+        // días (2543 min el 15-10) y una ventana de Health que sumaba
+        // entrenos ajenos. Se conservan las series, pero el reloj empieza ahora.
+        if (saved?.workoutStartTime && Date.now() - saved.workoutStartTime < 12 * 3600 * 1000) {
+            return saved.workoutStartTime;
+        }
+        return Date.now();
     });
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [finishing, setFinishing] = useState(false);
