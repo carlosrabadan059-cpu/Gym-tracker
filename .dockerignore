@@ -1,0 +1,10 @@
+node_modules
+dist
+ios
+graphify-out
+.git
+.env
+.env.*
+*.local
+.vercel
+docs
