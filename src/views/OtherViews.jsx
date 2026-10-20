@@ -401,9 +401,15 @@ const TrainingView = ({ workout, onFinish }) => {
                         try {
                             // Si watchOS cortó la sesión, el Watch la rearranca y
                             // la fuerza queda en varios tramos: se suman todos.
-                            const strengthKcal = (await getRecentWorkouts({ sinceMinutesAgo: durationMinutes + 15 }))
-                                .filter(isStrengthWorkout)
-                                .reduce((sum, w) => sum + (w.totalEnergyBurned || 0), 0);
+                            // Recién terminada en el Watch, tarda unos segundos en
+                            // llegar a Health del iPhone: se reintenta hasta ~25 s.
+                            let strengthKcal = 0;
+                            for (let i = 0; i < 6 && !strengthKcal; i++) {
+                                if (i) await new Promise(r => setTimeout(r, 5000));
+                                strengthKcal = (await getRecentWorkouts({ sinceMinutesAgo: durationMinutes + 15 }))
+                                    .filter(isStrengthWorkout)
+                                    .reduce((sum, w) => sum + (w.totalEnergyBurned || 0), 0);
+                            }
                             if (strengthKcal) {
                                 realCalories = Math.round(strengthKcal);
                                 caloriesSource = 'health';
