@@ -10,6 +10,7 @@ import { LastSessionCard } from '../components/ui/LastSessionCard';
 import { startWorkoutActivity, updateWorkoutActivity, endWorkoutActivity } from '../lib/liveActivity';
 import { isHealthAvailableOnThisPlatform, getMostRecentWorkout, getRecentWorkouts, isStrengthWorkout, cardioFromWorkout, writeWorkoutToHealth } from '../lib/appleHealth';
 import { groupConsecutiveExercises } from '../lib/superset';
+import { pickExerciseLogs, stableStringify } from '../lib/exerciseUtils';
 
 const TrainingView = ({ workout, onFinish }) => {
     const { user, profile } = useAuth();
@@ -100,6 +101,12 @@ const TrainingView = ({ workout, onFinish }) => {
 
     const [sessionReady, setSessionReady] = useState(false);
     const isLiveSessionRef = React.useRef(false);
+    // Revisión de un entreno ya guardado: { id, logs, original }. Al
+    // revisar no se tocan duración, kcal, cardio ni fecha, y si las series no
+    // cambian no se guarda nada (el 26-10 una revisión sin cambios dejó el
+    // entreno del día en 1 min y 6 kcal).
+    const reviewLogRef = React.useRef(null);
+    const [isReview, setIsReview] = useState(false);
 
     useEffect(() => {
         if (!STORAGE_KEY || !sessionReady) return;
@@ -164,6 +171,12 @@ const TrainingView = ({ workout, onFinish }) => {
                         });
 
                         setExerciseLogs(filteredLogs);
+                        reviewLogRef.current = {
+                            id: recentLog.id,
+                            logs: recentLog.logs,
+                            original: stableStringify(pickExerciseLogs(filteredLogs, activeWorkout)),
+                        };
+                        setIsReview(true);
                         const completed = {};
                         activeWorkout.exercises?.forEach(ex => {
                             if (filteredLogs[String(ex.id)]) completed[String(ex.id)] = true;
@@ -215,9 +228,11 @@ const TrainingView = ({ workout, onFinish }) => {
                 ? { ...completedExercises, [exerciseId]: true }
                 : completedExercises;
 
-            isLiveSessionRef.current = true;
+            // Una revisión no es una sesión en vivo: ni cronómetro nuevo ni
+            // sesión guardada para "retomar".
+            if (!reviewLogRef.current) isLiveSessionRef.current = true;
 
-            if (STORAGE_KEY) {
+            if (STORAGE_KEY && !reviewLogRef.current) {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify({
                     completedExercises: newCompleted,
                     exerciseLogs: newLogs,
@@ -354,6 +369,25 @@ const TrainingView = ({ workout, onFinish }) => {
 
             <button
                 onClick={async () => {
+                    const review = reviewLogRef.current;
+                    if (review) {
+                        const changed = pickExerciseLogs(exerciseLogs, activeWorkout);
+                        endWorkoutActivity();
+                        if (stableStringify(changed) === review.original) {
+                            onFinish(null);
+                            return;
+                        }
+                        // Solo cambian las series: duración, kcal y cardio se
+                        // quedan como estaban, y se guarda sobre esa misma fila.
+                        const { workoutDuration, cardio } = review.logs;
+                        onFinish({
+                            ...changed,
+                            ...(workoutDuration && { workoutDuration }),
+                            ...(cardio && { cardio }),
+                        }, review.id);
+                        return;
+                    }
+
                     setFinishing(true);
                     const endTime = Date.now();
 
@@ -489,8 +523,20 @@ const TrainingView = ({ workout, onFinish }) => {
                         : "bg-surface-highlight text-text-secondary opacity-50 grayscale cursor-not-allowed"
                 )}
             >
-                {finishing ? 'Guardando…' : 'Terminar Entrenamiento'}
+                {finishing ? 'Guardando…' : isReview ? 'Guardar revisión' : 'Terminar Entrenamiento'}
             </button>
+
+            {isReview && (
+                <button
+                    onClick={() => {
+                        endWorkoutActivity();
+                        onFinish(null);
+                    }}
+                    className="w-full py-3 font-medium rounded-xl bg-surface-highlight text-text-primary active:scale-95 transition-all"
+                >
+                    Cancelar revisión
+                </button>
+            )}
 
             {activeExercise && (
                 <ExerciseDetailModal

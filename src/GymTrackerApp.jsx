@@ -13,7 +13,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { NotificationsProvider } from './context/NotificationsContext';
 import { Dumbbell, Eye, EyeOff } from 'lucide-react';
 import { NotificationsListView } from './views/NotificationsListView';
-import { loadCompletedRoutines, saveWorkoutLog } from './lib/utils';
+import { loadCompletedRoutines, saveWorkoutLog, updateWorkoutLogSets } from './lib/utils';
 import { supabase } from './lib/supabase';
 import { TRAINER_ROLES, isTrainer } from './lib/constants';
 import { TrainerDashboardView } from './views/trainer/TrainerDashboardView';
@@ -400,7 +400,7 @@ const AuthenticatedApp = () => {
                 {view === 'training' && (
                     <TrainingView
                         workout={currentWorkout}
-                        onFinish={async (logs) => {
+                        onFinish={async (logs, reviewLogId) => {
                             if (currentWorkout) {
                                 localStorage.removeItem(`gymTracker_workout_${currentWorkout.id}`);
                                 // logs === null: relectura pasiva de una rutina ya
@@ -408,7 +408,9 @@ const AuthenticatedApp = () => {
                                 if (logs) {
                                     setCompletedRoutines(prev => [...new Set([...prev, currentWorkout.id])]);
                                     try {
-                                        await saveWorkoutLog(user?.id, currentWorkout.id, logs);
+                                        // Revisión: se reescribe esa fila sin tocar su fecha.
+                                        if (reviewLogId) await updateWorkoutLogSets(reviewLogId, logs);
+                                        else await saveWorkoutLog(user?.id, currentWorkout.id, logs);
                                         const refreshed = await loadCompletedRoutines(user?.id);
                                         setCompletedRoutines(refreshed);
                                     } catch {

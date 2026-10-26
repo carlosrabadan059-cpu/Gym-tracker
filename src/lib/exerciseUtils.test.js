@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isBodyweightExercise, isTimeBasedExercise, matchesCatalogSearch } from './exerciseUtils';
+import { isBodyweightExercise, isTimeBasedExercise, matchesCatalogSearch, pickExerciseLogs, stableStringify } from './exerciseUtils';
 
 describe('isBodyweightExercise', () => {
     describe('vía catalog_id (fuente de verdad)', () => {
@@ -105,5 +105,24 @@ describe('matchesCatalogSearch', () => {
     it('vacío lo muestra todo', () => {
         expect(matchesCatalogSearch(ex(5, 'Curl'), '')).toBe(true);
         expect(matchesCatalogSearch(ex(5, 'Curl'), '   ')).toBe(true);
+    });
+});
+
+describe('pickExerciseLogs + stableStringify (revisión sin cambios)', () => {
+    const workout = { exercises: [{ id: 1 }, { id: 2 }] };
+
+    it('se queda solo con los ejercicios de la rutina', () => {
+        const logs = { 1: { a: 1 }, 2: { b: 2 }, 3: { c: 3 }, workoutDuration: {}, cardio: {} };
+        expect(pickExerciseLogs(logs, workout)).toEqual({ 1: { a: 1 }, 2: { b: 2 } });
+    });
+
+    it('mismo contenido en distinto orden da el mismo texto', () => {
+        const a = { 1: { setsData: { 0: { reps: '12', weight: '20' } }, completedSets: { 0: true } } };
+        const b = { 1: { completedSets: { 0: true }, setsData: { 0: { weight: '20', reps: '12' } } } };
+        expect(stableStringify(a)).toBe(stableStringify(b));
+    });
+
+    it('un peso distinto cambia el texto', () => {
+        expect(stableStringify({ w: '20' })).not.toBe(stableStringify({ w: '25' }));
     });
 });

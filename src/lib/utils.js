@@ -147,6 +147,18 @@ export async function saveWorkoutLog(userId, routineId, logs) {
     }
 }
 
+/**
+ * Guarda una revisión sobre la fila que se revisó, sin cambiar su fecha
+ * (saveWorkoutLog busca el entreno de hoy y le pone la hora actual).
+ */
+export async function updateWorkoutLogSets(logId, logs) {
+    const { error } = await supabase.from('workout_logs').update({ logs }).eq('id', logId);
+    if (error) {
+        console.error("Error saving reviewed workout log to Supabase:", error);
+        throw error;
+    }
+}
+
 export async function loadWorkoutLogs(userId) {
     if (!userId) return [];
 

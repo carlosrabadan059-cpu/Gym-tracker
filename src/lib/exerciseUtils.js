@@ -38,3 +38,18 @@ export function matchesCatalogSearch(exercise, search) {
     if (idQuery) return String(exercise.id) === String(Number(idQuery[1]));
     return (exercise.name || '').toLowerCase().includes(q);
 }
+
+/** Solo las series de los ejercicios de la rutina (sin workoutDuration ni cardio). */
+export function pickExerciseLogs(logs, workout) {
+    const ids = new Set(workout?.exercises?.map(ex => String(ex.id)) || []);
+    return Object.fromEntries(Object.entries(logs || {}).filter(([id]) => ids.has(String(id))));
+}
+
+/** JSON con las claves ordenadas: dos logs iguales dan el mismo texto aunque se construyeran en otro orden. */
+export function stableStringify(value) {
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+    if (value && typeof value === 'object') {
+        return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+}
