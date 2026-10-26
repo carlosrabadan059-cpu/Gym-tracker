@@ -220,7 +220,7 @@ const AuthenticatedApp = () => {
     const updateAvailable = useAppUpdate();
 
     const [view, setView] = useState('setup'); // setup, dashboard, training, progress, chat, profile, trainer
-    const { user, profile, loading } = useAuth();
+    const { user, profile, loading, offline, retry } = useAuth();
     const [currentWorkout, setCurrentWorkout] = useState(null);
     const [completedRoutines, setCompletedRoutines] = useState([]);
     const [currentClient, setCurrentClient] = useState(null); // Added for trainer views
@@ -314,6 +314,15 @@ const AuthenticatedApp = () => {
     };
 
     if (loading) return <div className="h-screen w-screen bg-background flex items-center justify-center text-primary">Cargando...</div>;
+    if (offline) {
+        return (
+            <div className="h-screen w-screen bg-background flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <p className="text-lg font-bold text-text-primary">Sin conexión con el servidor</p>
+                <p className="text-sm text-text-secondary">Comprueba los datos móviles o la wifi y vuelve a intentarlo.</p>
+                <button onClick={retry} className="px-6 py-3 rounded-xl bg-primary text-white font-bold">Reintentar</button>
+            </div>
+        );
+    }
     if (!user) return <LoginView />;
 
     // Mientras el perfil carga o se procesa la redirección, mostrar pantalla de carga
