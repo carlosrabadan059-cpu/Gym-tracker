@@ -6,11 +6,8 @@ import { repsForSet } from '../lib/repScheme';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Returns 'YYYY-MM-DD' for input[type=date] */
-const toDateInput = (isoStr) => isoStr.split('T')[0];
-
-/** Returns today's date as 'YYYY-MM-DD' */
-const todayInput = () => toDateInput(new Date().toISOString());
+/** Returns today's local date as 'YYYY-MM-DD' (toISOString daría el día UTC: de 0 a 1-2 h aún sería ayer) */
+const todayInput = () => new Date().toLocaleDateString('en-CA');
 
 // ─── Step 1: Select routine + date ─────────────────────────────────────────
 
@@ -173,11 +170,9 @@ export function RetroactiveWorkoutModal({ routines, onClose, onSaved }) {
 
     const [step, setStep] = useState(0);
     const [selectedRoutine, setSelectedRoutine] = useState(null);
-    const [selectedDate, setSelectedDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 1);
-        return toDateInput(d.toISOString());
-    });
+    // Hoy por defecto: con "ayer" el 26-10 un entreno de hoy se guardó en el
+    // 25 sin que se notara.
+    const [selectedDate, setSelectedDate] = useState(todayInput);
     const [logsData, setLogsData] = useState({});
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
