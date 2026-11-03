@@ -25,6 +25,17 @@ enum WorkoutKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// SF Symbol del tipo, como los de la app Entreno de Apple.
+    var symbol: String {
+        switch self {
+        case .andar: "figure.walk"
+        case .correr: "figure.run"
+        case .eliptica: "figure.elliptical"
+        case .bici: "figure.indoor.cycle"
+        case .fuerza: "figure.strengthtraining.traditional"
+        }
+    }
+
     /// Para reconstruir el tipo al recuperar una sesión huérfana, donde lo
     /// único que queda es el activityType de su configuración.
     init?(activityType: HKWorkoutActivityType) {

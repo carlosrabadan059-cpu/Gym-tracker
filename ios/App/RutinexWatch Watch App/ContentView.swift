@@ -23,8 +23,10 @@ struct StartView: View {
     var body: some View {
         List {
             ForEach(WorkoutKind.allCases) { kind in
-                Button(kind.rawValue) {
+                Button {
                     Task { await workout.start(kind) }
+                } label: {
+                    KindLabel(kind: kind)
                 }
                 .disabled(workout.isBusy)
             }
@@ -48,7 +50,7 @@ struct WorkoutView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 8) {
-                Text(kind.rawValue)
+                KindLabel(kind: kind)
                     .font(.headline)
 
                 if let start = workout.startDate {
@@ -83,6 +85,20 @@ struct WorkoutView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// Nombre del entreno con su icono en verde, como en la app Entreno.
+struct KindLabel: View {
+    let kind: WorkoutKind
+
+    var body: some View {
+        Label {
+            Text(kind.rawValue)
+        } icon: {
+            Image(systemName: kind.symbol)
+                .foregroundStyle(.green)
         }
     }
 }
