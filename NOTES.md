@@ -11,5 +11,7 @@ Controles: prioridad (historial / entrenador) y atenuado del peso precargado (s�
 - La sugerencia de subida sigue aparte en la tarjeta "Última vez"; no se aplica sola.
 
 ## Veredicto
-Pendiente: prioridad historial vs entrenador, y si se mantiene el atenuado.
-Lógica candidata: `buildInitialSets` (main del prototipo) -> `src/lib/progression.js`.
+Aprobado (2026-11-04). Manda el historial, salvo que el entrenador haya
+cambiado el objetivo después de la última sesión (o haya progresión semanal o
+no haya historial). El atenuado se mantiene. Implementado en `main` como
+`prefillWeights` en `src/lib/progression.js` (`8a3905e`, `7f53887`).
