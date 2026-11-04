@@ -1,6 +1,6 @@
 // src/lib/progression.test.js
 import { describe, it, expect } from 'vitest';
-import { suggestSetWeights } from './progression';
+import { suggestSetWeights, prefillWeights } from './progression';
 
 const log = (sets) => ({ setsData: Object.fromEntries(sets.map((s, i) => [String(i), s])) });
 
@@ -29,5 +29,29 @@ describe('suggestSetWeights', () => {
         expect(suggestSetWeights(log([{ weight: '60', reps: '12', rpe: 8 }]), '12-10', 2)[1]).toBeNull();
         expect(suggestSetWeights(null, '12-10', 2)).toEqual([null, null]);
         expect(suggestSetWeights(log([{ weight: '', reps: '12' }]), '12', 1)).toEqual([null]);
+    });
+});
+
+describe('prefillWeights', () => {
+    const last = log([{ weight: '60', reps: '10' }, { weight: '57.5', reps: '8' }]);
+
+    it('uses the same set from last time', () => {
+        expect(prefillWeights({ series: 2 }, last)).toEqual(['60', '57.5']);
+    });
+
+    it('repeats the last recorded weight for extra sets', () => {
+        expect(prefillWeights({ series: 4 }, last)).toEqual(['60', '57.5', '57.5', '57.5']);
+    });
+
+    it('trainer target wins over history', () => {
+        expect(prefillWeights({ series: 2, target_weight: 70 }, last)).toEqual(['70', '70']);
+    });
+
+    it('is empty without history or target', () => {
+        expect(prefillWeights({ series: 2 }, null)).toEqual(['', '']);
+    });
+
+    it('defaults to 3 sets', () => {
+        expect(prefillWeights({}, last)).toHaveLength(3);
     });
 });

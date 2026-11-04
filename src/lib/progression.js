@@ -116,3 +116,23 @@ export function suggestSetWeights(lastLog, reps, series) {
         };
     });
 }
+
+/**
+ * Pesos con los que arranca cada serie al abrir un ejercicio. Prioridad: el
+ * objetivo del entrenador (`target_weight`); si no hay, el peso de la misma
+ * serie la última vez; si esa serie no existía, el de la última serie
+ * registrada. Sin ninguno, cadena vacía. No aplica la sugerencia de subida.
+ *
+ * @param {{ target_weight?: number|string|null, series?: number|string, reps?: string }} exercise
+ * @param {{ setsData: object } | null} lastLog
+ * @returns {string[]} un peso por serie ('' si no hay)
+ */
+export function prefillWeights(exercise, lastLog) {
+    const count = parseInt(exercise.series, 10) || 3;
+    const coach = exercise.target_weight != null ? String(exercise.target_weight) : '';
+    const last = lastLog?.setsData || {};
+    const weightOf = (i) => (parseFloat(last[i]?.weight) > 0 ? String(last[i].weight) : '');
+    const recorded = Object.keys(last).map(Number).sort((a, b) => a - b).map(weightOf).filter(Boolean);
+    const fallback = recorded[recorded.length - 1] || '';
+    return Array.from({ length: count }, (_, i) => coach || weightOf(i) || fallback);
+}

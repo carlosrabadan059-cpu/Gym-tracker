@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { calculateCaloriesByVolume } from '../lib/routineUtils';
 import { estimate1RM, RPE_OPTIONS } from '../lib/plates';
-import { suggestNextWeight } from '../lib/progression';
+import { suggestNextWeight, prefillWeights } from '../lib/progression';
 import { isPyramid, repsForSet } from '../lib/repScheme';
 import { isBodyweightExercise, isTimeBasedExercise } from '../lib/exerciseUtils';
 import { useAuth } from '../context/AuthContext';
@@ -76,19 +76,43 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         }
         const initial = {};
         const count = parseInt(exercise.series) || 3;
-        // Prefill del peso con el objetivo del entrenador si lo hay (Fase 1).
-        const prefillWeight = exercise.target_weight != null ? String(exercise.target_weight) : '';
+        const weights = prefillWeights(exercise, isBodyweight || isTimeBased ? null : lastLog);
         for (let i = 0; i < count; i++) {
-            // El peso de la última vez no se copia a las series: se ve como
-            // referencia en "Última vez" y el cliente escribe el de hoy.
             initial[i] = {
-                weight: prefillWeight,
+                weight: weights[i],
                 reps: pyramid ? String(repsForSet(exercise.reps, i)) : (exercise.reps || '10'),
             };
         }
         return initial;
     });
+    // Series cuyo peso viene precargado (última vez / entrenador) y el usuario
+    // aún no ha tocado ni confirmado: se pintan atenuadas. No se guarda.
+    const [prefilledSets, setPrefilledSets] = useState(() => {
+        if (initialLog?.setsData) return {};
+        const out = {};
+        Object.entries(setsData).forEach(([i, s]) => { if (s.weight) out[i] = true; });
+        return out;
+    });
     const [inputErrors, setInputErrors] = useState({});
+
+    // El historial llega de forma asíncrona: si el modal ya estaba abierto,
+    // rellena solo las series sin peso y sin completar.
+    useEffect(() => {
+        if (!lastLog || initialLog?.setsData || isBodyweight || isTimeBased) return;
+        const weights = prefillWeights(exercise, lastLog);
+        const filled = {};
+        const next = { ...setsData };
+        Object.keys(next).forEach(i => {
+            if (!next[i]?.weight && !completedSets[i] && weights[i]) {
+                next[i] = { ...next[i], weight: weights[i] };
+                filled[i] = true;
+            }
+        });
+        if (!Object.keys(filled).length) return;
+        setSetsData(next);
+        setPrefilledSets(p => ({ ...p, ...filled }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lastLog]);
 
     const audioCtxRef = useRef(null);
     const beepFiredRef = useRef(false);
@@ -286,6 +310,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                 if (field === 'reps')   sanitized = String(Math.min(Math.max(Math.trunc(num), 1), 300));
             }
         }
+        if (field === 'weight') setPrefilledSets(prev => ({ ...prev, [index]: false }));
         setSetsData(prev => ({
             ...prev,
             [index]: { ...prev[index], [field]: sanitized }
@@ -323,6 +348,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
         }
 
         const isCompleting = !completedSets[index];
+        setPrefilledSets(prev => ({ ...prev, [index]: false }));
 
         setCompletedSets(prev => ({
             ...prev,
@@ -933,7 +959,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                               <div className="flex items-center gap-3">
                                 <span className="w-8 text-center font-bold text-text-secondary">{i + 1}</span>
                                 {!isBodyweight && !isTimeBased && (
-                                    <div className={`flex-1 rounded-xl bg-background border px-4 py-3 flex items-center gap-2 transition-colors ${inputErrors[i] ? 'border-red-500 bg-red-500/10' : 'border-surface-highlight'
+                                    <div className={`flex-1 rounded-xl bg-background border px-4 py-3 flex items-center gap-2 transition-colors ${inputErrors[i] ? 'border-red-500 bg-red-500/10' : prefilledSets[i] ? 'border-amber-500/40' : 'border-surface-highlight'
                                         }`}>
                                         <input
                                             type="number"
@@ -942,7 +968,7 @@ export const ExerciseDetailModal = ({ exercise, initialLog, lastLog, bestOneRm =
                                             max="500"
                                             value={setsData[i]?.weight || ''}
                                             onChange={(e) => handleInputChange(i, 'weight', e.target.value)}
-                                            className="w-full bg-transparent text-black dark:text-white placeholder-text-secondary focus:outline-none text-right font-mono"
+                                            className={`w-full bg-transparent placeholder-text-secondary focus:outline-none text-right font-mono ${prefilledSets[i] ? 'text-text-secondary italic' : 'text-black dark:text-white'}`}
                                         />
                                         <span className="text-xs text-text-secondary">kg</span>
                                     </div>
