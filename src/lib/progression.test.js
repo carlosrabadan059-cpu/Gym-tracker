@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { suggestSetWeights, prefillWeights } from './progression';
 
-const log = (sets) => ({ setsData: Object.fromEntries(sets.map((s, i) => [String(i), s])) });
+const log = (sets, date = '2026-11-01T10:00:00Z') => ({ date, setsData: Object.fromEntries(sets.map((s, i) => [String(i), s])) });
 
 describe('suggestSetWeights', () => {
     it('raises only the sets that reached their reps without RPE 9+', () => {
@@ -43,8 +43,27 @@ describe('prefillWeights', () => {
         expect(prefillWeights({ series: 4 }, last)).toEqual(['60', '57.5', '57.5', '57.5']);
     });
 
-    it('trainer target wins over history', () => {
-        expect(prefillWeights({ series: 2, target_weight: 70 }, last)).toEqual(['70', '70']);
+    it('trainer target wins when changed after the last session', () => {
+        const ex = { series: 2, target_weight: 70, target_weight_updated_at: '2026-11-02T08:00:00Z' };
+        expect(prefillWeights(ex, last)).toEqual(['70', '70']);
+    });
+
+    it('history wins when the target is older than the last session', () => {
+        const ex = { series: 2, target_weight: 70, target_weight_updated_at: '2026-10-20T08:00:00Z' };
+        expect(prefillWeights(ex, last)).toEqual(['60', '57.5']);
+    });
+
+    it('history wins when the target has no known change date', () => {
+        expect(prefillWeights({ series: 2, target_weight: 70 }, last)).toEqual(['60', '57.5']);
+    });
+
+    it('trainer target is used without history', () => {
+        expect(prefillWeights({ series: 2, target_weight: 70 }, null)).toEqual(['70', '70']);
+    });
+
+    it('trainer target wins with a weekly progression', () => {
+        const ex = { series: 2, target_weight: 70, weekly_progression: [{ week: 1 }] };
+        expect(prefillWeights(ex, last)).toEqual(['70', '70']);
     });
 
     it('is empty without history or target', () => {

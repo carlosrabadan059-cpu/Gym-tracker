@@ -118,13 +118,30 @@ export function suggestSetWeights(lastLog, reps, series) {
 }
 
 /**
- * Pesos con los que arranca cada serie al abrir un ejercicio. Prioridad: el
- * objetivo del entrenador (`target_weight`); si no hay, el peso de la misma
- * serie la última vez; si esa serie no existía, el de la última serie
- * registrada. Sin ninguno, cadena vacía. No aplica la sugerencia de subida.
+ * ¿Manda el objetivo del entrenador sobre el peso de la última sesión? Sí si
+ * no hay sesión previa, si el ejercicio sigue una progresión por semanas (el
+ * objetivo cambia solo con el calendario) o si se fijó/cambió después de la
+ * última sesión. Si no, el cliente ya entrenó con ese objetivo (o con otro
+ * peso por decisión propia) y manda su última sesión.
+ */
+function coachWins(exercise, lastLog) {
+    if (exercise.target_weight == null) return false;
+    if (!lastLog?.date) return true;
+    if (Array.isArray(exercise.weekly_progression) && exercise.weekly_progression.length > 0) return true;
+    const updated = Date.parse(exercise.target_weight_updated_at);
+    return Number.isFinite(updated) && updated > Date.parse(lastLog.date);
+}
+
+/**
+ * Pesos con los que arranca cada serie al abrir un ejercicio. Si el
+ * entrenador cambió el objetivo tras la última sesión (`coachWins`), ese
+ * objetivo; si no, el peso de la misma serie la última vez, y si esa serie no
+ * existía, el de la última serie registrada. Sin historial, el objetivo del
+ * entrenador si lo hay. Si no hay nada, cadena vacía. No aplica la sugerencia
+ * de subida.
  *
- * @param {{ target_weight?: number|string|null, series?: number|string, reps?: string }} exercise
- * @param {{ setsData: object } | null} lastLog
+ * @param {{ target_weight?: number|string|null, target_weight_updated_at?: string|null, weekly_progression?: Array|null, series?: number|string }} exercise
+ * @param {{ setsData: object, date?: string } | null} lastLog
  * @returns {string[]} un peso por serie ('' si no hay)
  */
 export function prefillWeights(exercise, lastLog) {
@@ -134,5 +151,6 @@ export function prefillWeights(exercise, lastLog) {
     const weightOf = (i) => (parseFloat(last[i]?.weight) > 0 ? String(last[i].weight) : '');
     const recorded = Object.keys(last).map(Number).sort((a, b) => a - b).map(weightOf).filter(Boolean);
     const fallback = recorded[recorded.length - 1] || '';
-    return Array.from({ length: count }, (_, i) => coach || weightOf(i) || fallback);
+    const useCoach = coachWins(exercise, recorded.length ? lastLog : null);
+    return Array.from({ length: count }, (_, i) => (useCoach ? coach : weightOf(i) || fallback || coach));
 }
