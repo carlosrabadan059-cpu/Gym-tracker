@@ -11,6 +11,15 @@
 //    JS no programa la notificación local, para no avisar dos veces.
 //  - getHeartRate: última muestra de pulso que mandó el Watch. Llega en vivo,
 //    sin el retraso de sincronización de HealthKit.
+//
+//  isReachable cae a ratos aunque el Watch tenga la fuerza en marcha (16-11:
+//  sesión viva de 10:56 a 12:11 y ningún descanso llegó). Por eso, sin
+//  conexión en vivo, el descanso va por transferUserInfo (lo entrega el
+//  sistema en cuanto puede) y el estado de fuerza se lee del
+//  applicationContext que publica el Watch. Todo queda en Documents/watchbridge.log:
+//    xcrun devicectl device copy from --device <id del iPhone> \
+//      --domain-type appDataContainer --domain-identifier com.rutinex.app \
+//      --source Documents/watchbridge.log --destination watchbridge.log
 
 import Foundation
 import Capacitor
@@ -47,35 +56,62 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
         return session
     }
 
+    /// Sesión activada con el Watch y su app instalada, alcanzable o no.
+    private var installedSession: WCSession? {
+        guard WCSession.isSupported() else { return nil }
+        let session = WCSession.default
+        guard session.activationState == .activated,
+              session.isPaired,
+              session.isWatchAppInstalled else { return nil }
+        return session
+    }
+
+    private func sessionState() -> String {
+        guard WCSession.isSupported() else { return "sin WCSession" }
+        let s = WCSession.default
+        return "activation=\(s.activationState.rawValue) paired=\(s.isPaired) installed=\(s.isWatchAppInstalled) reachable=\(s.isReachable)"
+    }
+
     @objc func restStart(_ call: CAPPluginCall) {
         guard let endDate = call.getDouble("endDate") else {
             call.reject("Falta endDate")
             return
         }
-        if WCSession.isSupported() {
-            let s = WCSession.default
-            CAPLog.print("[WatchBridge] restStart activation=\(s.activationState.rawValue) paired=\(s.isPaired) installed=\(s.isWatchAppInstalled) reachable=\(s.isReachable)")
-        }
+        let message: [String: Any] = ["type": "restStart", "endDate": endDate]
+        BridgeLog.add("restStart \(sessionState())")
         guard let session = reachableSession else {
+            // Sin confirmación: avisa también el iPhone. Si el iPhone está
+            // bloqueado puede vibrar dos veces; mejor eso que ninguna.
+            if let session = installedSession {
+                session.transferUserInfo(message)
+                BridgeLog.add("restStart por transferUserInfo")
+            }
             call.resolve(["delivered": false])
             return
         }
         session.sendMessage(
-            ["type": "restStart", "endDate": endDate],
+            message,
             replyHandler: { reply in
-                CAPLog.print("[WatchBridge] restStart reply=\(reply)")
+                BridgeLog.add("restStart reply=\(reply)")
                 call.resolve(["delivered": reply["ok"] as? Bool ?? false])
             },
             errorHandler: { error in
-                CAPLog.print("[WatchBridge] restStart error=\(error.localizedDescription)")
+                // Repetir un restStart no hace daño: el Watch reemplaza el descanso.
+                BridgeLog.add("restStart error=\(error.localizedDescription); va por transferUserInfo")
+                session.transferUserInfo(message)
                 call.resolve(["delivered": false])
             }
         )
     }
 
     @objc func restCancel(_ call: CAPPluginCall) {
-        // Sin conexión no hay nada que cancelar: el Watch no recibió el inicio.
-        reachableSession?.sendMessage(["type": "restCancel"], replyHandler: nil, errorHandler: nil)
+        let message = ["type": "restCancel"]
+        if let session = reachableSession {
+            session.sendMessage(message, replyHandler: nil) { _ in session.transferUserInfo(message) }
+        } else {
+            // Puede ir detrás de un restStart encolado: la cola es FIFO.
+            installedSession?.transferUserInfo(message)
+        }
         call.resolve()
     }
 
@@ -90,8 +126,11 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
             call.resolve(["paired": false, "strength": false])
             return
         }
+        // Lo último que publicó el Watch; vale cuando no contesta en vivo.
+        let published = WCSession.default.receivedApplicationContext["strength"] as? Bool ?? false
         guard let session = reachableSession else {
-            call.resolve(["paired": true, "strength": false])
+            BridgeLog.add("status sin conexión, contexto strength=\(published)")
+            call.resolve(["paired": true, "strength": published])
             return
         }
         session.sendMessage(
@@ -99,7 +138,10 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
             replyHandler: { reply in
                 call.resolve(["paired": true, "strength": reply["strength"] as? Bool ?? false])
             },
-            errorHandler: { _ in call.resolve(["paired": true, "strength": false]) }
+            errorHandler: { error in
+                BridgeLog.add("status error=\(error.localizedDescription), contexto strength=\(published)")
+                call.resolve(["paired": true, "strength": published])
+            }
         )
     }
 
@@ -121,9 +163,16 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
     }
 
     public func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
-        if let error = error {
-            CAPLog.print("[WatchBridge] Activación fallida: \(error.localizedDescription)")
-        }
+        BridgeLog.add("activación \(activationState.rawValue)\(error.map { " error=\($0.localizedDescription)" } ?? "")")
+    }
+
+    public func sessionReachabilityDidChange(_ session: WCSession) {
+        BridgeLog.add("alcanzable=\(session.isReachable)")
+    }
+
+    public func session(_ session: WCSession, didFinish userInfoTransfer: WCSessionUserInfoTransfer, error: Error?) {
+        let type = userInfoTransfer.userInfo["type"] as? String ?? "?"
+        BridgeLog.add("transferUserInfo \(type) \(error.map { "falla: \($0.localizedDescription)" } ?? "entregado")")
     }
 
     public func sessionDidBecomeInactive(_ session: WCSession) {}
@@ -131,5 +180,37 @@ public class WatchBridgePlugin: CAPPlugin, CAPBridgedPlugin, WCSessionDelegate {
     // Cambio de Watch emparejado: hay que reactivar para hablar con el nuevo.
     public func sessionDidDeactivate(_ session: WCSession) {
         session.activate()
+    }
+}
+
+/// Registro en fichero del lado iPhone; el del Watch es EventLog.
+enum BridgeLog {
+    private static let url = FileManager.default
+        .urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("watchbridge.log")
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "dd-MM HH:mm:ss.SSS"
+        return f
+    }()
+    private static let queue = DispatchQueue(label: "BridgeLog")
+    // ponytail: recorte a lo bruto por tamaño, como EventLog.
+    private static let maxBytes = 200_000
+
+    static func add(_ event: String) {
+        let line = "\(formatter.string(from: Date())) \(event)\n"
+        CAPLog.print("[WatchBridge] \(event)")
+        queue.async {
+            guard let data = line.data(using: .utf8) else { return }
+            if let handle = try? FileHandle(forWritingTo: url) {
+                defer { try? handle.close() }
+                if let size = try? handle.seekToEnd(), size > maxBytes {
+                    try? handle.truncate(atOffset: 0)
+                }
+                try? handle.write(contentsOf: data)
+            } else {
+                try? data.write(to: url)
+            }
+        }
     }
 }

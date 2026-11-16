@@ -149,6 +149,7 @@ final class WorkoutManager: NSObject, ObservableObject {
             self.builder = builder
             kind = recoveredKind
             startDate = recovered.startDate
+            publishState()
         } catch {
             EventLog.add("recuperar falla: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
@@ -299,6 +300,21 @@ final class WorkoutManager: NSObject, ObservableObject {
         heartRate = nil
         calorieBase = 0
         errorMessage = message ?? errorMessage
+        publishState()
+    }
+
+    /// El iPhone lee esto cuando no hay conexión en vivo para saber si hay
+    /// fuerza en marcha. A diferencia de sendMessage, el sistema lo entrega
+    /// aunque ninguna de las dos apps esté alcanzable.
+    private func publishState() {
+        let wc = WCSession.default
+        guard wc.activationState == .activated else { return }
+        let strength = session?.state == .running && kind == .fuerza
+        do {
+            try wc.updateApplicationContext(["strength": strength, "at": Date().timeIntervalSince1970])
+        } catch {
+            EventLog.add("publicar estado falla: \(error.localizedDescription)")
+        }
     }
 
     /// Espera a que la sesión esté de verdad cerrada antes de seguir. Se
@@ -371,14 +387,22 @@ final class WorkoutManager: NSObject, ObservableObject {
     }
 
     /// Devuelve la respuesta para el iPhone.
-    private func handle(type: String?, endDate endMs: Double?) -> [String: Any] {
+    private func handle(type: String?, endDate endMs: Double?, via: String) -> [String: Any] {
+        if type != "status" { EventLog.add("recibe \(type ?? "?") por \(via)") }
         switch type {
         case "restStart":
             guard let session, session.state == .running, let endMs else {
                 EventLog.add("descanso rechazado (sesión \(session.map { "\($0.state.rawValue)" } ?? "ninguna"))")
                 return ["ok": false]
             }
-            startRest(until: Date(timeIntervalSince1970: endMs / 1000))
+            let end = Date(timeIntervalSince1970: endMs / 1000)
+            // Por transferUserInfo puede llegar tarde: un descanso ya acabado
+            // no se enseña ni vibra.
+            guard end > Date() else {
+                EventLog.add("descanso ya acabado, se ignora")
+                return ["ok": false]
+            }
+            startRest(until: end)
             return ["ok": true]
         case "restCancel":
             cancelRest()
@@ -417,6 +441,9 @@ extension WorkoutManager: HKWorkoutSessionDelegate {
         Task { @MainActor in
             let isCurrent = self.session.map { ObjectIdentifier($0) == changed } ?? false
             EventLog.add("estado \(EventLog.id(dead)) \(fromState.rawValue)→\(toState.rawValue)\(isCurrent ? "" : " (no es la actual)")")
+            // La sesión pasa a running después de begin(): es aquí donde hay
+            // fuerza en marcha de verdad.
+            if isCurrent { self.publishState() }
             guard toState == .ended || toState == .stopped,
                   isCurrent, !self.isEndingDeliberately else { return }
             await self.handleUnexpectedEnd(of: dead)
@@ -463,14 +490,32 @@ extension WorkoutManager: HKLiveWorkoutBuilderDelegate {
 // MARK: - WatchConnectivity
 
 extension WorkoutManager: WCSessionDelegate {
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {}
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        Task { @MainActor in
+            EventLog.add("WCSession activada \(activationState.rawValue)")
+            self.publishState()
+        }
+    }
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        let reachable = session.isReachable
+        Task { @MainActor in EventLog.add("iPhone alcanzable=\(reachable)") }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        let type = userInfo["type"] as? String
+        let endMs = userInfo["endDate"] as? Double
+        Task { @MainActor in
+            _ = self.handle(type: type, endDate: endMs, via: "userInfo")
+        }
+    }
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
         let type = message["type"] as? String
         let endMs = message["endDate"] as? Double
         nonisolated(unsafe) let reply = replyHandler
         Task { @MainActor in
-            reply(self.handle(type: type, endDate: endMs))
+            reply(self.handle(type: type, endDate: endMs, via: "mensaje"))
         }
     }
 
@@ -478,7 +523,7 @@ extension WorkoutManager: WCSessionDelegate {
         let type = message["type"] as? String
         let endMs = message["endDate"] as? Double
         Task { @MainActor in
-            _ = self.handle(type: type, endDate: endMs)
+            _ = self.handle(type: type, endDate: endMs, via: "mensaje")
         }
     }
 }
