@@ -4,7 +4,7 @@ import { isBodyweightExercise, isTimeBasedExercise } from '../../lib/exerciseUti
 import { ArrowLeft, Dumbbell, Calendar, Timer } from 'lucide-react';
 import { routines as staticRoutines } from '../../data/routines';
 import { rirFromRpe } from '../../lib/plates';
-import { sessionTotals } from '../../lib/utils';
+import { sessionTotals, formatHoursMinutes } from '../../lib/utils';
 
 const STATIC_ID_TO_NAME = {};
 staticRoutines.forEach(r => r.exercises.forEach(ex => {
@@ -103,7 +103,7 @@ export function WorkoutDetailPanel({ entry, onClose, showHealthData = false }) {
                         {totals?.minutes > 0 && (
                             <span className="flex items-center gap-1 text-xs text-text-secondary">
                                 <Timer size={11} />
-                                {totals.minutes} min
+                                {formatHoursMinutes(totals.minutes)}
                             </span>
                         )}
                     </div>

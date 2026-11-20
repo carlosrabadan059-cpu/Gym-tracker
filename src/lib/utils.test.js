@@ -5,7 +5,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // las funciones puras del módulo sin credenciales ni red.
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-const { enrichExercisesWithCatalog, getNextSaturdayExpiration, getWeekStart, sessionTotals } = await import('./utils');
+const { enrichExercisesWithCatalog, getNextSaturdayExpiration, getWeekStart, sessionTotals, formatHoursMinutes } = await import('./utils');
+
+describe('formatHoursMinutes', () => {
+    it('da hh:mm', () => {
+        expect(formatHoursMinutes(91)).toBe('01:31');
+        expect(formatHoursMinutes(5)).toBe('00:05');
+        expect(formatHoursMinutes(600)).toBe('10:00');
+        expect(formatHoursMinutes(null)).toBe('00:00');
+    });
+});
 
 describe('sessionTotals', () => {
     it('suma los minutos del cardio a los de fuerza y usa totalCalories', () => {

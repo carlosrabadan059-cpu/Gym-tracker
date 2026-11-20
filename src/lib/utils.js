@@ -246,6 +246,12 @@ export function sessionTotals(logs) {
     return { minutes: (d.durationMinutes || 0) + cardioMinutes, calories };
 }
 
+/** Minutos como "hh:mm" (91 → "01:31"). */
+export function formatHoursMinutes(minutes) {
+    const m = Math.max(0, Math.round(minutes || 0));
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
 /**
  * Carga la duración y kcal de la última vez que se completó una rutina,
  * para mostrarla como referencia hasta que se vuelva a hacer (tarjeta de

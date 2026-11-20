@@ -1,4 +1,5 @@
 import { Clock, Flame } from 'lucide-react';
+import { formatHoursMinutes } from '../../lib/utils';
 
 function formatRelativeDate(isoDate) {
     if (!isoDate) return '';
@@ -25,7 +26,7 @@ export function LastSessionCard({ summary }) {
             </span>
             <span className="flex items-center gap-1 text-sm font-bold text-text-primary">
                 <Clock size={13} className="text-text-secondary" />
-                {summary.durationMinutes} min
+                {formatHoursMinutes(summary.durationMinutes)}
             </span>
             {summary.totalCalories != null && (
                 <span className="flex items-center gap-1 text-sm font-bold text-text-primary">
