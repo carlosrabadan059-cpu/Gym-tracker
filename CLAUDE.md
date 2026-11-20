@@ -129,6 +129,13 @@ muestra del Watch y cae a HealthKit si no la hay.
 Si el Watch no tiene una sesión de fuerza en marcha, `TrainingView` avisa con un
 banner (`isWatchMissingStrength` -> `strengthStatus` -> mensaje `status`).
 
+**La conexión en vivo se corta a ratos** (`isReachable` cae cada pocos segundos
+algunos días, con la fuerza en marcha). Sin conexión, el estado de fuerza se lee
+del `applicationContext` que publica el Watch y los descansos van por
+`transferUserInfo`. Cada lado deja un registro (`watchbridge.log` en el iPhone,
+`eventos.log` en el Watch) que se lee con `xcrun devicectl device copy from`.
+Ver la sección "Conexión intermitente" del spec.
+
 Cardio y fuerza son entrenos separados en el reloj, cada uno con su
 Terminar. **El botón "+" del Watch no vale**: junta los dos en un solo
 `HKWorkout` de un solo tipo, y el plugin de Health no lee los tramos. Al

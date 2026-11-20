@@ -83,10 +83,53 @@ Sigue el mismo patrón que `HomeWidgetPlugin`: registro manual en
   `pickLiveHeartRate` con `maxAgeMs` de 15 s. Si no hay, lee HealthKit como
   hoy.
 
+## Conexión intermitente (añadido 2026-11-16, validado 2026-11-17)
+
+Algunos días `WCSession.isReachable` cae en el iPhone cada pocos segundos
+durante todo el entreno, aunque la sesión de fuerza del Watch siga viva. El
+16-11 no llegó ningún descanso y el iPhone avisaba de "fuerza no activa". Otros
+días (18-11, 19-11) la conexión aguanta entera. No se sabe por qué.
+
+Respaldo (`5d5b65c`):
+
+- **Estado de fuerza:** el Watch publica `{ strength, at }` con
+  `updateApplicationContext` cada vez que cambia el estado de la sesión, al
+  recuperar una sesión huérfana y al activar `WCSession`. Si `status` no
+  contesta en vivo, `strengthStatus` usa ese valor.
+- **Descansos:** sin conexión en vivo, o si `sendMessage` falla, `restStart` y
+  `restCancel` van por `transferUserInfo`. La cola es FIFO, así que un
+  `restCancel` no adelanta al `restStart` anterior. Repetir un `restStart` no
+  hace daño, porque el Watch reemplaza el descanso. Un descanso que llega ya
+  acabado se ignora.
+- El iPhone devuelve `delivered: false` en ese caso y programa también su
+  aviso local. Con el iPhone bloqueado puede vibrar dos veces.
+
+Resultado el 17-11: 12 descansos por mensaje y 15 por `transferUserInfo`,
+todos entregados, y Carlos los vio en el reloj.
+
+**Registros**, para diagnosticar sin Xcode:
+
+- iPhone: `Documents/watchbridge.log` de `com.rutinex.app`. Apunta los cambios
+  de alcance, cada `restStart` con el estado de la sesión y su respuesta, cada
+  `status` sin conexión y las entregas de `transferUserInfo`.
+- Watch: `Documents/eventos.log` de `com.rutinex.app.watchkitapp`. Apunta cada
+  mensaje recibido y por qué vía, los cambios de alcance y la vida de las
+  sesiones.
+
+```bash
+xcrun devicectl device copy from --device <id> --domain-type appDataContainer \
+  --domain-identifier com.rutinex.app[.watchkitapp] \
+  --source Documents/<log> --destination <log>
+```
+
+Reinstalar la app del Watch con una firma nueva borra su `eventos.log`. Hay
+que leerlo antes de renovar.
+
 ## Errores
 
-- Watch no emparejado, sin conexión o sin entreno: `delivered: false` y se
-  usa la notificación local de siempre.
+- Watch no emparejado o sin entreno: `delivered: false` y se usa la
+  notificación local de siempre. Sin conexión en vivo, además, el descanso va
+  por `transferUserInfo` (ver arriba).
 - Cualquier fallo del puente se registra y se sigue. El registro del entreno
   nunca se bloquea.
 
