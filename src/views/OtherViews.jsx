@@ -3,7 +3,7 @@ import { Card } from '../components/ui/Card';
 import { Check, Flame, Clock, Watch, Dumbbell, HeartPulse } from 'lucide-react';
 import { isWatchMissingStrength } from '../lib/watchBridge';
 import { getRoutineIcon, calculateRealCalories, getAverageWorkoutMET, resolveCardioCalories } from '../lib/routineUtils';
-import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary, loadExerciseBest1RM, getWeekStart } from '../lib/utils';
+import { cn, loadWorkoutLogs, loadLastExerciseLog, loadLastExerciseLogGlobal, loadLastRoutineSummary, loadExerciseBest1RM, getWeekStart, sessionTotals } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
 import { LastSessionCard } from '../components/ui/LastSessionCard';
@@ -573,7 +573,7 @@ const TrainingView = ({ workout, onFinish }) => {
                             <div className="bg-background rounded-xl p-3 flex flex-col items-center gap-1">
                                 <Clock size={18} className="text-text-secondary" />
                                 <p className="text-lg font-bold text-text-primary">
-                                    {finishSummary.workoutDuration.durationMinutes} min
+                                    {sessionTotals(finishSummary).minutes} min
                                 </p>
                                 <p className="text-[11px] text-text-secondary">Duración</p>
                             </div>

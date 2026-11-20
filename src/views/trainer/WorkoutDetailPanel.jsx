@@ -4,6 +4,7 @@ import { isBodyweightExercise, isTimeBasedExercise } from '../../lib/exerciseUti
 import { ArrowLeft, Dumbbell, Calendar, Timer } from 'lucide-react';
 import { routines as staticRoutines } from '../../data/routines';
 import { rirFromRpe } from '../../lib/plates';
+import { sessionTotals } from '../../lib/utils';
 
 const STATIC_ID_TO_NAME = {};
 staticRoutines.forEach(r => r.exercises.forEach(ex => {
@@ -84,7 +85,7 @@ export function WorkoutDetailPanel({ entry, onClose, showHealthData = false }) {
             });
     }, [entry.logs, nameMap]);
 
-    const duration = entry.logs?.workoutDuration;
+    const totals = sessionTotals(entry.logs);
 
     return (
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
@@ -99,10 +100,10 @@ export function WorkoutDetailPanel({ entry, onClose, showHealthData = false }) {
                             <Calendar size={11} />
                             {new Date(entry.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                         </span>
-                        {duration?.durationMinutes > 0 && (
+                        {totals?.minutes > 0 && (
                             <span className="flex items-center gap-1 text-xs text-text-secondary">
                                 <Timer size={11} />
-                                {duration.durationMinutes} min
+                                {totals.minutes} min
                             </span>
                         )}
                     </div>
@@ -173,10 +174,10 @@ export function WorkoutDetailPanel({ entry, onClose, showHealthData = false }) {
                     })
                 )}
 
-                {showHealthData && duration?.realCalories > 0 && (
+                {showHealthData && totals?.calories > 0 && (
                     <div className="bg-primary/10 rounded-2xl p-4 border border-primary/20 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-text-primary">Calorías estimadas</span>
-                        <span className="text-lg font-black text-primary">{Math.round(duration.realCalories)} kcal</span>
+                        <span className="text-sm font-semibold text-text-primary">Calorías (fuerza + cardio)</span>
+                        <span className="text-lg font-black text-primary">{totals.calories} kcal</span>
                     </div>
                 )}
             </div>

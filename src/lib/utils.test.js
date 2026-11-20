@@ -5,7 +5,32 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // las funciones puras del módulo sin credenciales ni red.
 vi.mock('./supabase', () => ({ supabase: {} }));
 
-const { enrichExercisesWithCatalog, getNextSaturdayExpiration, getWeekStart } = await import('./utils');
+const { enrichExercisesWithCatalog, getNextSaturdayExpiration, getWeekStart, sessionTotals } = await import('./utils');
+
+describe('sessionTotals', () => {
+    it('suma los minutos del cardio a los de fuerza y usa totalCalories', () => {
+        // Fila real del 16-11: 75 min de fuerza + 16 de cinta.
+        const logs = {
+            cardio: { type: 'Andar en cinta', source: 'health', calories: 87, duration: 16 },
+            workoutDuration: { durationMinutes: 75, realCalories: 328, totalCalories: 415 },
+        };
+        expect(sessionTotals(logs)).toEqual({ minutes: 91, calories: 415 });
+    });
+
+    it('filas antiguas sin totalCalories: fuerza + kcal del cardio', () => {
+        const logs = {
+            cardio: { duration: 20, calories: 120 },
+            workoutDuration: { durationMinutes: 60, realCalories: 300.4 },
+        };
+        expect(sessionTotals(logs)).toEqual({ minutes: 80, calories: 420 });
+    });
+
+    it('sin cardio es solo la fuerza; sin resumen, null', () => {
+        expect(sessionTotals({ workoutDuration: { durationMinutes: 50, totalCalories: 250 } }))
+            .toEqual({ minutes: 50, calories: 250 });
+        expect(sessionTotals({})).toBeNull();
+    });
+});
 
 describe('enrichExercisesWithCatalog', () => {
     it('hereda name, image_url e instructions del catálogo maestro', () => {

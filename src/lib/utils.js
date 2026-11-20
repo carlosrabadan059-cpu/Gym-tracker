@@ -228,6 +228,25 @@ export async function loadLastExerciseLog(userId, routineId, exerciseId) {
 }
 
 /**
+ * Minutos y kcal de la sesión entera: fuerza + cardio. `durationMinutes` es
+ * solo el cronómetro de la fuerza en la app (el cardio se hace antes, como
+ * entreno aparte en el Watch); `totalCalories` ya suma las dos, pero las
+ * filas antiguas solo tienen `realCalories`.
+ *
+ * @param {object} logs `workout_logs.logs`
+ * @returns {{ minutes: number, calories: number | null } | null}
+ */
+export function sessionTotals(logs) {
+    const d = logs?.workoutDuration;
+    if (!d) return null;
+    const cardioMinutes = Number(logs.cardio?.duration) || 0;
+    const cardioCalories = Number(logs.cardio?.calories) || 0;
+    const calories = d.totalCalories
+        ?? (d.realCalories != null ? Math.round(d.realCalories) + cardioCalories : null);
+    return { minutes: (d.durationMinutes || 0) + cardioMinutes, calories };
+}
+
+/**
  * Carga la duración y kcal de la última vez que se completó una rutina,
  * para mostrarla como referencia hasta que se vuelva a hacer (tarjeta de
  * "última sesión"). Incluye la de hoy si es la única — se actualiza sola
@@ -257,11 +276,11 @@ export async function loadLastRoutineSummary(userId, routineId) {
         const row = data.find(r => (r.logs?.workoutDuration?.durationMinutes ?? 0) > 0);
         if (!row) return null;
         const summary = row.logs.workoutDuration;
+        const totals = sessionTotals(row.logs);
 
         return {
-            durationMinutes: summary.durationMinutes,
-            // Filas antiguas guardaban realCalories pero no totalCalories.
-            totalCalories: summary.totalCalories ?? summary.realCalories ?? null,
+            durationMinutes: totals.minutes,
+            totalCalories: totals.calories,
             caloriesSource: summary.caloriesSource,
             date: row.date,
         };
