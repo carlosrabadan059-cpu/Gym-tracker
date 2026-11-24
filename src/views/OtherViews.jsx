@@ -51,10 +51,18 @@ const TrainingView = ({ workout, onFinish }) => {
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
     const [finishing, setFinishing] = useState(false);
     const [watchMissing, setWatchMissing] = useState(false);
+    // true en cuanto el Watch ha tenido la fuerza en marcha en esta sesión. Si
+    // después deja de tenerla, casi siempre es que se pulsó Terminar en el
+    // reloj antes que aquí: se avisa de eso en vez de "no tiene la fuerza".
+    const [watchHadStrength, setWatchHadStrength] = useState(false);
     // Al entrar y cada 15 s: el aviso desaparece solo en cuanto arranca la fuerza en el reloj.
     useEffect(() => {
         let alive = true;
-        const check = () => isWatchMissingStrength().then(m => alive && setWatchMissing(m));
+        const check = () => isWatchMissingStrength().then(m => {
+            if (!alive) return;
+            setWatchMissing(m);
+            if (!m) setWatchHadStrength(true);
+        });
         check();
         const id = setInterval(check, 15000);
         return () => { alive = false; clearInterval(id); };
@@ -304,7 +312,13 @@ const TrainingView = ({ workout, onFinish }) => {
                 </div>
             </Card>
 
-            {watchMissing && (
+            {watchMissing && watchHadStrength && (
+                <div className="w-full flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/30 px-3 py-2 text-left text-xs text-primary">
+                    <Watch size={14} className="flex-shrink-0" />
+                    <span>Has terminado la fuerza en el Watch. Pulsa Terminar aquí para guardar el entreno.</span>
+                </div>
+            )}
+            {watchMissing && !watchHadStrength && (
                 <div className="w-full flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-left text-xs text-amber-600 dark:text-amber-400">
                     <Watch size={14} className="flex-shrink-0" />
                     <span>El Watch no tiene la fuerza en marcha: kcal estimadas y sin vibración de descanso. Empieza Fuerza en el reloj.</span>
